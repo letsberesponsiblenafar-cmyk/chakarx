@@ -17,7 +17,7 @@ export function priceTrip(input: PricingInputs) {
   const subtotalAfterMarkup = b2bCost + profit;
   const gst = subtotalAfterMarkup * 0.05;
   const sellingTotal = subtotalAfterMarkup + gst;
-  return { accommodation, vehicleDays, transport, other, b2bCost, profit, subtotalAfterMarkup, gst, sellingTotal, low: b2bCost * 0.95, high: b2bCost * 1.08 };
+  return { accommodation, vehicleDays, transport, other, b2bCost, profit, subtotalAfterMarkup, gst, sellingTotal, low: sellingTotal * 0.95, high: sellingTotal * 1.08 };
 }
 
 export function paymentAmounts(total: number, bookingPct: number, arrivalPct: number) {
