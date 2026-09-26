@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { createPlan, retargetDay, rebuildPlanFromNightSequence, type Plan, type TripInput } from '@/lib/itinerary';
 import { hotelDatabase as importedHotels, hotelCategories, mealOptions, transportOptions, travelStyles, interests, destinationByName, type Hotel } from '@/lib/data';
-import { firstHotelCandidate, roomsRequired, cnbChildren, extraBedsRequired, sameHotelDestination } from '@/lib/hotels';
+import { firstHotelCandidate, roomsRequired, cnbChildren, extraBedsRequired, sameHotelDestination, matchesPackageCategory } from '@/lib/hotels';
 
 export type HotelSelection = {
   location: string; hotelId: string; hotelName: string; category: string; starRating: number | null; address: string; roomType: string; website: string;
@@ -82,11 +82,7 @@ function selectionFromHotel(location: string, hotel: Hotel, nights: number, inpu
 }
 
 function selectionFallback(location: string, nights: number, input: TripInput, db: Hotel[]): HotelSelection {
-  const allowed = input.hotelCategory === 'Signature' ? ['Budget', '3 Star']
-    : input.hotelCategory === 'Signature Plus' ? ['3 Star Premium', '3 Star Deluxe']
-    : input.hotelCategory === 'Signature Premium' ? ['4 Star', '4 Star Deluxe', '4 Star Premium']
-    : input.hotelCategory === 'Elite' ? ['5 Star Basic', '5 Star Premium', '5 Star', 'Luxury'] : [];
-  const candidate = db.find((h) => sameHotelDestination(h.destination, location) && (!allowed.length || allowed.includes(h.normalizedCategory)));
+  const candidate = db.find((h) => sameHotelDestination(h.destination, location) && matchesPackageCategory(h, input.hotelCategory));
   if (candidate) return selectionFromHotel(location, candidate, nights, input);
   return {
     location, hotelId: '', hotelName: 'Hotel to be added', category: input.hotelCategory, starRating: null, address: '', roomType: '', website: '',
@@ -96,12 +92,7 @@ function selectionFallback(location: string, nights: number, input: TripInput, d
 }
 
 function candidateFor(location: string, category: string, db: Hotel[]) {
-  const allowed = category === 'Signature' ? ['Budget', '3 Star']
-    : category === 'Signature Plus' ? ['3 Star Premium', '3 Star Deluxe']
-    : category === 'Signature Premium' ? ['4 Star', '4 Star Deluxe', '4 Star Premium']
-    : category === 'Elite' ? ['5 Star Basic', '5 Star Premium', '5 Star', 'Luxury']
-    : [];
-  return db.filter((h) => sameHotelDestination(h.destination, location) && (!allowed.length || allowed.includes(h.normalizedCategory)))
+  return db.filter((h) => sameHotelDestination(h.destination, location) && matchesPackageCategory(h, category))
     .sort((a, b) => (a.mapB2B ?? Number.POSITIVE_INFINITY) - (b.mapB2B ?? Number.POSITIVE_INFINITY) || a.name.localeCompare(b.name))[0]
     ?? null;
 }
