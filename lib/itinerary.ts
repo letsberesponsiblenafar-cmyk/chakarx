@@ -375,7 +375,7 @@ export function createPlan(input: TripInput): Plan {
   const accommodation = hotelPlans.reduce((sum, h) => sum + h.nights * (h.candidate?.mapB2B ?? 0) * rooms + h.nights * (h.candidate?.extraBedB2B ?? 0) * extraBeds + h.nights * (h.candidate?.cnbB2B ?? 0) * cnb, 0);
   // This is only a starting quote. The operator's selected hotels and edits are
   // priced again from current state in calculateCosts, using the same formula.
-  const estimated = priceTrip({ accommodation, vehicleDays: dayPlans.reduce((sum, day) => sum + Math.max(0, day.drive.vehicleDaysCharged), 0), transportDaily: transportRates[normalized.transport] ?? transportRates.Ertiga, other: 0, profitPct: 10 });
+  const estimated = priceTrip({ accommodation, vehicleDays: dayPlans.length, transportDaily: transportRates[normalized.transport] ?? transportRates.Ertiga, other: 0, profitPct: 10 });
   const total = estimated.sellingTotal;
   const low = estimated.low; const high = estimated.high;
   const missingRateHotels = hotelPlans.filter((h) => !h.candidate?.mapB2B).map((h) => h.location);

@@ -6,7 +6,9 @@ export function calculateCosts(plan: Plan, hotels: HotelSelection[], model: Cost
   const accommodation = hotels.reduce((sum, h) => {
     return sum + h.nights * h.rooms * h.nightlyRate + h.nights * h.extraBeds * h.extraBedRate + h.nights * h.cnb * h.cnbRate;
   }, 0);
-  const vehicleDays = plan.dayPlans.reduce((sum, d) => sum + Math.max(0, d.drive.vehicleDaysCharged), 0);
+  // A private vehicle is reserved throughout the package, including local
+  // sightseeing and the final drop. Route-leg charges alone omit those days.
+  const vehicleDays = plan.dayPlans.length;
   // Meal-plan choice remains part of the client brief, but meal pricing is intentionally
   // not added to Others. Operators enter only genuine additional package costs there.
   const meals = 0;

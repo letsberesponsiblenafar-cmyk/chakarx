@@ -27,19 +27,19 @@ The manager supports destination/category/search filters, clickable destination 
 
 Supplier B2B rates are omitted from the customer PDF: MAP B2B, Extra Bed B2B, CNB B2B and operator profit are never printed there. The current public client-side prototype still exposes its imported rate data to anyone who can load the app or repository; see the production boundary below.
 
-Every generated overnight base gets a hotel-selection record. The Hotels step lets the operator set rooms, extra beds and CNB explicitly; stay accommodation cost recalculates immediately. Missing B2B rates are flagged. The client PDF can still be generated, but its customer-facing prices are marked “To be confirmed” until rates are complete. The hotel import uses “Sonmarg” while the destination library uses “Sonamarg”; the planner maps these names when attaching hotels.
+Every generated overnight base gets a hotel-selection record. Each destination card shows its exact night numbers and dates. The operator can clear the suggested pattern and select nights from scratch; a night disappears from other pickers once assigned. Applying the pattern updates the itinerary and hotel-night totals. The Hotels step also controls rooms, extra beds, CNB, vehicle and its daily rate. Missing B2B rates are flagged; the current calculated customer amount remains visible and is marked provisional in the PDF. The hotel import uses “Sonmarg” while the destination library uses “Sonamarg”; the planner maps these names when attaching hotels.
 
 ## Costing
 The internal model is:
 
 B2B accommodation + transport + operator-entered other package costs = internal B2B cost
 
-Operator profit / markup is adjustable from 0-100% with presets. The customer selling total is the internal B2B cost plus the selected markup and 5% GST. Two payment schedules can be selected and edited; the third percentage is calculated as the balance, and the rupee instalments update from the current selling total. Internal values are not printed in the client PDF.
+Operator profit / markup is adjustable from 0-100% with presets. The selected vehicle’s daily rate is charged for every package day, including local sightseeing and departure. The customer selling total is the internal B2B cost plus the selected markup and 5% GST. Internal values are not printed in the client PDF. Payment-plan selection is left to the customer; the operator does not set instalments in Costing.
 
 ## PDF
-The client PDF uses fixed-size 540 x 787.9 pt cover and Policies templates derived from the two supplied Chakar Experience itinerary PDFs. The operator can choose either sample artwork. The cover replaces only the traveller name; the Policies page preserves its artwork and fixed wording, while the two payment-plan lines reflect the percentages selected in Costing.
+The client PDF uses the supplied Chakar itinerary design at 540 x 780 pt. The cover changes only the traveller name. The cover letter, inclusions, exclusions, policies, testimonials and thank-you pages are fixed artwork. Policies retain both sample payment-plan choices for the customer.
 
-The customer receives customer-facing dates, editable day titles and descriptions, stay/sightseeing content, hotel names, separate price-before-GST/GST/final-total boxes, and the selected payment instalments. The day text uses the master itinerary and route-playbook content as a base and continues onto new pages when needed. B2B room rates, B2B subtotal and operator margin are not printed.
+Trip-specific values fill the tour summary, compact day-wise pages (up to five days per page), package/investment table and hotel table. The latter includes each destination’s exact night numbers. The day text uses the master itinerary and route playbook to explain transfers, excursions and overnight stays. The package table shows the current final customer total, vehicle, meal plan and rooms. B2B room rates, B2B subtotal and operator margin are not printed.
 
 ## Photos
 Destination profile photos are loaded on demand from Wikimedia Commons through `/api/photos`. The library still works when the photo service returns no results.
