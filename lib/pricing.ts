@@ -19,10 +19,3 @@ export function priceTrip(input: PricingInputs) {
   const sellingTotal = subtotalAfterMarkup + gst;
   return { accommodation, vehicleDays, transport, other, b2bCost, profit, subtotalAfterMarkup, gst, sellingTotal, low: sellingTotal * 0.95, high: sellingTotal * 1.08 };
 }
-
-export function paymentAmounts(total: number, bookingPct: number, arrivalPct: number) {
-  const booking = Math.round(total * bookingPct / 100);
-  const arrival = Math.round(total * arrivalPct / 100);
-  const during = Math.round(total) - booking - arrival;
-  return { booking, arrival, during, duringPct: 100 - bookingPct - arrivalPct };
-}

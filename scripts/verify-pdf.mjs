@@ -1,22 +1,17 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import path from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
-const pdf = fs.readFileSync(new URL('../components/ClientPdf.tsx', import.meta.url), 'utf8');
-const pricing = fs.readFileSync(new URL('../lib/pricing.ts', import.meta.url), 'utf8');
-
-for (const filename of [
-  'madiha-cover-template.png', 'madiha-policies-template.png',
-  'asna-cover-template.png', 'asna-policies-template.png',
-]) {
-  const asset = new URL(`../public/pdf-assets/${filename}`, import.meta.url);
-  assert.ok(fs.existsSync(asset), `${filename} is missing`);
-  assert.ok(fs.statSync(asset).size > 100_000, `${filename} is unexpectedly small`);
-  assert.ok(pdf.includes(filename), `${filename} is not used by the generator`);
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const generated = JSON.parse(execFileSync(process.execPath, [path.join(root,'scripts','verify-client-pdf.cjs')], { encoding: 'utf8' }));
+const file = fs.readFileSync(generated.target);
+assert.equal(file.subarray(0,5).toString(), '%PDF-');
+assert.ok(file.length > 100_000, 'Rendered PDF is unexpectedly small');
+assert.ok(generated.pages >= 11, 'Fixed and dynamic pages are missing');
+assert.ok(generated.customerTotal > 0, 'Customer price did not flow into the PDF');
+for (const name of ['letter','summary','daywise','package','hotels','inclusions','exclusions','policies','testimonials','thanks']) {
+  assert.ok(fs.existsSync(path.join(root,'public','pdf-assets',`standard-${name}.jpg`)), `${name} artwork is missing`);
 }
-assert.ok(pdf.includes('publicImageDataUrl(selectedTemplate.cover)'), 'Cover must be fetched before jsPDF addImage');
-assert.ok(pdf.includes('publicImageDataUrl(selectedTemplate.policies)'), 'Policies must be fetched before jsPDF addImage');
-assert.ok(pdf.includes('calculateCosts(plan, hotelSelections, costModel)'), 'PDF must use the live Costing calculation');
-assert.ok(pdf.includes('paymentAmounts(currentCosts.sellingTotal'), 'PDF must calculate instalments from the live selling total');
-assert.ok(pricing.includes('Math.round(total) - booking - arrival'), 'Payment balance must absorb rounding');
-assert.ok(pdf.includes('blob.size < 1024') && pdf.includes('anchor.download'), 'PDF download guard is missing');
-console.log('PASS PDF assets, live pricing, payment balance and browser download checks');
+console.log(`PASS ${generated.pages}-page client PDF, ${file.length} bytes, live customer total ${generated.customerTotal}`);
