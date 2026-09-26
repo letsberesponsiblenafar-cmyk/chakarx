@@ -2,7 +2,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { createPlan, retargetDay, rebuildPlanFromNightSequence, type Plan, type TripInput } from '@/lib/itinerary';
 import { hotelDatabase as importedHotels, hotelCategories, mealOptions, transportOptions, travelStyles, interests, destinationByName, type Hotel } from '@/lib/data';
-import { firstHotelCandidate, roomsRequired, cnbChildren, extraBedsRequired } from '@/lib/hotels';
+import { firstHotelCandidate, roomsRequired, cnbChildren, extraBedsRequired, sameHotelDestination } from '@/lib/hotels';
 
 export type HotelSelection = {
   location: string; hotelId: string; hotelName: string; category: string; starRating: number | null; address: string; roomType: string; website: string;
@@ -10,7 +10,8 @@ export type HotelSelection = {
 };
 export type CostModel = { transportDaily: number; mealPerPersonNight: number; activityBudget: number; contingencyPct: number; profitPct: number; otherAmount: number };
 export type HotelDefaults = { rooms: number; extraBeds: number; cnb: number; nightlyRate: number; extraBedRate: number; cnbRate: number };
-export type PlannerState = { input: TripInput; plan: Plan | null; hotelSelections: HotelSelection[]; hotelDatabase: Hotel[]; costModel: CostModel; hotelDefaults: HotelDefaults; generated: boolean };
+export type PaymentPlan = { selected: 'one' | 'two'; one: { booking: number; arrival: number }; two: { booking: number; arrival: number } };
+export type PlannerState = { input: TripInput; plan: Plan | null; hotelSelections: HotelSelection[]; hotelDatabase: Hotel[]; costModel: CostModel; hotelDefaults: HotelDefaults; paymentPlan: PaymentPlan; generated: boolean };
 
 type PlannerContextValue = PlannerState & {
   setInputField: <K extends keyof TripInput>(key: K, value: TripInput[K]) => void;
@@ -34,6 +35,8 @@ type PlannerContextValue = PlannerState & {
   deleteHotelRecord: (id: string) => void;
   resetHotelDatabase: () => void;
   setCostModel: (patch: Partial<CostModel>) => void;
+  selectPaymentPlan: (plan: 'one' | 'two') => void;
+  setPaymentPercentage: (plan: 'one' | 'two', field: 'booking' | 'arrival', value: number) => void;
   addDayBlock: (day: number, block: Partial<Plan['dayPlans'][number]['blocks'][number]> & { name: string }) => void;
   removeDayBlock: (day: number, index: number) => void;
   reset: () => void;
@@ -45,6 +48,7 @@ const defaultInput: TripInput = {
 };
 const defaultCost: CostModel = { transportDaily: 4200, mealPerPersonNight: 0, activityBudget: 0, contingencyPct: 0, profitPct: 10, otherAmount: 0 };
 const defaultHotelDefaults: HotelDefaults = { rooms: 1, extraBeds: 0, cnb: 0, nightlyRate: 0, extraBedRate: 0, cnbRate: 0 };
+const defaultPaymentPlan: PaymentPlan = { selected: 'one', one: { booking: 50, arrival: 25 }, two: { booking: 40, arrival: 30 } };
 const STORAGE = 'chakar-experience-planner-v18-itinerary-controls';
 
 function safeDatePlus(n: number) { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); }
@@ -58,12 +62,13 @@ function readState(): PlannerState {
         hotelDatabase: Array.isArray(x.hotelDatabase) && x.hotelDatabase.length ? x.hotelDatabase : importedHotels,
         hotelDefaults: { ...defaultHotelDefaults, ...(x.hotelDefaults || {}) },
         costModel: { ...defaultCost, ...(x.costModel || {}) },
+        paymentPlan: { selected: x.paymentPlan?.selected === 'two' ? 'two' : 'one', one: { ...defaultPaymentPlan.one, ...(x.paymentPlan?.one || {}) }, two: { ...defaultPaymentPlan.two, ...(x.paymentPlan?.two || {}) } },
         input: { ...defaultInput, ...(x.input || {}), pickup: x.input?.pickup === 'Srinagar, Jammu' ? 'Srinagar' : (x.input?.pickup || defaultInput.pickup) },
         generated: Boolean(x.generated),
       } as PlannerState;
     }
   } catch { /* fall back to clean state */ }
-  return { input: { ...defaultInput, arrival: safeDatePlus(7), departure: safeDatePlus(14) }, plan: null, hotelSelections: [], hotelDatabase: importedHotels, costModel: { ...defaultCost }, hotelDefaults: { ...defaultHotelDefaults }, generated: false };
+  return { input: { ...defaultInput, arrival: safeDatePlus(7), departure: safeDatePlus(14) }, plan: null, hotelSelections: [], hotelDatabase: importedHotels, costModel: { ...defaultCost }, hotelDefaults: { ...defaultHotelDefaults }, paymentPlan: { ...defaultPaymentPlan, one: { ...defaultPaymentPlan.one }, two: { ...defaultPaymentPlan.two } }, generated: false };
 }
 
 function selectionFromHotel(location: string, hotel: Hotel, nights: number, input: TripInput): HotelSelection {
@@ -81,7 +86,7 @@ function selectionFallback(location: string, nights: number, input: TripInput, d
     : input.hotelCategory === 'Signature Plus' ? ['3 Star Premium', '3 Star Deluxe']
     : input.hotelCategory === 'Signature Premium' ? ['4 Star', '4 Star Deluxe', '4 Star Premium']
     : input.hotelCategory === 'Elite' ? ['5 Star Basic', '5 Star Premium', '5 Star', 'Luxury'] : [];
-  const candidate = db.find((h) => h.destination === location && (!allowed.length || allowed.includes(h.normalizedCategory)));
+  const candidate = db.find((h) => sameHotelDestination(h.destination, location) && (!allowed.length || allowed.includes(h.normalizedCategory)));
   if (candidate) return selectionFromHotel(location, candidate, nights, input);
   return {
     location, hotelId: '', hotelName: 'Hotel to be added', category: input.hotelCategory, starRating: null, address: '', roomType: '', website: '',
@@ -96,7 +101,7 @@ function candidateFor(location: string, category: string, db: Hotel[]) {
     : category === 'Signature Premium' ? ['4 Star', '4 Star Deluxe', '4 Star Premium']
     : category === 'Elite' ? ['5 Star Basic', '5 Star Premium', '5 Star', 'Luxury']
     : [];
-  return db.filter((h) => h.destination === location && (!allowed.length || allowed.includes(h.normalizedCategory)))
+  return db.filter((h) => sameHotelDestination(h.destination, location) && (!allowed.length || allowed.includes(h.normalizedCategory)))
     .sort((a, b) => (a.mapB2B ?? Number.POSITIVE_INFINITY) - (b.mapB2B ?? Number.POSITIVE_INFINITY) || a.name.localeCompare(b.name))[0]
     ?? null;
 }
@@ -116,7 +121,7 @@ function shiftDate(date: string, delta: number) {
 
 const Ctx = createContext<PlannerContextValue | null>(null);
 export function PlannerProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<PlannerState>(() => ({ input: { ...defaultInput }, plan: null, hotelSelections: [], hotelDatabase: importedHotels, costModel: { ...defaultCost }, hotelDefaults: { ...defaultHotelDefaults }, generated: false }));
+  const [state, setState] = useState<PlannerState>(() => ({ input: { ...defaultInput }, plan: null, hotelSelections: [], hotelDatabase: importedHotels, costModel: { ...defaultCost }, hotelDefaults: { ...defaultHotelDefaults }, paymentPlan: { ...defaultPaymentPlan, one: { ...defaultPaymentPlan.one }, two: { ...defaultPaymentPlan.two } }, generated: false }));
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setState(readState()); setMounted(true); }, []);
   useEffect(() => { if (mounted) { try { localStorage.setItem(STORAGE, JSON.stringify(state)); } catch { /* ignore storage errors */ } } }, [state, mounted]);
@@ -256,6 +261,15 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       setState((s) => ({ ...s, hotelDatabase: importedHotels, hotelSelections: s.plan ? syncHotelSelections(s.plan, s.hotelSelections, importedHotels, s.input) : s.hotelSelections }));
     },
     setCostModel(patch) { setState((s) => ({ ...s, costModel: { ...s.costModel, ...patch } })); },
+    selectPaymentPlan(plan) { setState((s) => ({ ...s, paymentPlan: { ...s.paymentPlan, selected: plan } })); },
+    setPaymentPercentage(plan, field, value) {
+      setState((s) => {
+        const current = s.paymentPlan[plan];
+        const other = field === 'booking' ? current.arrival : current.booking;
+        const next = Math.max(0, Math.min(100 - other, Number.isFinite(value) ? value : 0));
+        return { ...s, paymentPlan: { ...s.paymentPlan, [plan]: { ...current, [field]: next } } };
+      });
+    },
     addDayBlock(day, block) {
       setState((s) => {
         if (!s.plan) return s;

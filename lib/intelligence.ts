@@ -54,7 +54,9 @@ export function destinationAccessFlags(name: string) {
   return [...new Set(flags)];
 }
 export function sightseeingRule(destination: string, name: string) {
-  const row = sightRows.find((x) => normalize(String(x.name || '')) === normalize(name));
+  const destinationId = String(destinationRows.find((x) => normalize(String(x.destination_name || '')) === normalize(destination))?.destination_id
+    || additionalRows.find((x) => normalize(String(x.destination_name || '')) === normalize(destination))?.new_id || '');
+  const row = sightRows.find((x) => normalize(String(x.name || '')) === normalize(name) && String(x.destination_id || '') === destinationId);
   if (!row) return { status: 'STANDARD' as IntelligenceStatus, extraCost: false, notes: 'Stored destination-library sightseeing.' };
   const status = String(row.status || 'STANDARD').toUpperCase();
   return { status: (status === 'MANDATORY' ? 'STANDARD' : status) as IntelligenceStatus, extraCost: String(row.extra_cost).toUpperCase() === 'YES', notes: row.notes || '' };

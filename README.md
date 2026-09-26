@@ -25,21 +25,21 @@ Hotel manager: `/hotels`
 
 The manager supports destination/category/search filters, clickable destination summaries, inline editing, add/delete, import/export, snapshot refresh, needs-attention filtering, and reset to the supplied import.
 
-Supplier B2B rates are internal only: MAP B2B, Extra Bed B2B, CNB B2B and operator profit are never shown in the customer PDF.
+Supplier B2B rates are omitted from the customer PDF: MAP B2B, Extra Bed B2B, CNB B2B and operator profit are never printed there. The current public client-side prototype still exposes its imported rate data to anyone who can load the app or repository; see the production boundary below.
 
-Every generated overnight base gets a hotel-selection record. The Hotels step lets the operator set rooms, extra beds and CNB explicitly; stay accommodation cost recalculates immediately. Missing B2B rates are flagged and the client PDF stays locked until every overnight stay is price-ready.
+Every generated overnight base gets a hotel-selection record. The Hotels step lets the operator set rooms, extra beds and CNB explicitly; stay accommodation cost recalculates immediately. Missing B2B rates are flagged. The client PDF can still be generated, but its customer-facing prices are marked “To be confirmed” until rates are complete. The hotel import uses “Sonmarg” while the destination library uses “Sonamarg”; the planner maps these names when attaching hotels.
 
 ## Costing
 The internal model is:
 
-B2B accommodation + transport + meals + activities + contingency = internal B2B cost
+B2B accommodation + transport + operator-entered other package costs = internal B2B cost
 
-Operator profit / markup is adjustable from 0-100% with presets. The customer selling total is the internal B2B cost plus the selected markup. Internal values are not printed in the client PDF.
+Operator profit / markup is adjustable from 0-100% with presets. The customer selling total is the internal B2B cost plus the selected markup and 5% GST. Two payment schedules can be selected and edited; the third percentage is calculated as the balance, and the rupee instalments update from the current selling total. Internal values are not printed in the client PDF.
 
 ## PDF
-The client PDF uses fixed-size page templates derived from the supplied Chakar Experience itinerary. The original 540 x 780 pt artwork and static layout remain intact; only cleared variable text regions are overlaid.
+The client PDF uses fixed-size 540 x 787.9 pt cover and Policies templates derived from the two supplied Chakar Experience itinerary PDFs. The operator can choose either sample artwork. The cover replaces only the traveller name; the Policies page preserves its artwork and fixed wording, while the two payment-plan lines reflect the percentages selected in Costing.
 
-The customer receives customer-facing dates, stay/sightseeing content, hotel names and the final selling total. B2B room rates, B2B subtotal and operator margin are not printed.
+The customer receives customer-facing dates, editable day titles and descriptions, stay/sightseeing content, hotel names, separate price-before-GST/GST/final-total boxes, and the selected payment instalments. The day text uses the master itinerary and route-playbook content as a base and continues onto new pages when needed. B2B room rates, B2B subtotal and operator margin are not printed.
 
 ## Photos
 Destination profile photos are loaded on demand from Wikimedia Commons through `/api/photos`. The library still works when the photo service returns no results.

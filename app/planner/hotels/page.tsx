@@ -7,7 +7,7 @@ import PlannerChrome from '@/components/PlannerChrome';
 import { usePlanner } from '@/components/PlannerProvider';
 import { destinations, hotelDatabase, type Hotel } from '@/lib/data';
 import { destinationPriority } from '@/lib/intelligence';
-import { roomsRequired, cnbChildren, extraBedsRequired } from '@/lib/hotels';
+import { roomsRequired, cnbChildren, extraBedsRequired, sameHotelDestination } from '@/lib/hotels';
 
 function money(v: number) { return `₹${Math.round(v).toLocaleString('en-IN')}`; }
 function packageMatch(h: Hotel, category: string) {
@@ -97,7 +97,7 @@ export default function HotelsPage() {
 
     <div className="hotel-list refined-hotel-list">{rows.map((row) => {
       const sel = hotelSelections.find((x) => x.location === row.location); if (!sel) return null;
-      const options = db.filter((h) => h.destination === row.location && packageMatch(h, input.hotelCategory));
+      const options = db.filter((h) => sameHotelDestination(h.destination, row.location) && packageMatch(h, input.hotelCategory));
       const search = (hotelSearch[row.location] || '').toLowerCase();
       const filteredOptions = options.filter((h) => !search || `${h.name} ${h.normalizedCategory} ${h.starRating || ''}`.toLowerCase().includes(search));
       const current = db.find((h) => h.id === sel.hotelId) || options[0];
