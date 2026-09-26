@@ -1,0 +1,130 @@
+[
+  {
+    "name": "Divisional Commissioner Kashmir — Tourist Places",
+    "url": "https://divcomkashmir.jk.gov.in/tourist-places/",
+    "type": "Official government directory",
+    "status": "verified",
+    "observed": "2026-09-22",
+    "note": "Official Kashmir tourist-place directory; page shows Wular Lake, Aharbal, Sonamarg, Gulmarg, Pahalgam, Amarnath, Tulip Garden, Dal Lake, Badamwari and Chashma Shahi."
+  },
+  {
+    "name": "JKTDC — Kashmir Destinations",
+    "url": "https://jktdc.co.in/",
+    "type": "Official government tourism catalogue",
+    "status": "verified",
+    "observed": "2026-09-22",
+    "note": "JKTDC currently lists Aharbal, Pahalgam, Daksum, Doodhpathri, Gulmarg, Gurez, Lolab Valley, Naranag, Sinthan Top, Sonamarg, Srinagar, Watlab, Peer Ki Gali, Yusmarg and Warwan Valley, plus gardens/lakes/springs."
+  },
+  {
+    "name": "District Bandipora — Gurez Valley",
+    "url": "https://bandipore.nic.in/tourist-place/gurez-valley/",
+    "type": "Official district government source",
+    "status": "verified",
+    "observed": "2026-09-22",
+    "note": "Official Gurez page documents Dawar/Gurez context, Kishanganga River, Habba Khatoon, Tulail/trek and access information."
+  },
+  {
+    "name": "District Budgam — Doodhpathri",
+    "url": "https://budgam.nic.in/tourist-place/doodhpathri/",
+    "type": "Official district government source",
+    "status": "verified",
+    "observed": "2026-09-22",
+    "note": "Official Doodhpathri page documents access, seasonal conditions, meadow/stream character and overnight possibility."
+  },
+  {
+    "name": "District Budgam — Yusmarg",
+    "url": "https://budgam.nic.in/tourist-place/yusmarg/",
+    "type": "Official district government source",
+    "status": "verified",
+    "observed": "2026-09-22",
+    "note": "Official Yusmarg page documents meadows, trekking to Sang-e-Safed/Nilnag, winter access caveats and Charar-e-Sharif context."
+  },
+  {
+    "name": "District Budgam — Tosa Maidan",
+    "url": "https://budgam.nic.in/tourist-place/tosamaidan/",
+    "type": "Official district government source",
+    "status": "verified",
+    "observed": "2026-09-22",
+    "note": "Official page documents the meadow, historical routes, trekking and seasonal character."
+  },
+  {
+    "name": "District Kupwara — Lolab Valley",
+    "url": "https://kupwara.nic.in/tourist-place/lolab/",
+    "type": "Official district government source",
+    "status": "verified",
+    "observed": "2026-09-22",
+    "note": "Official page documents Lolab, Lalkul, Sat Barran, Madmadav cave and access from Srinagar/Kupwara."
+  },
+  {
+    "name": "District Kupwara — Bungus Valley",
+    "url": "https://kupwara.nic.in/tourist-place/tourist-places-bungusvalley/",
+    "type": "Official district government source",
+    "status": "verified",
+    "observed": "2026-09-22",
+    "note": "Official page describes Bangus as relatively unknown, with broad meadows, conifer forests and access considerations."
+  },
+  {
+    "name": "District Anantnag — Tourism",
+    "url": "https://anantnag.nic.in/tourism/",
+    "type": "Official district government source",
+    "status": "verified",
+    "observed": "2026-09-22",
+    "note": "Official tourism table lists Mattan, Pahalgam, Achabal, Kokernag, Daksum, Verinag and Wasaknag with distances from Anantnag."
+  },
+  {
+    "name": "District Anantnag — Tourist Places",
+    "url": "https://anantnag.nic.in/touristplaces-modern/",
+    "type": "Official district government source",
+    "status": "verified",
+    "observed": "2026-09-22",
+    "note": "Current Anantnag tourist-place page includes Pahalgam, Betaab Valley, Aru Valley, Sinthan Top, Achabal, Panzath Nag, Wasaknag and Martand Surya Temple."
+  },
+  {
+    "name": "District Shopian — Tourist Places",
+    "url": "https://shopian.nic.in/tourist-places/",
+    "type": "Official district government source",
+    "status": "verified",
+    "observed": "2026-09-22",
+    "note": "Official Shopian page lists Peer Ki Gali, Aharbal, Mughal Road and Kausar Nag."
+  },
+  {
+    "name": "District Ganderbal — Manasbal Lake",
+    "url": "https://ganderbal.nic.in/tourist-place/mansbal-lake/",
+    "type": "Official district government source",
+    "status": "verified",
+    "observed": "2026-09-22",
+    "note": "Official page documents Manasbal Lake, birding, lotus bloom and Jaroka Mughal garden context."
+  },
+  {
+    "name": "J&K Cable Car Corporation — Notifications",
+    "url": "https://www.jammukashmircablecar.com/notifications.html",
+    "type": "Official operator source",
+    "status": "verified",
+    "observed": "2026-09-22",
+    "note": "Operational notices for Gulmarg/Sonamarg ropeway assets should be checked before committing weather-sensitive activity blocks."
+  },
+  {
+    "name": "Booking.com Demand API",
+    "url": "https://developers.booking.com/demand/docs/migration-guide/v3/hotelavailability-v3-migration-guide",
+    "type": "Licensed hotel availability API",
+    "status": "api-required",
+    "observed": "2026-09-22",
+    "note": "Production connector target for exact-date accommodation availability and products."
+  },
+  {
+    "name": "Google Routes API",
+    "url": "https://developers.google.com/maps/documentation/routes/compute_route_directions",
+    "type": "Routing API",
+    "status": "api-required",
+    "observed": "2026-09-22",
+    "note": "Production connector target for route duration, distance and traffic-aware routing."
+  },
+  {
+    "name": "OpenWeather One Call API",
+    "url": "https://openweathermap.org/api/one-call-3",
+    "type": "Forecast API",
+    "status": "api-required",
+    "observed": "2026-09-22",
+    "note": "Production connector target for current and forecast weather; use timestamped observations."
+  }
+]

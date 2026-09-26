@@ -1,0 +1,2 @@
+'use client';
+export default function ErrorPage({reset}:{error:Error&{digest?:string};reset:()=>void}){return <main className="error-screen"><section className="error-card"><span className="eyebrow">CHAKAR EXPERIENCE</span><h1>The planner needs a reload.</h1><p>The application hit an unexpected runtime error. Use the button below to retry the current workspace.</p><button onClick={reset}>Reload planner</button></section></main>}

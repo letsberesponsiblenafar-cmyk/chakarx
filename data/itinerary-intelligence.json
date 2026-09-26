@@ -1,0 +1,2570 @@
+{
+  "meta": {
+    "version": "2.0",
+    "authority": "Chakar Kashmir Itinerary Builder Database + Route Playbook + Master Document",
+    "rulesNote": "Priority is recommendation behavior, not a quality score. Core is default; offbeat/low-priority require contextual triggers."
+  },
+  "destinations": [
+    {
+      "destination_id": "D001",
+      "destination_name": "Srinagar",
+      "region": "Kashmir",
+      "base_destination_id": "D001",
+      "destination_type": "Base/Local",
+      "typical_nights": 0,
+      "access_status": "Generally year-round",
+      "season_start": null,
+      "season_end": null,
+      "priority": "CORE",
+      "planning_notes": "Primary base for Kashmir circuits",
+      "recommendation_weight": 100,
+      "engine_priority": "CORE"
+    },
+    {
+      "destination_id": "D002",
+      "destination_name": "Gulmarg",
+      "region": "Kashmir",
+      "base_destination_id": "D001",
+      "destination_type": "Destination",
+      "typical_nights": 1,
+      "access_status": "Generally year-round",
+      "season_start": null,
+      "season_end": null,
+      "priority": "CORE",
+      "planning_notes": "Weather/heavy snowfall can affect access",
+      "recommendation_weight": 100,
+      "engine_priority": "CORE"
+    },
+    {
+      "destination_id": "D003",
+      "destination_name": "Pahalgam",
+      "region": "Kashmir",
+      "base_destination_id": "D001",
+      "destination_type": "Destination",
+      "typical_nights": 1,
+      "access_status": "Generally year-round",
+      "season_start": null,
+      "season_end": null,
+      "priority": "CORE",
+      "planning_notes": "Weather/heavy snowfall can affect access",
+      "recommendation_weight": 100,
+      "engine_priority": "CORE"
+    },
+    {
+      "destination_id": "D004",
+      "destination_name": "Sonamarg",
+      "region": "Kashmir",
+      "base_destination_id": "D001",
+      "destination_type": "Destination",
+      "typical_nights": 1,
+      "access_status": "Generally year-round",
+      "season_start": null,
+      "season_end": null,
+      "priority": "CORE",
+      "planning_notes": "Weather/road conditions can affect access",
+      "recommendation_weight": 100,
+      "engine_priority": "CORE"
+    },
+    {
+      "destination_id": "D005",
+      "destination_name": "Doodhpathri",
+      "region": "Kashmir",
+      "base_destination_id": "D001",
+      "destination_type": "Destination",
+      "typical_nights": 0,
+      "access_status": "Weather dependent",
+      "season_start": null,
+      "season_end": null,
+      "priority": "CORE",
+      "planning_notes": "Usually sold as day trip; overnight possible",
+      "recommendation_weight": 90,
+      "engine_priority": "CORE"
+    },
+    {
+      "destination_id": "D006",
+      "destination_name": "Gurez",
+      "region": "Kashmir",
+      "base_destination_id": "D001",
+      "destination_type": "Destination",
+      "typical_nights": 1,
+      "access_status": "Seasonal",
+      "season_start": "May",
+      "season_end": "October",
+      "priority": "OFFBEAT",
+      "planning_notes": "Seasonal access; plan only when route is open",
+      "recommendation_weight": 35,
+      "engine_priority": "OFFBEAT"
+    },
+    {
+      "destination_id": "D007",
+      "destination_name": "Yusmarg",
+      "region": "Kashmir",
+      "base_destination_id": "D001",
+      "destination_type": "Destination",
+      "typical_nights": 0,
+      "access_status": "Weather/access dependent",
+      "season_start": null,
+      "season_end": null,
+      "priority": "OFFBEAT",
+      "planning_notes": "Usually day trip",
+      "recommendation_weight": 35,
+      "engine_priority": "OFFBEAT"
+    },
+    {
+      "destination_id": "D008",
+      "destination_name": "Achabal",
+      "region": "Kashmir",
+      "base_destination_id": "D001",
+      "destination_type": "Destination",
+      "typical_nights": 0,
+      "access_status": "Generally accessible",
+      "season_start": null,
+      "season_end": null,
+      "priority": "SECONDARY",
+      "planning_notes": "Often combined with Kokernag and Verinag",
+      "recommendation_weight": 45,
+      "engine_priority": "SECONDARY"
+    },
+    {
+      "destination_id": "D009",
+      "destination_name": "Kokernag",
+      "region": "Kashmir",
+      "base_destination_id": "D001",
+      "destination_type": "Destination",
+      "typical_nights": 0,
+      "access_status": "Generally accessible",
+      "season_start": null,
+      "season_end": null,
+      "priority": "SECONDARY",
+      "planning_notes": "Often combined with Achabal and Verinag",
+      "recommendation_weight": 45,
+      "engine_priority": "SECONDARY"
+    },
+    {
+      "destination_id": "D010",
+      "destination_name": "Verinag",
+      "region": "Kashmir",
+      "base_destination_id": "D001",
+      "destination_type": "Destination",
+      "typical_nights": 0,
+      "access_status": "Generally accessible",
+      "season_start": null,
+      "season_end": null,
+      "priority": "SECONDARY",
+      "planning_notes": "Often combined with Achabal and Kokernag",
+      "recommendation_weight": 45,
+      "engine_priority": "SECONDARY"
+    },
+    {
+      "destination_id": "D011",
+      "destination_name": "Daksum",
+      "region": "Kashmir",
+      "base_destination_id": "D001",
+      "destination_type": "Destination",
+      "typical_nights": 1,
+      "access_status": "Conditional",
+      "season_start": null,
+      "season_end": null,
+      "priority": "OFFBEAT",
+      "planning_notes": "Tourist access can be restricted by government/local regulations",
+      "recommendation_weight": 25,
+      "engine_priority": "OFFBEAT"
+    },
+    {
+      "destination_id": "D012",
+      "destination_name": "Naranag",
+      "region": "Kashmir",
+      "base_destination_id": "D001",
+      "destination_type": "Destination",
+      "typical_nights": 0,
+      "access_status": "Weather/access dependent",
+      "season_start": null,
+      "season_end": null,
+      "priority": "OFFBEAT",
+      "planning_notes": "Day trip; trekking beyond Naranag is separate",
+      "recommendation_weight": 30,
+      "engine_priority": "OFFBEAT"
+    },
+    {
+      "destination_id": "D013",
+      "destination_name": "Manasbal",
+      "region": "Kashmir",
+      "base_destination_id": "D001",
+      "destination_type": "Destination",
+      "typical_nights": 0,
+      "access_status": "Generally accessible",
+      "season_start": null,
+      "season_end": null,
+      "priority": "SECONDARY",
+      "planning_notes": "Usually day trip",
+      "recommendation_weight": 45,
+      "engine_priority": "SECONDARY"
+    }
+  ],
+  "itineraryTemplates": [
+    {
+      "template_id": "IT001",
+      "destination_id": "D001",
+      "template_name": "Srinagar Local Sightseeing",
+      "template_type": "Day Trip",
+      "nights": "0",
+      "starting_point": "Srinagar",
+      "ending_point": "Srinagar",
+      "day_count": 1,
+      "recommended": "TRUE",
+      "notes": "Mughal gardens, Pari Mahal and Shankaracharya"
+    },
+    {
+      "template_id": "IT002",
+      "destination_id": "D002",
+      "template_name": "Gulmarg Day Trip",
+      "template_type": "Day Trip",
+      "nights": "0",
+      "starting_point": "Srinagar",
+      "ending_point": "Srinagar",
+      "day_count": 1,
+      "recommended": "TRUE",
+      "notes": "Gulmarg + Drung + Gondola + local sightseeing"
+    },
+    {
+      "template_id": "IT003",
+      "destination_id": "D002",
+      "template_name": "Gulmarg 1 Night",
+      "template_type": "Overnight",
+      "nights": "1",
+      "starting_point": "Srinagar",
+      "ending_point": "Next Destination",
+      "day_count": 2,
+      "recommended": "TRUE",
+      "notes": "Includes arrival day and relaxed departure morning"
+    },
+    {
+      "template_id": "IT004",
+      "destination_id": "D004",
+      "template_name": "Sonamarg Day Trip",
+      "template_type": "Day Trip",
+      "nights": "0",
+      "starting_point": "Srinagar",
+      "ending_point": "Srinagar",
+      "day_count": 1,
+      "recommended": "TRUE",
+      "notes": "Sonamarg + Thajiwas + optional higher excursions"
+    },
+    {
+      "template_id": "IT005",
+      "destination_id": "D004",
+      "template_name": "Sonamarg 1 Night",
+      "template_type": "Overnight",
+      "nights": "1",
+      "starting_point": "Srinagar",
+      "ending_point": "Next Destination",
+      "day_count": 2,
+      "recommended": "TRUE",
+      "notes": "Includes arrival day and departure morning"
+    },
+    {
+      "template_id": "IT006",
+      "destination_id": "D003",
+      "template_name": "Pahalgam Day Trip",
+      "template_type": "Day Trip",
+      "nights": "0",
+      "starting_point": "Srinagar",
+      "ending_point": "Srinagar",
+      "day_count": 1,
+      "recommended": "TRUE",
+      "notes": "Pampore + Awantipora + Aru + Betaab + Chandanwari + Baisaran"
+    },
+    {
+      "template_id": "IT007",
+      "destination_id": "D003",
+      "template_name": "Pahalgam 1 Night",
+      "template_type": "Overnight",
+      "nights": "1",
+      "starting_point": "Srinagar",
+      "ending_point": "Next Destination",
+      "day_count": 2,
+      "recommended": "TRUE",
+      "notes": "Includes arrival day and departure morning"
+    },
+    {
+      "template_id": "IT008",
+      "destination_id": "D005",
+      "template_name": "Doodhpathri Day Trip",
+      "template_type": "Day Trip",
+      "nights": "0",
+      "starting_point": "Srinagar",
+      "ending_point": "Srinagar",
+      "day_count": 1,
+      "recommended": "TRUE",
+      "notes": "Meadows + Shaliganga + Tangnar"
+    },
+    {
+      "template_id": "IT009",
+      "destination_id": "D005",
+      "template_name": "Doodhpathri 1 Night",
+      "template_type": "Overnight",
+      "nights": "1",
+      "starting_point": "Srinagar",
+      "ending_point": "Next Destination",
+      "day_count": 2,
+      "recommended": "OPTIONAL",
+      "notes": "Use where suitable accommodation/access exists"
+    },
+    {
+      "template_id": "IT010",
+      "destination_id": "D006",
+      "template_name": "Gurez 1 Night",
+      "template_type": "Overnight",
+      "nights": "1",
+      "starting_point": "Srinagar",
+      "ending_point": "Srinagar",
+      "day_count": 2,
+      "recommended": "TRUE",
+      "notes": "Dawar-focused; limited deeper excursion"
+    },
+    {
+      "template_id": "IT011",
+      "destination_id": "D006",
+      "template_name": "Gurez 2 Nights",
+      "template_type": "Overnight",
+      "nights": "2",
+      "starting_point": "Srinagar",
+      "ending_point": "Srinagar",
+      "day_count": 3,
+      "recommended": "TRUE",
+      "notes": "Dawar + Tulail + Chakwali/Izmarg-Bagtore subject to access"
+    },
+    {
+      "template_id": "IT012",
+      "destination_id": "D007",
+      "template_name": "Yusmarg Day Trip",
+      "template_type": "Day Trip",
+      "nights": "0",
+      "starting_point": "Srinagar",
+      "ending_point": "Srinagar",
+      "day_count": 1,
+      "recommended": "TRUE",
+      "notes": "Yusmarg + Doodhganga + Sang-e-Safed; Nilnag conditional"
+    },
+    {
+      "template_id": "IT013",
+      "destination_id": "D008",
+      "template_name": "Achabal-Kokernag-Verinag",
+      "template_type": "Day Trip",
+      "nights": "0",
+      "starting_point": "Srinagar",
+      "ending_point": "Srinagar",
+      "day_count": 1,
+      "recommended": "TRUE",
+      "notes": "South Kashmir circuit"
+    },
+    {
+      "template_id": "IT014",
+      "destination_id": "D011",
+      "template_name": "Daksum from Srinagar",
+      "template_type": "Overnight",
+      "nights": "1",
+      "starting_point": "Srinagar",
+      "ending_point": "Next Destination",
+      "day_count": 2,
+      "recommended": "CONDITIONAL",
+      "notes": "Achabal + Kokernag + Verinag + Daksum"
+    },
+    {
+      "template_id": "IT015",
+      "destination_id": "D011",
+      "template_name": "Daksum from Pahalgam",
+      "template_type": "Overnight",
+      "nights": "1",
+      "starting_point": "Pahalgam",
+      "ending_point": "Next Destination",
+      "day_count": 1,
+      "recommended": "CONDITIONAL",
+      "notes": "Direct Pahalgam to Daksum transfer"
+    },
+    {
+      "template_id": "IT016",
+      "destination_id": "D012",
+      "template_name": "Naranag Day Trip",
+      "template_type": "Day Trip",
+      "nights": "0",
+      "starting_point": "Srinagar",
+      "ending_point": "Srinagar",
+      "day_count": 1,
+      "recommended": "TRUE",
+      "notes": "Temple complex + spring + valley; Gangbal/Nundkol separate trek"
+    },
+    {
+      "template_id": "IT017",
+      "destination_id": "D013",
+      "template_name": "Manasbal Day Trip",
+      "template_type": "Day Trip",
+      "nights": "0",
+      "starting_point": "Srinagar",
+      "ending_point": "Srinagar",
+      "day_count": 1,
+      "recommended": "TRUE",
+      "notes": "Lake + Shikara + Mughal garden"
+    }
+  ],
+  "routeTemplates": [
+    {
+      "route_id": "RT001",
+      "route_type": "Transfer",
+      "routing_preference": "PREFERRED",
+      "vehicle_days_charged": 1,
+      "recommended_reason": "Standard Srinagar-Gulmarg route",
+      "season_rule": null,
+      "access_rule": "Weather/road dependent",
+      "active": "TRUE",
+      "notes": null,
+      "from_name": "Srinagar",
+      "to_name": "Gulmarg"
+    },
+    {
+      "route_id": "RT002",
+      "route_type": "Transfer",
+      "routing_preference": "PREFERRED",
+      "vehicle_days_charged": 1,
+      "recommended_reason": "Standard Gulmarg-Srinagar return",
+      "season_rule": null,
+      "access_rule": "Weather/road dependent",
+      "active": "TRUE",
+      "notes": null,
+      "from_name": "Gulmarg",
+      "to_name": "Srinagar"
+    },
+    {
+      "route_id": "RT003",
+      "route_type": "Transfer",
+      "routing_preference": "PREFERRED",
+      "vehicle_days_charged": 1,
+      "recommended_reason": "Standard Srinagar-Pahalgam route",
+      "season_rule": null,
+      "access_rule": "Weather/road dependent",
+      "active": "TRUE",
+      "notes": null,
+      "from_name": "Srinagar",
+      "to_name": "Pahalgam"
+    },
+    {
+      "route_id": "RT004",
+      "route_type": "Transfer",
+      "routing_preference": "PREFERRED",
+      "vehicle_days_charged": 1,
+      "recommended_reason": "Standard Pahalgam-Srinagar return",
+      "season_rule": null,
+      "access_rule": "Weather/road dependent",
+      "active": "TRUE",
+      "notes": null,
+      "from_name": "Pahalgam",
+      "to_name": "Srinagar"
+    },
+    {
+      "route_id": "RT005",
+      "route_type": "Transfer",
+      "routing_preference": "PREFERRED",
+      "vehicle_days_charged": 1,
+      "recommended_reason": "Standard Srinagar-Sonamarg route",
+      "season_rule": null,
+      "access_rule": "Weather/road dependent",
+      "active": "TRUE",
+      "notes": null,
+      "from_name": "Srinagar",
+      "to_name": "Sonamarg"
+    },
+    {
+      "route_id": "RT006",
+      "route_type": "Transfer",
+      "routing_preference": "PREFERRED",
+      "vehicle_days_charged": 1,
+      "recommended_reason": "Standard Sonamarg-Srinagar return",
+      "season_rule": null,
+      "access_rule": "Weather/road dependent",
+      "active": "TRUE",
+      "notes": null,
+      "from_name": "Sonamarg",
+      "to_name": "Srinagar"
+    },
+    {
+      "route_id": "RT007",
+      "route_type": "Transfer",
+      "routing_preference": "PREFERRED",
+      "vehicle_days_charged": 1,
+      "recommended_reason": "Standard Srinagar-Doodhpathri route",
+      "season_rule": null,
+      "access_rule": "Weather/road dependent",
+      "active": "TRUE",
+      "notes": null,
+      "from_name": "Srinagar",
+      "to_name": "Doodhpathri"
+    },
+    {
+      "route_id": "RT008",
+      "route_type": "Transfer",
+      "routing_preference": "PREFERRED",
+      "vehicle_days_charged": 1,
+      "recommended_reason": "Standard Doodhpathri-Srinagar return",
+      "season_rule": null,
+      "access_rule": "Weather/road dependent",
+      "active": "TRUE",
+      "notes": null,
+      "from_name": "Doodhpathri",
+      "to_name": "Srinagar"
+    },
+    {
+      "route_id": "RT009",
+      "route_type": "Transfer",
+      "routing_preference": "PREFERRED",
+      "vehicle_days_charged": 1,
+      "recommended_reason": "Standard Srinagar-Gurez route",
+      "season_rule": "May-October",
+      "access_rule": "Seasonal access",
+      "active": "TRUE",
+      "notes": null,
+      "from_name": "Srinagar",
+      "to_name": "Gurez"
+    },
+    {
+      "route_id": "RT010",
+      "route_type": "Transfer",
+      "routing_preference": "PREFERRED",
+      "vehicle_days_charged": 1,
+      "recommended_reason": "Standard Gurez-Srinagar return",
+      "season_rule": "May-October",
+      "access_rule": "Seasonal access",
+      "active": "TRUE",
+      "notes": null,
+      "from_name": "Gurez",
+      "to_name": "Srinagar"
+    },
+    {
+      "route_id": "RT011",
+      "route_type": "Transfer",
+      "routing_preference": "PREFERRED",
+      "vehicle_days_charged": 1,
+      "recommended_reason": "Standard Srinagar-Yusmarg route",
+      "season_rule": null,
+      "access_rule": "Weather/access dependent",
+      "active": "TRUE",
+      "notes": null,
+      "from_name": "Srinagar",
+      "to_name": "Yusmarg"
+    },
+    {
+      "route_id": "RT012",
+      "route_type": "Transfer",
+      "routing_preference": "PREFERRED",
+      "vehicle_days_charged": 1,
+      "recommended_reason": "Standard Yusmarg-Srinagar return",
+      "season_rule": null,
+      "access_rule": "Weather/access dependent",
+      "active": "TRUE",
+      "notes": null,
+      "from_name": "Yusmarg",
+      "to_name": "Srinagar"
+    },
+    {
+      "route_id": "RT013",
+      "route_type": "Transfer",
+      "routing_preference": "PREFERRED",
+      "vehicle_days_charged": 1,
+      "recommended_reason": "Srinagar-Daksum route",
+      "season_rule": null,
+      "access_rule": "Government/local access may restrict",
+      "active": "TRUE",
+      "notes": null,
+      "from_name": "Srinagar",
+      "to_name": "Daksum"
+    },
+    {
+      "route_id": "RT014",
+      "route_type": "Transfer",
+      "routing_preference": "PREFERRED",
+      "vehicle_days_charged": 1,
+      "recommended_reason": "Daksum-Srinagar return",
+      "season_rule": null,
+      "access_rule": "Government/local access may restrict",
+      "active": "TRUE",
+      "notes": null,
+      "from_name": "Daksum",
+      "to_name": "Srinagar"
+    },
+    {
+      "route_id": "RT015",
+      "route_type": "Transfer",
+      "routing_preference": "PREFERRED",
+      "vehicle_days_charged": 1,
+      "recommended_reason": "Srinagar-Naranag route",
+      "season_rule": null,
+      "access_rule": "Weather/access dependent",
+      "active": "TRUE",
+      "notes": null,
+      "from_name": "Srinagar",
+      "to_name": "Naranag"
+    },
+    {
+      "route_id": "RT016",
+      "route_type": "Transfer",
+      "routing_preference": "PREFERRED",
+      "vehicle_days_charged": 1,
+      "recommended_reason": "Naranag-Srinagar return",
+      "season_rule": null,
+      "access_rule": "Weather/access dependent",
+      "active": "TRUE",
+      "notes": null,
+      "from_name": "Naranag",
+      "to_name": "Srinagar"
+    },
+    {
+      "route_id": "RT017",
+      "route_type": "Transfer",
+      "routing_preference": "PREFERRED",
+      "vehicle_days_charged": 1,
+      "recommended_reason": "Srinagar-Manasbal route",
+      "season_rule": null,
+      "access_rule": null,
+      "active": "TRUE",
+      "notes": null,
+      "from_name": "Srinagar",
+      "to_name": "Manasbal"
+    },
+    {
+      "route_id": "RT018",
+      "route_type": "Transfer",
+      "routing_preference": "PREFERRED",
+      "vehicle_days_charged": 1,
+      "recommended_reason": "Manasbal-Srinagar return",
+      "season_rule": null,
+      "access_rule": null,
+      "active": "TRUE",
+      "notes": null,
+      "from_name": "Manasbal",
+      "to_name": "Srinagar"
+    },
+    {
+      "route_id": "RT019",
+      "route_type": "Transfer",
+      "routing_preference": "AVOID",
+      "vehicle_days_charged": 2,
+      "recommended_reason": "Long transfer; usually route via Srinagar",
+      "season_rule": null,
+      "access_rule": "Operationally allowed but expensive",
+      "active": "TRUE",
+      "notes": "Use only when specifically requested",
+      "from_name": "Gulmarg",
+      "to_name": "Pahalgam"
+    },
+    {
+      "route_id": "RT020",
+      "route_type": "Transfer",
+      "routing_preference": "AVOID",
+      "vehicle_days_charged": 2,
+      "recommended_reason": "Long transfer; usually route via Srinagar",
+      "season_rule": null,
+      "access_rule": "Operationally allowed but expensive",
+      "active": "TRUE",
+      "notes": "Use only when specifically requested",
+      "from_name": "Pahalgam",
+      "to_name": "Gulmarg"
+    },
+    {
+      "route_id": "RT021",
+      "route_type": "Transfer",
+      "routing_preference": "AVOID",
+      "vehicle_days_charged": 2,
+      "recommended_reason": "Long transfer; usually route via Srinagar",
+      "season_rule": null,
+      "access_rule": "Operationally allowed but expensive",
+      "active": "TRUE",
+      "notes": "Use only when specifically requested",
+      "from_name": "Pahalgam",
+      "to_name": "Sonamarg"
+    },
+    {
+      "route_id": "RT022",
+      "route_type": "Transfer",
+      "routing_preference": "AVOID",
+      "vehicle_days_charged": 2,
+      "recommended_reason": "Long transfer; usually route via Srinagar",
+      "season_rule": null,
+      "access_rule": "Operationally allowed but expensive",
+      "active": "TRUE",
+      "notes": "Use only when specifically requested",
+      "from_name": "Sonamarg",
+      "to_name": "Pahalgam"
+    },
+    {
+      "route_id": "RT023",
+      "route_type": "Transfer",
+      "routing_preference": "AVOID",
+      "vehicle_days_charged": 2,
+      "recommended_reason": "Long transfer; usually route via Srinagar",
+      "season_rule": null,
+      "access_rule": "Operationally allowed but expensive",
+      "active": "TRUE",
+      "notes": "Use only when specifically requested",
+      "from_name": "Gulmarg",
+      "to_name": "Sonamarg"
+    },
+    {
+      "route_id": "RT024",
+      "route_type": "Transfer",
+      "routing_preference": "AVOID",
+      "vehicle_days_charged": 2,
+      "recommended_reason": "Long transfer; usually route via Srinagar",
+      "season_rule": null,
+      "access_rule": "Operationally allowed but expensive",
+      "active": "TRUE",
+      "notes": "Use only when specifically requested",
+      "from_name": "Sonamarg",
+      "to_name": "Gulmarg"
+    },
+    {
+      "route_id": "RT025",
+      "route_type": "Transfer",
+      "routing_preference": "AVOID",
+      "vehicle_days_charged": 2,
+      "recommended_reason": "Long transfer; usually route via Srinagar",
+      "season_rule": null,
+      "access_rule": "Operationally allowed but expensive",
+      "active": "TRUE",
+      "notes": "Use only when specifically requested",
+      "from_name": "Doodhpathri",
+      "to_name": "Gulmarg"
+    },
+    {
+      "route_id": "RT026",
+      "route_type": "Transfer",
+      "routing_preference": "AVOID",
+      "vehicle_days_charged": 2,
+      "recommended_reason": "Long transfer; usually route via Srinagar",
+      "season_rule": null,
+      "access_rule": "Operationally allowed but expensive",
+      "active": "TRUE",
+      "notes": "Use only when specifically requested",
+      "from_name": "Gulmarg",
+      "to_name": "Doodhpathri"
+    }
+  ],
+  "routeRules": [
+    {
+      "rule_id": "RR001",
+      "rule_name": "Avoid expensive direct transfer",
+      "condition": "Route preference = AVOID",
+      "action": "Prefer routing through Srinagar where practical",
+      "priority": 10,
+      "active": "TRUE"
+    },
+    {
+      "rule_id": "RR002",
+      "rule_name": "Long transfer costing",
+      "condition": "Route vehicle_days_charged > 1",
+      "action": "Apply vehicle rate for required charged days",
+      "priority": 10,
+      "active": "TRUE"
+    },
+    {
+      "rule_id": "RR003",
+      "rule_name": "Gurez seasonal access",
+      "condition": "Destination = Gurez",
+      "action": "Allow only during May-October unless manually overridden",
+      "priority": 10,
+      "active": "TRUE"
+    },
+    {
+      "rule_id": "RR004",
+      "rule_name": "Daksum access restriction",
+      "condition": "Government/local restriction active",
+      "action": "Block route/template",
+      "priority": 10,
+      "active": "TRUE"
+    },
+    {
+      "rule_id": "RR005",
+      "rule_name": "Weather closure",
+      "condition": "Road/access closed",
+      "action": "Block affected route",
+      "priority": 10,
+      "active": "TRUE"
+    },
+    {
+      "rule_id": "RR006",
+      "rule_name": "Optional local activities",
+      "condition": "Activity is optional/extra",
+      "action": "Exclude from package base cost",
+      "priority": 10,
+      "active": "TRUE"
+    },
+    {
+      "rule_id": "RR007",
+      "rule_name": "Union/local cab",
+      "condition": "Local/union cab required",
+      "action": "Exclude from standard package unless explicitly added",
+      "priority": 10,
+      "active": "TRUE"
+    }
+  ],
+  "sightseeing": [
+    {
+      "sightseeing_id": "S001",
+      "destination_id": "D001",
+      "template_id": "IT001",
+      "name": "Nishat Garden",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S002",
+      "destination_id": "D001",
+      "template_id": "IT001",
+      "name": "Shalimar Garden",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S003",
+      "destination_id": "D001",
+      "template_id": "IT001",
+      "name": "Chashme Shahi",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S004",
+      "destination_id": "D001",
+      "template_id": "IT001",
+      "name": "Pari Mahal",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S005",
+      "destination_id": "D001",
+      "template_id": "IT001",
+      "name": "Shankaracharya Temple",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": "Climb involved"
+    },
+    {
+      "sightseeing_id": "S006",
+      "destination_id": "D002",
+      "template_id": "IT002",
+      "name": "Drung Waterfall",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": "Seasonal appearance"
+    },
+    {
+      "sightseeing_id": "S007",
+      "destination_id": "D002",
+      "template_id": "IT002",
+      "name": "Gulmarg Meadows",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S008",
+      "destination_id": "D002",
+      "template_id": "IT002",
+      "name": "Gulmarg Gondola",
+      "status": "CONDITIONAL",
+      "extra_cost": "YES",
+      "duration_hours": null,
+      "notes": "Subject to operation/weather; tickets excluded unless package says otherwise"
+    },
+    {
+      "sightseeing_id": "S009",
+      "destination_id": "D002",
+      "template_id": "IT002",
+      "name": "Gulmarg Golf Course",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S010",
+      "destination_id": "D002",
+      "template_id": "IT002",
+      "name": "St. Mary's Church",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S011",
+      "destination_id": "D002",
+      "template_id": "IT002",
+      "name": "Maharani Temple",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S012",
+      "destination_id": "D002",
+      "template_id": "IT002",
+      "name": "Hari Singh Palace",
+      "status": "OPTIONAL",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": "Subject to accessibility"
+    },
+    {
+      "sightseeing_id": "S013",
+      "destination_id": "D002",
+      "template_id": "IT002",
+      "name": "Strawberry Valley",
+      "status": "OPTIONAL",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": "Season/access dependent"
+    },
+    {
+      "sightseeing_id": "S014",
+      "destination_id": "D003",
+      "template_id": "IT006",
+      "name": "Saffron Fields of Pampore",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": "Seasonal saffron activity"
+    },
+    {
+      "sightseeing_id": "S015",
+      "destination_id": "D003",
+      "template_id": "IT006",
+      "name": "Awantipora Ruins",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S016",
+      "destination_id": "D003",
+      "template_id": "IT006",
+      "name": "Apple Valley",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S017",
+      "destination_id": "D003",
+      "template_id": "IT006",
+      "name": "Aru Valley",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S018",
+      "destination_id": "D003",
+      "template_id": "IT006",
+      "name": "Betaab Valley",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S019",
+      "destination_id": "D003",
+      "template_id": "IT006",
+      "name": "Chandanwari",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S020",
+      "destination_id": "D003",
+      "template_id": "IT006",
+      "name": "Baisaran Valley",
+      "status": "OPTIONAL",
+      "extra_cost": "YES",
+      "duration_hours": null,
+      "notes": "Local/pony arrangements may apply"
+    },
+    {
+      "sightseeing_id": "S021",
+      "destination_id": "D003",
+      "template_id": "IT006",
+      "name": "Lidder River",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S022",
+      "destination_id": "D004",
+      "template_id": "IT004",
+      "name": "Sonamarg Meadows",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S023",
+      "destination_id": "D004",
+      "template_id": "IT004",
+      "name": "Thajiwas Glacier",
+      "status": "MANDATORY",
+      "extra_cost": "YES",
+      "duration_hours": null,
+      "notes": "Pony/local arrangement may apply"
+    },
+    {
+      "sightseeing_id": "S024",
+      "destination_id": "D004",
+      "template_id": "IT004",
+      "name": "Zero Point",
+      "status": "CONDITIONAL",
+      "extra_cost": "YES",
+      "duration_hours": null,
+      "notes": "Road/weather/local conditions"
+    },
+    {
+      "sightseeing_id": "S025",
+      "destination_id": "D004",
+      "template_id": "IT004",
+      "name": "Fish Point",
+      "status": "OPTIONAL",
+      "extra_cost": "YES",
+      "duration_hours": null,
+      "notes": "Local arrangement may apply"
+    },
+    {
+      "sightseeing_id": "S026",
+      "destination_id": "D004",
+      "template_id": "IT004",
+      "name": "Zoji La Pass",
+      "status": "CONDITIONAL",
+      "extra_cost": "YES",
+      "duration_hours": null,
+      "notes": "Road/weather/access dependent"
+    },
+    {
+      "sightseeing_id": "S027",
+      "destination_id": "D005",
+      "template_id": "IT008",
+      "name": "Doodhpathri Meadows",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S028",
+      "destination_id": "D005",
+      "template_id": "IT008",
+      "name": "Shaliganga River",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S029",
+      "destination_id": "D005",
+      "template_id": "IT008",
+      "name": "Tangnar",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S030",
+      "destination_id": "D006",
+      "template_id": "IT011",
+      "name": "Dawar Village",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S031",
+      "destination_id": "D006",
+      "template_id": "IT011",
+      "name": "Tulail Valley",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": "Subject to local access"
+    },
+    {
+      "sightseeing_id": "S032",
+      "destination_id": "D006",
+      "template_id": "IT011",
+      "name": "Chakwali",
+      "status": "CONDITIONAL",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": "Subject to local/border-area access"
+    },
+    {
+      "sightseeing_id": "S033",
+      "destination_id": "D006",
+      "template_id": "IT011",
+      "name": "Izmarg-Bagtore",
+      "status": "CONDITIONAL",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": "Subject to local access"
+    },
+    {
+      "sightseeing_id": "S034",
+      "destination_id": "D007",
+      "template_id": "IT012",
+      "name": "Yusmarg Meadows",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S035",
+      "destination_id": "D007",
+      "template_id": "IT012",
+      "name": "Doodhganga River",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S036",
+      "destination_id": "D007",
+      "template_id": "IT012",
+      "name": "Sang-e-Safed",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S037",
+      "destination_id": "D007",
+      "template_id": "IT012",
+      "name": "Nilnag Lake",
+      "status": "CONDITIONAL",
+      "extra_cost": "YES",
+      "duration_hours": null,
+      "notes": "Access/trek dependent"
+    },
+    {
+      "sightseeing_id": "S038",
+      "destination_id": "D008",
+      "template_id": "IT013",
+      "name": "Achabal Mughal Garden",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S039",
+      "destination_id": "D009",
+      "template_id": "IT013",
+      "name": "Kokernag Spring and Botanical Garden",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S040",
+      "destination_id": "D010",
+      "template_id": "IT013",
+      "name": "Verinag Spring",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S041",
+      "destination_id": "D010",
+      "template_id": "IT013",
+      "name": "Verinag Mughal Garden",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S042",
+      "destination_id": "D011",
+      "template_id": "IT014",
+      "name": "Daksum Valley",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": "Access subject to government/local rules"
+    },
+    {
+      "sightseeing_id": "S043",
+      "destination_id": "D012",
+      "template_id": "IT016",
+      "name": "Naranag Temple Complex",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S044",
+      "destination_id": "D012",
+      "template_id": "IT016",
+      "name": "Naranag Spring",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S045",
+      "destination_id": "D012",
+      "template_id": "IT016",
+      "name": "Naranag Valley",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S046",
+      "destination_id": "D013",
+      "template_id": "IT017",
+      "name": "Manasbal Lake",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    },
+    {
+      "sightseeing_id": "S047",
+      "destination_id": "D013",
+      "template_id": "IT017",
+      "name": "Manasbal Shikara",
+      "status": "OPTIONAL",
+      "extra_cost": "YES",
+      "duration_hours": null,
+      "notes": "Excluded unless specifically included"
+    },
+    {
+      "sightseeing_id": "S048",
+      "destination_id": "D013",
+      "template_id": "IT017",
+      "name": "Manasbal Mughal Garden",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "duration_hours": null,
+      "notes": null
+    }
+  ],
+  "activities": [
+    {
+      "activity_id": "A001",
+      "destination_id": "D002",
+      "activity_name": "Pony Ride",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_unit": "Per person",
+      "notes": "Excluded unless specifically added"
+    },
+    {
+      "activity_id": "A002",
+      "destination_id": "D002",
+      "activity_name": "ATV Ride",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_unit": "Per person",
+      "notes": "Excluded unless specifically added"
+    },
+    {
+      "activity_id": "A003",
+      "destination_id": "D002",
+      "activity_name": "Snow Activities",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_unit": "Per person",
+      "notes": "Seasonal; excluded unless specifically added"
+    },
+    {
+      "activity_id": "A004",
+      "destination_id": "D002",
+      "activity_name": "Gondola",
+      "default_status": "CONDITIONAL",
+      "included_in_base_package": "NO",
+      "pricing_unit": "Per person",
+      "notes": "Ticket cost excluded unless specifically included"
+    },
+    {
+      "activity_id": "A005",
+      "destination_id": "D003",
+      "activity_name": "Pony Ride",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_unit": "Per person",
+      "notes": "Excluded unless specifically added"
+    },
+    {
+      "activity_id": "A006",
+      "destination_id": "D004",
+      "activity_name": "Pony Ride to Thajiwas",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_unit": "Per person",
+      "notes": "Local arrangement; excluded"
+    },
+    {
+      "activity_id": "A007",
+      "destination_id": "D004",
+      "activity_name": "Local excursion to Zero Point",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_unit": "Per vehicle/group",
+      "notes": "Local/union transport may apply"
+    },
+    {
+      "activity_id": "A008",
+      "destination_id": "D013",
+      "activity_name": "Shikara Ride",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_unit": "Per boat",
+      "notes": "Excluded unless specifically included"
+    }
+  ],
+  "vehicleRules": [
+    {
+      "rule_id": "VR001",
+      "rule_name": "Standard destination transfer",
+      "condition": "Preferred route with 1-day charge",
+      "action": "Charge 1 vehicle day",
+      "notes": "Use vehicle rate table"
+    },
+    {
+      "rule_id": "VR002",
+      "rule_name": "Long direct inter-destination transfer",
+      "condition": "Route marked AVOID with 2-day charge",
+      "action": "Charge 2 vehicle days",
+      "notes": "Still allowed when specifically requested"
+    },
+    {
+      "rule_id": "VR003",
+      "rule_name": "Union/local cab",
+      "condition": "Sightseeing requires local/union cab",
+      "action": "Exclude from standard package cost",
+      "notes": "Add only when explicitly quoted"
+    }
+  ],
+  "packageExclusions": [
+    {
+      "item": "Pony rides",
+      "default_treatment": "EXCLUDED",
+      "notes": "Add only if specifically quoted"
+    },
+    {
+      "item": "ATV rides",
+      "default_treatment": "EXCLUDED",
+      "notes": "Add only if specifically quoted"
+    },
+    {
+      "item": "Seasonal snow activities",
+      "default_treatment": "EXCLUDED",
+      "notes": "Add only if specifically quoted"
+    },
+    {
+      "item": "Union/local cabs",
+      "default_treatment": "EXCLUDED",
+      "notes": "Add only if specifically quoted"
+    },
+    {
+      "item": "Personal expenses",
+      "default_treatment": "EXCLUDED",
+      "notes": "Standard package exclusion"
+    },
+    {
+      "item": "Gondola tickets",
+      "default_treatment": "EXCLUDED",
+      "notes": "Add only if package explicitly includes them"
+    }
+  ],
+  "additionalDestinations": [
+    {
+      "new_id": "D018",
+      "destination_name": "Aharbal",
+      "region": "South Kashmir",
+      "recommended_status": "ADD NOW",
+      "suggested_template": "Aharbal Day Trip",
+      "reason_to_add": "Major waterfall + trekking/fishing; official tourism destination",
+      "access/season_note": "Weather dependent",
+      "source_note": "Official J&K tourism",
+      "priority": "OFFBEAT",
+      "recommendation_weight": 25
+    },
+    {
+      "new_id": "D019",
+      "destination_name": "Chatbal / Chatpal",
+      "region": "South Kashmir",
+      "recommended_status": "ADD NOW",
+      "suggested_template": "Chatbal Day Trip / 1N",
+      "reason_to_add": "Offbeat forest destination; near Achabal and Margan Top",
+      "access/season_note": "Limited infrastructure; verify access",
+      "source_note": "Official J&K tourism calls it Chatbal; travel sources often use Chatpal",
+      "priority": "OFFBEAT",
+      "recommendation_weight": 20
+    },
+    {
+      "new_id": "D020",
+      "destination_name": "Sinthan Top",
+      "region": "South Kashmir",
+      "recommended_status": "ADD NOW",
+      "suggested_template": "Daksum + Sinthan Top Day Excursion",
+      "reason_to_add": "High-altitude pass and snow/viewpoint experience",
+      "access/season_note": "Weather/road dependent",
+      "source_note": "Official J&K tourism",
+      "priority": "OFFBEAT",
+      "recommendation_weight": 25
+    },
+    {
+      "new_id": "D021",
+      "destination_name": "Margan Top",
+      "region": "South Kashmir",
+      "recommended_status": "ADD LATER",
+      "suggested_template": "Chatbal/Margan Top Excursion",
+      "reason_to_add": "High-altitude pass and gateway toward Warwan",
+      "access/season_note": "Road condition/access can be difficult",
+      "source_note": "Official J&K tourism",
+      "priority": "LOW_PRIORITY",
+      "recommendation_weight": 15
+    },
+    {
+      "new_id": "D022",
+      "destination_name": "Bangus Valley",
+      "region": "North Kashmir",
+      "recommended_status": "ADD NOW",
+      "suggested_template": "Bangus 1N / 2N",
+      "reason_to_add": "Major offbeat meadow destination",
+      "access/season_note": "Seasonal/road/access checks",
+      "source_note": "Official J&K tourism + 2026 travel sources",
+      "priority": "OFFBEAT",
+      "recommendation_weight": 20
+    },
+    {
+      "new_id": "D023",
+      "destination_name": "Lolab Valley",
+      "region": "North Kashmir",
+      "recommended_status": "ADD NOW",
+      "suggested_template": "Lolab 1N / 2N",
+      "reason_to_add": "Large valley with orchards, forests and villages",
+      "access/season_note": "Best late spring-autumn; verify road/stays",
+      "source_note": "Official J&K tourism + 2026 travel sources",
+      "priority": "OFFBEAT",
+      "recommendation_weight": 20
+    },
+    {
+      "new_id": "D024",
+      "destination_name": "Keran Valley",
+      "region": "North Kashmir",
+      "recommended_status": "ADD LATER",
+      "suggested_template": "Keran 1N / 2N",
+      "reason_to_add": "LoC-side scenic valley; distinctive rural experience",
+      "access/season_note": "Security/access conditions must be checked",
+      "source_note": "Official J&K tourism",
+      "priority": "OFFBEAT",
+      "recommendation_weight": 15
+    },
+    {
+      "new_id": "D025",
+      "destination_name": "Tosa Maidan",
+      "region": "Central Kashmir",
+      "recommended_status": "ADD NOW",
+      "suggested_template": "Tosa Maidan 1N / Day Excursion",
+      "reason_to_add": "Large meadow; strong offbeat/camping product",
+      "access/season_note": "Road and local access; facilities limited",
+      "source_note": "Budgam district + official tourism",
+      "priority": "OFFBEAT",
+      "recommendation_weight": 20
+    },
+    {
+      "new_id": "D026",
+      "destination_name": "Wular Lake",
+      "region": "North Kashmir",
+      "recommended_status": "ADD NOW",
+      "suggested_template": "Wular Day Trip",
+      "reason_to_add": "Major lake; boating, birding, photography",
+      "access/season_note": "Water/weather conditions",
+      "source_note": "Incredible India + district administration",
+      "priority": "SECONDARY",
+      "recommendation_weight": 35
+    },
+    {
+      "new_id": "D027",
+      "destination_name": "Wular Vantage Park",
+      "region": "North Kashmir",
+      "recommended_status": "ADD LATER",
+      "suggested_template": "Wular + Watlab Circuit",
+      "reason_to_add": "Viewpoint/ecotourism addition around Wular",
+      "access/season_note": "Check operating status",
+      "source_note": "Bandipora district administration",
+      "priority": "LOW_PRIORITY",
+      "recommendation_weight": 15
+    },
+    {
+      "new_id": "D028",
+      "destination_name": "Dachigam National Park",
+      "region": "Srinagar",
+      "recommended_status": "ADD NOW",
+      "suggested_template": "Dachigam Half/Full Day",
+      "reason_to_add": "Wildlife and Hangul experience",
+      "access/season_note": "Protected-area entry/permit rules apply",
+      "source_note": "Srinagar district administration",
+      "priority": "SECONDARY",
+      "recommendation_weight": 35
+    },
+    {
+      "new_id": "D029",
+      "destination_name": "Watlab",
+      "region": "North Kashmir",
+      "recommended_status": "ADD LATER",
+      "suggested_template": "Watlab + Wular Circuit",
+      "reason_to_add": "Baba Shukurddin shrine + Wular viewpoint",
+      "access/season_note": "Combine with Wular rather than standalone",
+      "source_note": "Official J&K tourism",
+      "priority": "LOW_PRIORITY",
+      "recommendation_weight": 15
+    },
+    {
+      "new_id": "D030",
+      "destination_name": "Ningli Nallah",
+      "region": "North Kashmir",
+      "recommended_status": "ADD LATER",
+      "suggested_template": "Gulmarg/Ningli Excursion",
+      "reason_to_add": "Scenic stream from Apharwat/Alpather system",
+      "access/season_note": "Access depends on exact stop/route",
+      "source_note": "Official J&K tourism",
+      "priority": "LOW_PRIORITY",
+      "recommendation_weight": 15
+    },
+    {
+      "new_id": "D031",
+      "destination_name": "Botapathri",
+      "region": "Gulmarg Area",
+      "recommended_status": "ADD NOW",
+      "suggested_template": "Gulmarg + Botapathri",
+      "reason_to_add": "Offbeat extension near Gulmarg",
+      "access/season_note": "Access/security/local transport check",
+      "source_note": "Official J&K tourism",
+      "priority": "OFFBEAT",
+      "recommendation_weight": 25
+    },
+    {
+      "new_id": "D032",
+      "destination_name": "Alpather Lake",
+      "region": "Gulmarg Area",
+      "recommended_status": "ADD NOW",
+      "suggested_template": "Gulmarg + Alpather Excursion",
+      "reason_to_add": "High-altitude lake; major trekking extension",
+      "access/season_note": "High altitude; trek/weather dependent",
+      "source_note": "Official tourism + Incredible India",
+      "priority": "OFFBEAT",
+      "recommendation_weight": 20
+    },
+    {
+      "new_id": "D033",
+      "destination_name": "Gagangeer",
+      "region": "Ganderbal",
+      "recommended_status": "ADD LATER",
+      "suggested_template": "Sonamarg Circuit",
+      "reason_to_add": "Scenic village and snow/sledge/horseback stop",
+      "access/season_note": "Weather/season dependent",
+      "source_note": "Official J&K tourism",
+      "priority": "LOW_PRIORITY",
+      "recommendation_weight": 15
+    },
+    {
+      "new_id": "D034",
+      "destination_name": "Tulail",
+      "region": "Gurez",
+      "recommended_status": "ADD NOW",
+      "suggested_template": "Gurez 2N Extension",
+      "reason_to_add": "Major Gurez extension with traditional villages",
+      "access/season_note": "May-Oct planning; local access checks",
+      "source_note": "Official J&K tourism",
+      "priority": "OFFBEAT",
+      "recommendation_weight": 25
+    },
+    {
+      "new_id": "D035",
+      "destination_name": "Drang",
+      "region": "Tangmarg",
+      "recommended_status": "ADD NOW",
+      "suggested_template": "Gulmarg + Drang",
+      "reason_to_add": "Waterfall/stream stop near Gulmarg",
+      "access/season_note": "Weather/access dependent",
+      "source_note": "Official J&K tourism",
+      "priority": "LOW_PRIORITY",
+      "recommendation_weight": 20
+    },
+    {
+      "new_id": "D036",
+      "destination_name": "Khadaniar Eco Park",
+      "region": "Baramulla",
+      "recommended_status": "ADD LATER",
+      "suggested_template": "Baramulla/Uri Circuit",
+      "reason_to_add": "Picnic/ecopark on Jhelum",
+      "access/season_note": "Day-trip circuit item",
+      "source_note": "Official J&K tourism",
+      "priority": "LOW_PRIORITY",
+      "recommendation_weight": 10
+    },
+    {
+      "new_id": "D037",
+      "destination_name": "Manasbal Lake",
+      "region": "Ganderbal",
+      "recommended_status": "ALREADY IN CORE",
+      "suggested_template": "Existing Manasbal Template",
+      "reason_to_add": "Already included; add Jaroka garden explicitly",
+      "access/season_note": "Generally accessible",
+      "source_note": "Official J&K tourism",
+      "priority": "SECONDARY",
+      "recommendation_weight": 45
+    },
+    {
+      "new_id": "D038",
+      "destination_name": "Kanihama",
+      "region": "Budgam",
+      "recommended_status": "ADD LATER",
+      "suggested_template": "Kanihama Craft Stop",
+      "reason_to_add": "Kani shawl weaving/craft experience",
+      "access/season_note": "Best as en-route cultural stop",
+      "source_note": "Official J&K tourism",
+      "priority": "LOW_PRIORITY",
+      "recommendation_weight": 15
+    },
+    {
+      "new_id": "D039",
+      "destination_name": "Peer Ki Gali",
+      "region": "Shopian/Mughal Road",
+      "recommended_status": "ADD LATER",
+      "suggested_template": "Mughal Road / Shopian Circuit",
+      "reason_to_add": "High-altitude pass + shrine + scenery",
+      "access/season_note": "Road/weather dependent",
+      "source_note": "Official J&K tourism",
+      "priority": "LOW_PRIORITY",
+      "recommendation_weight": 15
+    },
+    {
+      "new_id": "D040",
+      "destination_name": "Dubjan",
+      "region": "Shopian/Mughal Road",
+      "recommended_status": "ADD LATER",
+      "suggested_template": "Dubjan Day Excursion",
+      "reason_to_add": "Meadow, stream and spring",
+      "access/season_note": "Road/weather dependent",
+      "source_note": "Official J&K tourism",
+      "priority": "LOW_PRIORITY",
+      "recommendation_weight": 10
+    },
+    {
+      "new_id": "D041",
+      "destination_name": "Shikargah",
+      "region": "South Kashmir",
+      "recommended_status": "ADD LATER",
+      "suggested_template": "Shikargah Excursion",
+      "reason_to_add": "Forest/wildlife heritage site",
+      "access/season_note": "Access/management confirmation needed",
+      "source_note": "Official J&K tourism",
+      "priority": "LOW_PRIORITY",
+      "recommendation_weight": 10
+    },
+    {
+      "new_id": "D042",
+      "destination_name": "Sitaharan",
+      "region": "Budgam",
+      "recommended_status": "ADD LATER",
+      "suggested_template": "Tosa Maidan Circuit",
+      "reason_to_add": "Spring near Tosa Maidan",
+      "access/season_note": "Combine with Tosa Maidan",
+      "source_note": "Official J&K tourism",
+      "priority": "LOW_PRIORITY",
+      "recommendation_weight": 10
+    },
+    {
+      "new_id": "D043",
+      "destination_name": "Nilnag",
+      "region": "Yusmarg",
+      "recommended_status": "ADD NOW",
+      "suggested_template": "Yusmarg + Nilnag",
+      "reason_to_add": "High-altitude lake and forest trek",
+      "access/season_note": "Trek/weather dependent",
+      "source_note": "Official J&K tourism",
+      "priority": "OFFBEAT",
+      "recommendation_weight": 20
+    },
+    {
+      "new_id": "D044",
+      "destination_name": "Drangyari",
+      "region": "North Kashmir",
+      "recommended_status": "RESEARCH FURTHER",
+      "suggested_template": "Drangyari 1N/2N",
+      "reason_to_add": "Remote lakes and natural sites",
+      "access/season_note": "Access/infrastructure/security require verification",
+      "source_note": "Official J&K tourism",
+      "priority": "LOW_PRIORITY",
+      "recommendation_weight": 10
+    }
+  ],
+  "researchNotes": [
+    {
+      "area": "Pahalgam",
+      "what_was_missing": "River rafting on Lidder",
+      "action": "Add as optional paid activity; seasonal, operator/river conditions apply"
+    },
+    {
+      "area": "Pahalgam",
+      "what_was_missing": "Fishing/angling",
+      "action": "Add as optional paid/permit-dependent activity"
+    },
+    {
+      "area": "Pahalgam",
+      "what_was_missing": "Hajan Valley",
+      "action": "Add as sightseeing/extension around Betaab Valley"
+    },
+    {
+      "area": "Pahalgam",
+      "what_was_missing": "Aru as trekking base",
+      "action": "Keep sightseeing + separate trek products"
+    },
+    {
+      "area": "Pahalgam",
+      "what_was_missing": "Tarsar-Marsar / Kolahoi / Lidderwat",
+      "action": "Create separate multi-day trek templates, not normal sightseeing"
+    },
+    {
+      "area": "Gulmarg",
+      "what_was_missing": "Alpather Lake",
+      "action": "Add conditional trekking/excursion"
+    },
+    {
+      "area": "Gulmarg",
+      "what_was_missing": "Botapathri",
+      "action": "Add offbeat extension"
+    },
+    {
+      "area": "Gulmarg",
+      "what_was_missing": "Khilanmarg",
+      "action": "Add sightseeing/trek/pony extension"
+    },
+    {
+      "area": "Gulmarg",
+      "what_was_missing": "Skiing / snowboarding",
+      "action": "Add seasonal paid activities"
+    },
+    {
+      "area": "Gulmarg",
+      "what_was_missing": "Snowmobile / snowbike / sledging",
+      "action": "Add seasonal optional activities; verify operator availability"
+    },
+    {
+      "area": "Gulmarg",
+      "what_was_missing": "Golf",
+      "action": "Already present; classify as optional paid activity if not included"
+    },
+    {
+      "area": "Sonamarg",
+      "what_was_missing": "River rafting on Sindh",
+      "action": "Add seasonal optional paid activity"
+    },
+    {
+      "area": "Sonamarg",
+      "what_was_missing": "Fishing",
+      "action": "Add permit/season dependent optional activity"
+    },
+    {
+      "area": "Sonamarg",
+      "what_was_missing": "Baltal",
+      "action": "Add excursion/transfer extension"
+    },
+    {
+      "area": "Sonamarg",
+      "what_was_missing": "Kashmir Great Lakes trailhead",
+      "action": "Create separate multi-day trek product"
+    },
+    {
+      "area": "Sonamarg",
+      "what_was_missing": "Gadsar/Vishansar/Krishansar/Gangbal/Satsar",
+      "action": "Keep inside trek templates rather than standard sightseeing"
+    },
+    {
+      "area": "Yusmarg",
+      "what_was_missing": "Horse riding, fishing, skiing",
+      "action": "Add optional activities"
+    },
+    {
+      "area": "Yusmarg",
+      "what_was_missing": "Nilnag + Sang-e-Safed",
+      "action": "Add conditional excursions"
+    },
+    {
+      "area": "Srinagar",
+      "what_was_missing": "Dachigam",
+      "action": "Add wildlife half/full-day template with protected-area rules"
+    },
+    {
+      "area": "Srinagar",
+      "what_was_missing": "Burzahama",
+      "action": "Add archaeology/heritage sightseeing"
+    },
+    {
+      "area": "Srinagar",
+      "what_was_missing": "Hazratbal / Jamia / old city / Hari Parbat / Badamwari",
+      "action": "Add to Srinagar heritage/culture template"
+    },
+    {
+      "area": "Srinagar",
+      "what_was_missing": "Shikara experience",
+      "action": "Add as optional paid activity; separate from sightseeing"
+    },
+    {
+      "area": "Wular",
+      "what_was_missing": "Boating, birdwatching, fishing, photography",
+      "action": "Add activities and Wular day-trip template"
+    },
+    {
+      "area": "Offbeat South",
+      "what_was_missing": "Aharbal, Chatbal/Chatpal, Sinthan Top, Margan Top",
+      "action": "Add destination records; build templates after access/routing validation"
+    },
+    {
+      "area": "Offbeat North",
+      "what_was_missing": "Bangus, Lolab, Keran, Drangyari",
+      "action": "Add destination records; build cautious 1N/2N templates"
+    },
+    {
+      "area": "Central/offbeat",
+      "what_was_missing": "Tosa Maidan, Sitaharan",
+      "action": "Add destination + circuit template"
+    },
+    {
+      "area": "Important",
+      "what_was_missing": "Activities are not included by default",
+      "action": "Mark optional/extra and exclude from base package costing"
+    },
+    {
+      "area": "Important",
+      "what_was_missing": "Union/local cabs are excluded",
+      "action": "Create explicit exclusion and local-cab cost override"
+    }
+  ],
+  "activitiesExpanded": [
+    {
+      "activity_id": "AX001",
+      "destination_id": "D003",
+      "activity": "Lidder River Rafting",
+      "category": "Adventure",
+      "season": "May-Sep",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Per person",
+      "notes": "Seasonal river conditions; use licensed/operator-confirmed service"
+    },
+    {
+      "activity_id": "AX002",
+      "destination_id": "D003",
+      "activity": "Trout Fishing / Angling",
+      "category": "Adventure",
+      "season": "Seasonal",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Per person/permit",
+      "notes": "Permit and local rules may apply"
+    },
+    {
+      "activity_id": "AX003",
+      "destination_id": "D003",
+      "activity": "Lidderwat Trek",
+      "category": "Trekking",
+      "season": "Jun-Sep",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Per group/day",
+      "notes": "Separate trek product"
+    },
+    {
+      "activity_id": "AX004",
+      "destination_id": "D003",
+      "activity": "Tarsar-Marsar Trek",
+      "category": "Trekking",
+      "season": "Jun-Sep",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Per person/package",
+      "notes": "Multi-day guided trek from Aru"
+    },
+    {
+      "activity_id": "AX005",
+      "destination_id": "D003",
+      "activity": "Kolahoi Glacier Trek",
+      "category": "Trekking",
+      "season": "Jun-Sep",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Per person/package",
+      "notes": "Multi-day guided trek"
+    },
+    {
+      "activity_id": "AX006",
+      "destination_id": "D002",
+      "activity": "Skiing",
+      "category": "Winter Adventure",
+      "season": "Dec-Mar",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Per person/day",
+      "notes": "Instructor/equipment may be separate"
+    },
+    {
+      "activity_id": "AX007",
+      "destination_id": "D002",
+      "activity": "Snowboarding",
+      "category": "Winter Adventure",
+      "season": "Dec-Mar",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Per person/day",
+      "notes": "Instructor/equipment may be separate"
+    },
+    {
+      "activity_id": "AX008",
+      "destination_id": "D002",
+      "activity": "Snowmobile/Snowbike",
+      "category": "Winter Adventure",
+      "season": "Winter",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Per ride",
+      "notes": "Availability varies"
+    },
+    {
+      "activity_id": "AX009",
+      "destination_id": "D002",
+      "activity": "Sledging",
+      "category": "Winter Adventure",
+      "season": "Winter",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Per ride",
+      "notes": "Local arrangement"
+    },
+    {
+      "activity_id": "AX010",
+      "destination_id": "D002",
+      "activity": "Golf",
+      "category": "Leisure",
+      "season": "Spring-Autumn",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Per person",
+      "notes": "Green/club fees if applicable"
+    },
+    {
+      "activity_id": "AX011",
+      "destination_id": "D002",
+      "activity": "Horse/Pony Ride",
+      "category": "Adventure",
+      "season": "Seasonal",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Per person",
+      "notes": "Local arrangement"
+    },
+    {
+      "activity_id": "AX012",
+      "destination_id": "D002",
+      "activity": "Alpather Lake Trek/Excursion",
+      "category": "Trekking",
+      "season": "Summer-Autumn",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Per person/group",
+      "notes": "High altitude and weather dependent"
+    },
+    {
+      "activity_id": "AX013",
+      "destination_id": "D004",
+      "activity": "Sindh River Rafting",
+      "category": "Adventure",
+      "season": "Seasonal",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Per person",
+      "notes": "Seasonal; confirm current operation"
+    },
+    {
+      "activity_id": "AX014",
+      "destination_id": "D004",
+      "activity": "Trout Fishing",
+      "category": "Adventure",
+      "season": "Seasonal",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Per person/permit",
+      "notes": "Permit/local rules"
+    },
+    {
+      "activity_id": "AX015",
+      "destination_id": "D004",
+      "activity": "Thajiwas Pony Ride",
+      "category": "Adventure",
+      "season": "Seasonal",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Per person",
+      "notes": "Union/local arrangement"
+    },
+    {
+      "activity_id": "AX016",
+      "destination_id": "D004",
+      "activity": "Camping",
+      "category": "Outdoor",
+      "season": "Summer-Autumn",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Per person/night",
+      "notes": "Availability varies"
+    },
+    {
+      "activity_id": "AX017",
+      "destination_id": "D007",
+      "activity": "Horse Riding",
+      "category": "Adventure",
+      "season": "Seasonal",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Per person",
+      "notes": "Local arrangement"
+    },
+    {
+      "activity_id": "AX018",
+      "destination_id": "D007",
+      "activity": "Fishing",
+      "category": "Adventure",
+      "season": "Seasonal",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Per person/permit",
+      "notes": "Local rules"
+    },
+    {
+      "activity_id": "AX019",
+      "destination_id": "D007",
+      "activity": "Nilnag Trek",
+      "category": "Trekking",
+      "season": "Spring-Autumn",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Per person/group",
+      "notes": "Forest trek; weather dependent"
+    },
+    {
+      "activity_id": "AX020",
+      "destination_id": "D026",
+      "activity": "Wular Boating",
+      "category": "Water",
+      "season": "Spring-Autumn",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Per boat",
+      "notes": "Operator/weather dependent"
+    },
+    {
+      "activity_id": "AX021",
+      "destination_id": "D026",
+      "activity": "Wular Birdwatching",
+      "category": "Nature",
+      "season": "Nov-Feb especially",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Per guide/group",
+      "notes": "Migratory bird season"
+    },
+    {
+      "activity_id": "AX022",
+      "destination_id": "D026",
+      "activity": "Wular Fishing",
+      "category": "Adventure",
+      "season": "Seasonal",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Permit/boat",
+      "notes": "Local rules"
+    },
+    {
+      "activity_id": "AX023",
+      "destination_id": "D028",
+      "activity": "Dachigam Wildlife Visit",
+      "category": "Wildlife",
+      "season": "Seasonal",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Permit/person",
+      "notes": "Protected area; confirm permits and timings"
+    },
+    {
+      "activity_id": "AX024",
+      "destination_id": "D038",
+      "activity": "Kani Shawl Weaving Experience",
+      "category": "Culture",
+      "season": "All year",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Per group",
+      "notes": "Workshop/visit availability"
+    },
+    {
+      "activity_id": "AX025",
+      "destination_id": "D015",
+      "activity": "Paragliding",
+      "category": "Adventure",
+      "season": "Seasonal",
+      "default_status": "OPTIONAL",
+      "included_in_base_package": "NO",
+      "pricing_basis": "Per person",
+      "notes": "Astanmarg/Sumbal options require current operator/access confirmation"
+    }
+  ],
+  "sightseeingExpanded": [
+    {
+      "sightseeing_id": "SX001",
+      "destination_id": "D003",
+      "name": "Hajan Valley",
+      "status": "OPTIONAL",
+      "extra_cost": "YES",
+      "notes": "Historic name/area around Betaab Valley; local access/route should be confirmed"
+    },
+    {
+      "sightseeing_id": "SX002",
+      "destination_id": "D002",
+      "name": "Khilanmarg",
+      "status": "OPTIONAL",
+      "extra_cost": "YES",
+      "notes": "Meadow/high-altitude extension; access may involve pony/trek"
+    },
+    {
+      "sightseeing_id": "SX003",
+      "destination_id": "D002",
+      "name": "Alpather Lake",
+      "status": "CONDITIONAL",
+      "extra_cost": "YES",
+      "notes": "High-altitude trek/excursion"
+    },
+    {
+      "sightseeing_id": "SX004",
+      "destination_id": "D002",
+      "name": "Botapathri",
+      "status": "OPTIONAL",
+      "extra_cost": "YES",
+      "notes": "Offbeat Gulmarg extension; local/security access"
+    },
+    {
+      "sightseeing_id": "SX005",
+      "destination_id": "D004",
+      "name": "Baltal",
+      "status": "OPTIONAL",
+      "extra_cost": "YES",
+      "notes": "Sonamarg-side excursion; useful for Amarnath-season products"
+    },
+    {
+      "sightseeing_id": "SX006",
+      "destination_id": "D004",
+      "name": "Gagangeer",
+      "status": "OPTIONAL",
+      "extra_cost": "NO",
+      "notes": "Scenic village en route to Sonamarg"
+    },
+    {
+      "sightseeing_id": "SX007",
+      "destination_id": "D007",
+      "name": "Nilnag Lake",
+      "status": "CONDITIONAL",
+      "extra_cost": "YES",
+      "notes": "Forest trek from Yusmarg"
+    },
+    {
+      "sightseeing_id": "SX008",
+      "destination_id": "D018",
+      "name": "Aharbal Waterfall",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "notes": "Primary attraction"
+    },
+    {
+      "sightseeing_id": "SX009",
+      "destination_id": "D020",
+      "name": "Sinthan Top",
+      "status": "MANDATORY",
+      "extra_cost": "YES",
+      "notes": "Use as excursion from Daksum; road/weather dependent"
+    },
+    {
+      "sightseeing_id": "SX010",
+      "destination_id": "D025",
+      "name": "Tosa Maidan Meadows",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "notes": "Primary attraction"
+    },
+    {
+      "sightseeing_id": "SX011",
+      "destination_id": "D026",
+      "name": "Wular Lake",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "notes": "Primary attraction"
+    },
+    {
+      "sightseeing_id": "SX012",
+      "destination_id": "D026",
+      "name": "Zaina Lank",
+      "status": "OPTIONAL",
+      "extra_cost": "YES",
+      "notes": "Boat access/conditions"
+    },
+    {
+      "sightseeing_id": "SX013",
+      "destination_id": "D027",
+      "name": "Wular Vantage Park",
+      "status": "OPTIONAL",
+      "extra_cost": "NO",
+      "notes": "Check current operation"
+    },
+    {
+      "sightseeing_id": "SX014",
+      "destination_id": "D028",
+      "name": "Dachigam National Park",
+      "status": "MANDATORY",
+      "extra_cost": "YES",
+      "notes": "Protected area entry rules"
+    },
+    {
+      "sightseeing_id": "SX015",
+      "destination_id": "D029",
+      "name": "Watlab",
+      "status": "OPTIONAL",
+      "extra_cost": "NO",
+      "notes": "Combine with Wular"
+    },
+    {
+      "sightseeing_id": "SX016",
+      "destination_id": "D030",
+      "name": "Ningli Nallah",
+      "status": "OPTIONAL",
+      "extra_cost": "NO",
+      "notes": "Scenic stream near Gulmarg/Tangmarg"
+    },
+    {
+      "sightseeing_id": "SX017",
+      "destination_id": "D031",
+      "name": "Botapathri",
+      "status": "MANDATORY",
+      "extra_cost": "YES",
+      "notes": "If using Botapathri template"
+    },
+    {
+      "sightseeing_id": "SX018",
+      "destination_id": "D032",
+      "name": "Alpather Lake",
+      "status": "MANDATORY",
+      "extra_cost": "YES",
+      "notes": "If using Alpather template"
+    },
+    {
+      "sightseeing_id": "SX019",
+      "destination_id": "D033",
+      "name": "Gagangeer",
+      "status": "OPTIONAL",
+      "extra_cost": "NO",
+      "notes": "Scenic stop near Sonamarg"
+    },
+    {
+      "sightseeing_id": "SX020",
+      "destination_id": "D034",
+      "name": "Tulail Villages",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "notes": "Gurez 2N extension"
+    },
+    {
+      "sightseeing_id": "SX021",
+      "destination_id": "D035",
+      "name": "Drang Waterfall",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "notes": "Gulmarg/Tangmarg extension"
+    },
+    {
+      "sightseeing_id": "SX022",
+      "destination_id": "D038",
+      "name": "Kanihama Kani Craft Village",
+      "status": "MANDATORY",
+      "extra_cost": "YES",
+      "notes": "Craft/culture experience"
+    },
+    {
+      "sightseeing_id": "SX023",
+      "destination_id": "D039",
+      "name": "Peer Ki Gali",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "notes": "Mughal Road circuit"
+    },
+    {
+      "sightseeing_id": "SX024",
+      "destination_id": "D040",
+      "name": "Dubjan",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "notes": "Mughal Road/offbeat circuit"
+    },
+    {
+      "sightseeing_id": "SX025",
+      "destination_id": "D042",
+      "name": "Sitaharan Spring",
+      "status": "OPTIONAL",
+      "extra_cost": "NO",
+      "notes": "Tosa Maidan circuit"
+    },
+    {
+      "sightseeing_id": "SX026",
+      "destination_id": "D043",
+      "name": "Nilnag Lake",
+      "status": "MANDATORY",
+      "extra_cost": "YES",
+      "notes": "Yusmarg extension"
+    },
+    {
+      "sightseeing_id": "SX027",
+      "destination_id": "D013",
+      "name": "Jaroka / Manasbal Mughal Garden",
+      "status": "MANDATORY",
+      "extra_cost": "NO",
+      "notes": "Add explicitly to Manasbal template"
+    },
+    {
+      "sightseeing_id": "SX028",
+      "destination_id": "D001",
+      "name": "Dachigam National Park",
+      "status": "OPTIONAL",
+      "extra_cost": "YES",
+      "notes": "Could be attached to Srinagar base day"
+    },
+    {
+      "sightseeing_id": "SX029",
+      "destination_id": "D001",
+      "name": "Burzahama Neolithic Site",
+      "status": "OPTIONAL",
+      "extra_cost": "YES",
+      "notes": "Heritage/archaeology stop"
+    },
+    {
+      "sightseeing_id": "SX030",
+      "destination_id": "D001",
+      "name": "Hazratbal Shrine",
+      "status": "OPTIONAL",
+      "extra_cost": "NO",
+      "notes": "Srinagar heritage/religious sightseeing"
+    },
+    {
+      "sightseeing_id": "SX031",
+      "destination_id": "D001",
+      "name": "Jamia Masjid Srinagar",
+      "status": "OPTIONAL",
+      "extra_cost": "NO",
+      "notes": "Old city heritage; timing/access should be checked"
+    },
+    {
+      "sightseeing_id": "SX032",
+      "destination_id": "D001",
+      "name": "Hari Parbat Fort",
+      "status": "OPTIONAL",
+      "extra_cost": "YES",
+      "notes": "Access/timings can vary"
+    },
+    {
+      "sightseeing_id": "SX033",
+      "destination_id": "D001",
+      "name": "Badamwari Garden",
+      "status": "OPTIONAL",
+      "extra_cost": "NO",
+      "notes": "Seasonal garden experience"
+    },
+    {
+      "sightseeing_id": "SX034",
+      "destination_id": "D001",
+      "name": "Old City / Downtown Heritage Walk",
+      "status": "OPTIONAL",
+      "extra_cost": "YES",
+      "notes": "Guide/local access useful"
+    },
+    {
+      "sightseeing_id": "SX035",
+      "destination_id": "D001",
+      "name": "Shikara Ride on Dal Lake",
+      "status": "OPTIONAL",
+      "extra_cost": "YES",
+      "notes": "Separate paid activity"
+    }
+  ],
+  "researchSources": [
+    {
+      "source": "J&K Tourism official Destinations page",
+      "used_for": "Official list and descriptions of offbeat Kashmir destinations including Aharbal, Daksum, Sinthan Top, Margan Top, Keran, Peer Ki Gali, Dubjan, Tosa Maidan, Yusmarg, Nilnag, Wular, Ningli, Alpather, Gagangeer, Gurez, Tulail, Botapathri, Drang, Manasbal, Watlab"
+    },
+    {
+      "source": "Divisional Commissioner Kashmir / district government pages",
+      "used_for": "Aharbal, Pahalgam, Sonamarg, Wular, Dachigam and destination/access information"
+    },
+    {
+      "source": "Incredible India",
+      "used_for": "Aru/Lidder rafting, Gulmarg adventure, Wular activities"
+    },
+    {
+      "source": "2026 Kashmir travel/operator sources",
+      "used_for": "Current activity and itinerary cross-checks; used cautiously where official pages did not specify operational details"
+    },
+    {
+      "source": "Google Maps/business results",
+      "used_for": "Current existence of activity providers/places; not treated as proof of package inclusion or official access"
+    }
+  ],
+  "enginePriorityGuide": [
+    {
+      "priority": "CORE",
+      "weight_range": -10,
+      "engine_behavior": "Default recommendations; consider first for normal Kashmir trips"
+    },
+    {
+      "priority": "SECONDARY",
+      "weight_range": -54,
+      "engine_behavior": "Consider when trip length, interests or routing make it suitable"
+    },
+    {
+      "priority": "OFFBEAT",
+      "weight_range": -14,
+      "engine_behavior": "Recommend mainly when customer asks for hidden/offbeat/nature experiences or has enough nights"
+    },
+    {
+      "priority": "LOW_PRIORITY",
+      "weight_range": -18,
+      "engine_behavior": "Do not add automatically; use only when preferences, route or salesperson explicitly call for it"
+    },
+    {
+      "priority": "TREK_ONLY",
+      "weight_range": "N/A",
+      "engine_behavior": "Do not add to normal sightseeing itineraries; use separate trek templates"
+    },
+    {
+      "priority": "Important",
+      "weight_range": "N/A",
+      "engine_behavior": "Priority is a recommendation weight, not a quality rating. A low-priority destination can still be ideal for a specific customer."
+    }
+  ],
+  "engineRules": [
+    {
+      "id": "ENGINE-01",
+      "rule": "Core destinations receive the highest recommendation weight for normal Kashmir trips."
+    },
+    {
+      "id": "ENGINE-02",
+      "rule": "Offbeat/low-priority destinations are suggested mainly when interests, trip duration or explicit selection support them."
+    },
+    {
+      "id": "ENGINE-03",
+      "rule": "Keep destination, route, itinerary-template, sightseeing and activity records separate."
+    },
+    {
+      "id": "ENGINE-04",
+      "rule": "Never use sightseeing text as pricing data."
+    },
+    {
+      "id": "ENGINE-05",
+      "rule": "Never invent hotel, vehicle, activity, union-cab or operator prices; use pricing data or leave as verification-required."
+    },
+    {
+      "id": "ENGINE-06",
+      "rule": "Use PREFERRED / ALLOWED / AVOID / NOT_ALLOWED route preference. AVOID is not a hard block and can be manually selected."
+    },
+    {
+      "id": "ENGINE-07",
+      "rule": "Day-trip sightseeing must not change the overnight state. The next day starts from the actual previous overnight."
+    },
+    {
+      "id": "ENGINE-08",
+      "rule": "Gurez is blocked outside May-October unless an authorized override exists; current road/access still requires confirmation."
+    },
+    {
+      "id": "ENGINE-09",
+      "rule": "Daksum requires live/manual access verification."
+    },
+    {
+      "id": "ENGINE-10",
+      "rule": "Weather/access-sensitive attractions use conditional flags instead of promises."
+    },
+    {
+      "id": "ENGINE-11",
+      "rule": "Union/local cabs and optional paid activities are excluded from base package unless explicitly added/quoted."
+    },
+    {
+      "id": "ENGINE-12",
+      "rule": "Remote/border destinations and protected areas require current local/security/permit checks."
+    },
+    {
+      "id": "ENGINE-13",
+      "rule": "Cross-valley direct routes should be compared against a Srinagar-hub alternative before confirmation."
+    },
+    {
+      "id": "ENGINE-14",
+      "rule": "Trip length should control whether a destination is an overnight base or a day excursion; do not over-pack short trips."
+    }
+  ],
+  "dataGaps": [
+    "Hotels and room types",
+    "Seasonal hotel rates",
+    "Meal plans and occupancy rules",
+    "Vehicle types and route/day rates",
+    "Taxes and markup rules",
+    "Supplier rates",
+    "Cancellation rules",
+    "Availability / blackout dates",
+    "Exact route distances and drive-time bands",
+    "Current activity operator rates"
+  ]
+}

@@ -1,0 +1,374 @@
+{
+  "Srinagar|Gulmarg": {
+    "km": 54,
+    "hours": 1.7,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Gulmarg|Srinagar": {
+    "km": 54,
+    "hours": 1.7,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Srinagar|Pahalgam": {
+    "km": 90,
+    "hours": 2.8,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Pahalgam|Srinagar": {
+    "km": 90,
+    "hours": 2.8,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Srinagar|Sonamarg": {
+    "km": 87,
+    "hours": 2.7,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Sonamarg|Srinagar": {
+    "km": 87,
+    "hours": 2.7,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Srinagar|Gurez": {
+    "km": 123,
+    "hours": 4.5,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Gurez|Srinagar": {
+    "km": 123,
+    "hours": 4.5,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Srinagar|Doodhpathri": {
+    "km": 45,
+    "hours": 1.5,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Doodhpathri|Srinagar": {
+    "km": 45,
+    "hours": 1.5,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Srinagar|Yusmarg": {
+    "km": 53,
+    "hours": 1.8,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Yusmarg|Srinagar": {
+    "km": 53,
+    "hours": 1.8,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Srinagar|Aharbal": {
+    "km": 75,
+    "hours": 2.5,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Aharbal|Srinagar": {
+    "km": 75,
+    "hours": 2.5,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Srinagar|Kokernag": {
+    "km": 76,
+    "hours": 2.5,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Kokernag|Srinagar": {
+    "km": 76,
+    "hours": 2.5,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Srinagar|Daksum": {
+    "km": 95,
+    "hours": 3.1,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Daksum|Srinagar": {
+    "km": 95,
+    "hours": 3.1,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Srinagar|Lolab Valley": {
+    "km": 114,
+    "hours": 4.0,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Lolab Valley|Srinagar": {
+    "km": 114,
+    "hours": 4.0,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Srinagar|Bangus Valley": {
+    "km": 140,
+    "hours": 4.5,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Bangus Valley|Srinagar": {
+    "km": 140,
+    "hours": 4.5,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Srinagar|Tosa Maidan": {
+    "km": 70,
+    "hours": 2.5,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Tosa Maidan|Srinagar": {
+    "km": 70,
+    "hours": 2.5,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Srinagar|Naranag": {
+    "km": 50,
+    "hours": 2.0,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Naranag|Srinagar": {
+    "km": 50,
+    "hours": 2.0,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Srinagar|Baltal": {
+    "km": 100,
+    "hours": 3.2,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Baltal|Srinagar": {
+    "km": 100,
+    "hours": 3.2,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Srinagar|Warwan Valley": {
+    "km": 180,
+    "hours": 6.0,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Warwan Valley|Srinagar": {
+    "km": 180,
+    "hours": 6.0,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Gurez|Tulail Valley": {
+    "km": 45,
+    "hours": 2.0,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Tulail Valley|Gurez": {
+    "km": 45,
+    "hours": 2.0,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Pahalgam|Kokernag": {
+    "km": 54,
+    "hours": 1.8,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Kokernag|Pahalgam": {
+    "km": 54,
+    "hours": 1.8,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Kokernag|Daksum": {
+    "km": 22,
+    "hours": 0.9,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Daksum|Kokernag": {
+    "km": 22,
+    "hours": 0.9,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Kokernag|Verinag": {
+    "km": 20,
+    "hours": 0.8,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Verinag|Kokernag": {
+    "km": 20,
+    "hours": 0.8,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Pahalgam|Aru Valley": {
+    "km": 12,
+    "hours": 0.5,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Aru Valley|Pahalgam": {
+    "km": 12,
+    "hours": 0.5,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Pahalgam|Betaab Valley": {
+    "km": 8,
+    "hours": 0.4,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Betaab Valley|Pahalgam": {
+    "km": 8,
+    "hours": 0.4,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Pahalgam|Chandanwari": {
+    "km": 16,
+    "hours": 0.7,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Chandanwari|Pahalgam": {
+    "km": 16,
+    "hours": 0.7,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Pahalgam|Aharbal": {
+    "km": 78,
+    "hours": 2.6,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Aharbal|Pahalgam": {
+    "km": 78,
+    "hours": 2.6,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Yusmarg|Doodhpathri": {
+    "km": 65,
+    "hours": 2.4,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Doodhpathri|Yusmarg": {
+    "km": 65,
+    "hours": 2.4,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Doodhpathri|Tosa Maidan": {
+    "km": 75,
+    "hours": 2.7,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Tosa Maidan|Doodhpathri": {
+    "km": 75,
+    "hours": 2.7,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Sonamarg|Baltal": {
+    "km": 15,
+    "hours": 0.5,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Baltal|Sonamarg": {
+    "km": 15,
+    "hours": 0.5,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Srinagar|Manasbal Lake": {
+    "km": 30,
+    "hours": 1.0,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Manasbal Lake|Srinagar": {
+    "km": 30,
+    "hours": 1.0,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Srinagar|Wular Lake": {
+    "km": 62,
+    "hours": 2.2,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Wular Lake|Srinagar": {
+    "km": 62,
+    "hours": 2.2,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Srinagar|Watlab": {
+    "km": 70,
+    "hours": 2.4,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Watlab|Srinagar": {
+    "km": 70,
+    "hours": 2.4,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Srinagar|Peer Ki Gali": {
+    "km": 85,
+    "hours": 3.0,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Peer Ki Gali|Srinagar": {
+    "km": 85,
+    "hours": 3.0,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Srinagar|Mughal Road": {
+    "km": 90,
+    "hours": 3.1,
+    "source": "Planning route estimate",
+    "live_required": true
+  },
+  "Mughal Road|Srinagar": {
+    "km": 90,
+    "hours": 3.1,
+    "source": "Planning route estimate",
+    "live_required": true
+  }
+}

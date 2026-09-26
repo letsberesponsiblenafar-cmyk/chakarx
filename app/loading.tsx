@@ -1,0 +1,1 @@
+export default function Loading(){return <main className="error-screen"><section className="error-card"><span className="eyebrow">CHAKAR EXPERIENCE</span><h1>Preparing your Kashmir planner...</h1><p>Loading the destination library and trip planning engine.</p></section></main>}

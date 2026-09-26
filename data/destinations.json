@@ -1,0 +1,5852 @@
+[
+  {
+    "name": "Srinagar",
+    "tier": "Iconic",
+    "district": "Srinagar",
+    "tags": [
+      "culture",
+      "gardens",
+      "lake",
+      "shopping",
+      "photography",
+      "relaxation",
+      "food",
+      "heritage"
+    ],
+    "overnight_allowed": true,
+    "min_nights": 1,
+    "ideal_nights": 2,
+    "max_nights": 4,
+    "season": "all",
+    "access": "standard",
+    "source": "Divisional Commissioner Kashmir — Tourist Places",
+    "highlights": [
+      "Dal Lake",
+      "Mughal gardens",
+      "Shankaracharya",
+      "Pari Mahal"
+    ],
+    "sites": [
+      {
+        "name": "Dal Lake & Boulevard",
+        "description": "Lakefront promenades, houseboats and the classic Srinagar waterfront landscape.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Shankaracharya Temple",
+        "description": "Hilltop temple viewpoint with wide views over Srinagar, Dal Lake and the Zabarwan range.",
+        "tags": [
+          "heritage",
+          "spirituality",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Pari Mahal",
+        "description": "Terraced historic garden above Dal Lake with strong sunset and city-view appeal.",
+        "tags": [
+          "heritage",
+          "photography",
+          "nature"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Nishat Bagh",
+        "description": "Large Mughal terrace garden overlooking Dal Lake and the Zabarwan mountains.",
+        "tags": [
+          "heritage",
+          "nature",
+          "photography",
+          "family"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Shalimar Bagh",
+        "description": "Formal Mughal garden known for terraces, water channels and mature chinar trees.",
+        "tags": [
+          "heritage",
+          "nature",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Chashme Shahi",
+        "description": "Compact Mughal garden built around a spring in the Zabarwan foothills.",
+        "tags": [
+          "heritage",
+          "nature",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Hazratbal Shrine",
+        "description": "White-marble shrine on Dal Lake with an important place in Kashmir culture and faith.",
+        "tags": [
+          "spirituality",
+          "heritage",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Nigeen Lake",
+        "description": "Quieter lake setting with houseboats, shikaras and a more residential waterfront feel.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Old Srinagar & Shah-e-Hamadan area",
+        "description": "Historic lanes, traditional buildings, markets and riverfront cultural texture.",
+        "tags": [
+          "heritage",
+          "culture",
+          "food",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Floating Market / lake trading areas",
+        "description": "Early-morning lake activity where produce and local life move across the water.",
+        "tags": [
+          "culture",
+          "photography",
+          "shopping"
+        ],
+        "months": "all",
+        "conditional": false
+      }
+    ],
+    "base": true,
+    "cluster": "central",
+    "description": "The cultural and lakefront heart of Kashmir, combining Mughal gardens, shrines, old-city heritage and the living landscape of Dal and Nigeen.",
+    "min_days": 1,
+    "ideal_days": 2,
+    "max_days": 4,
+    "local_sightseeing": [
+      {
+        "name": "Dal Lake & Boulevard",
+        "description": "Lakefront promenades, houseboats and the classic Srinagar waterfront landscape.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Shankaracharya Temple",
+        "description": "Hilltop temple viewpoint with wide views over Srinagar, Dal Lake and the Zabarwan range.",
+        "tags": [
+          "heritage",
+          "spirituality",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Pari Mahal",
+        "description": "Terraced historic garden above Dal Lake with strong sunset and city-view appeal.",
+        "tags": [
+          "heritage",
+          "photography",
+          "nature"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Nishat Bagh",
+        "description": "Large Mughal terrace garden overlooking Dal Lake and the Zabarwan mountains.",
+        "tags": [
+          "heritage",
+          "nature",
+          "photography",
+          "family"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Shalimar Bagh",
+        "description": "Formal Mughal garden known for terraces, water channels and mature chinar trees.",
+        "tags": [
+          "heritage",
+          "nature",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Chashme Shahi",
+        "description": "Compact Mughal garden built around a spring in the Zabarwan foothills.",
+        "tags": [
+          "heritage",
+          "nature",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Hazratbal Shrine",
+        "description": "White-marble shrine on Dal Lake with an important place in Kashmir culture and faith.",
+        "tags": [
+          "spirituality",
+          "heritage",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Nigeen Lake",
+        "description": "Quieter lake setting with houseboats, shikaras and a more residential waterfront feel.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Old Srinagar & Shah-e-Hamadan area",
+        "description": "Historic lanes, traditional buildings, markets and riverfront cultural texture.",
+        "tags": [
+          "heritage",
+          "culture",
+          "food",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Floating Market / lake trading areas",
+        "description": "Early-morning lake activity where produce and local life move across the water.",
+        "tags": [
+          "culture",
+          "photography",
+          "shopping"
+        ],
+        "season": "all"
+      }
+    ],
+    "things_to_do": [
+      "Ride a shikara on Dal Lake",
+      "Stay on or visit a traditional houseboat",
+      "Walk the Boulevard at sunset",
+      "Explore Srinagar old city",
+      "Taste Kashmiri wazwan, kahwa and bakery favourites",
+      "Visit Mughal gardens in a single garden circuit"
+    ],
+    "activities": [
+      "Sunrise or sunset shikara ride",
+      "Dal Lake photography",
+      "Old-city heritage walk",
+      "Kashmiri food and kahwa experience",
+      "Garden hopping and chinar photography",
+      "Bird and wetland watching where locally accessible"
+    ],
+    "photoQuery": "Srinagar Kashmir Dal Lake Mughal Gardens Shankaracharya"
+  },
+  {
+    "name": "Gulmarg",
+    "tier": "Iconic",
+    "district": "Baramulla",
+    "tags": [
+      "snow",
+      "adventure",
+      "skiing",
+      "photography",
+      "nature",
+      "luxury",
+      "relaxation"
+    ],
+    "overnight_allowed": true,
+    "min_nights": 1,
+    "ideal_nights": 2,
+    "max_nights": 2,
+    "season": "all",
+    "access": "weather-sensitive",
+    "source": "Divisional Commissioner Kashmir — Tourist Places",
+    "highlights": [
+      "Gulmarg Gondola",
+      "meadows",
+      "snow sports",
+      "horse riding"
+    ],
+    "sites": [
+      {
+        "name": "Gulmarg Meadow",
+        "description": "The broad central meadow that gives Gulmarg its name and defines the resort landscape.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Gulmarg Gondola",
+        "description": "Cable-car journey towards Kongdori and higher mountain terrain; operations are condition-dependent.",
+        "tags": [
+          "adventure",
+          "snow",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Kongdori",
+        "description": "High-altitude meadow and mountain viewpoint reached from Gulmarg by Gondola.",
+        "tags": [
+          "nature",
+          "snow",
+          "adventure",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Apharwat / upper mountain area",
+        "description": "High mountain terrain above Kongdori used for snow activities and alpine views when accessible.",
+        "tags": [
+          "snow",
+          "adventure",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Alpather Lake",
+        "description": "High-altitude lake below Apharwat, approached by trek and known for seasonal ice.",
+        "tags": [
+          "nature",
+          "snow",
+          "trekking",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "St. Mary's Church",
+        "description": "Historic church in the Gulmarg landscape, close to the central resort area.",
+        "tags": [
+          "heritage",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Maharani Temple",
+        "description": "Small historic hilltop temple associated with Gulmarg and its skyline.",
+        "tags": [
+          "heritage",
+          "spirituality",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Strawberry Valley",
+        "description": "Seasonal rural landscape and orchard area used for scenic excursions.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Khilanmarg",
+        "description": "Scenic meadow area known for broad mountain views; conditions can affect access.",
+        "tags": [
+          "nature",
+          "trekking",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      }
+    ],
+    "base": true,
+    "cluster": "northwest",
+    "description": "A high meadow resort framed by the Pir Panjal, known for the Gondola, alpine viewpoints, winter snow and summer walks.",
+    "min_days": 1,
+    "ideal_days": 2,
+    "max_days": 3,
+    "local_sightseeing": [
+      {
+        "name": "Gulmarg Meadow",
+        "description": "The broad central meadow that gives Gulmarg its name and defines the resort landscape.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Gulmarg Gondola",
+        "description": "Cable-car journey towards Kongdori and higher mountain terrain; operations are condition-dependent.",
+        "tags": [
+          "adventure",
+          "snow",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Kongdori",
+        "description": "High-altitude meadow and mountain viewpoint reached from Gulmarg by Gondola.",
+        "tags": [
+          "nature",
+          "snow",
+          "adventure",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Apharwat / upper mountain area",
+        "description": "High mountain terrain above Kongdori used for snow activities and alpine views when accessible.",
+        "tags": [
+          "snow",
+          "adventure",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Alpather Lake",
+        "description": "High-altitude lake below Apharwat, approached by trek and known for seasonal ice.",
+        "tags": [
+          "nature",
+          "snow",
+          "trekking",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "St. Mary's Church",
+        "description": "Historic church in the Gulmarg landscape, close to the central resort area.",
+        "tags": [
+          "heritage",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Maharani Temple",
+        "description": "Small historic hilltop temple associated with Gulmarg and its skyline.",
+        "tags": [
+          "heritage",
+          "spirituality",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Strawberry Valley",
+        "description": "Seasonal rural landscape and orchard area used for scenic excursions.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Khilanmarg",
+        "description": "Scenic meadow area known for broad mountain views; conditions can affect access.",
+        "tags": [
+          "nature",
+          "trekking",
+          "photography"
+        ],
+        "season": "all"
+      }
+    ],
+    "things_to_do": [
+      "Take the Gondola",
+      "Walk the Gulmarg meadow",
+      "See snow in winter",
+      "Try skiing or snowboarding in season",
+      "Explore alpine viewpoints",
+      "Visit nearby villages and orchard areas"
+    ],
+    "activities": [
+      "Gondola ride",
+      "Skiing and snowboarding in winter",
+      "Summer meadow walks",
+      "Horse riding where locally available",
+      "Photography and mountain viewing",
+      "Golf at the Gulmarg golf course area"
+    ],
+    "photoQuery": "Gulmarg Kashmir Gondola Apharwat Alpather"
+  },
+  {
+    "name": "Pahalgam",
+    "tier": "Iconic",
+    "district": "Anantnag",
+    "tags": [
+      "nature",
+      "river",
+      "family",
+      "photography",
+      "adventure",
+      "relaxation",
+      "trekking"
+    ],
+    "overnight_allowed": true,
+    "min_nights": 2,
+    "ideal_nights": 3,
+    "max_nights": 4,
+    "season": "all",
+    "access": "local-vehicle-sensitive",
+    "source": "District Anantnag — Tourist Places",
+    "highlights": [
+      "Aru Valley",
+      "Betaab Valley",
+      "Chandanwari",
+      "Lidder River",
+      "Baisaran"
+    ],
+    "sites": [
+      {
+        "name": "Lidder River & Pahalgam town",
+        "description": "The central river corridor, pine-lined streets and local market area.",
+        "tags": [
+          "nature",
+          "relaxation",
+          "photography",
+          "family"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Aru Valley",
+        "description": "A broad mountain valley with meadows, forest trails and access to longer treks.",
+        "tags": [
+          "nature",
+          "trekking",
+          "photography",
+          "family"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Betaab Valley",
+        "description": "Scenic valley beside the Lidder with open lawns, river views and mountain backdrops.",
+        "tags": [
+          "nature",
+          "family",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Chandanwari",
+        "description": "High-altitude excursion point and major trailhead toward the Amarnath route.",
+        "tags": [
+          "adventure",
+          "snow",
+          "trekking",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Baisaran Valley",
+        "description": "Meadow surrounded by forested slopes, typically visited as a local excursion.",
+        "tags": [
+          "nature",
+          "family",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Mamleshwar Temple",
+        "description": "Historic temple close to Pahalgam town and the Lidder river.",
+        "tags": [
+          "heritage",
+          "spirituality"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Pahalgam Golf Course",
+        "description": "Open meadow-style recreational space against the mountain landscape.",
+        "tags": [
+          "relaxation",
+          "family",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Pahalgam market & riverside walks",
+        "description": "Easy-paced local exploration around shops, cafés and the riverfront.",
+        "tags": [
+          "shopping",
+          "food",
+          "relaxation",
+          "culture"
+        ],
+        "months": "all",
+        "conditional": false
+      }
+    ],
+    "base": true,
+    "cluster": "south",
+    "description": "A forested Lidder Valley resort where river scenery, pine landscapes and classic excursions to Aru, Betaab Valley and Chandanwari come together.",
+    "min_days": 2,
+    "ideal_days": 3,
+    "max_days": 4,
+    "local_sightseeing": [
+      {
+        "name": "Lidder River & Pahalgam town",
+        "description": "The central river corridor, pine-lined streets and local market area.",
+        "tags": [
+          "nature",
+          "relaxation",
+          "photography",
+          "family"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Aru Valley",
+        "description": "A broad mountain valley with meadows, forest trails and access to longer treks.",
+        "tags": [
+          "nature",
+          "trekking",
+          "photography",
+          "family"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Betaab Valley",
+        "description": "Scenic valley beside the Lidder with open lawns, river views and mountain backdrops.",
+        "tags": [
+          "nature",
+          "family",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Chandanwari",
+        "description": "High-altitude excursion point and major trailhead toward the Amarnath route.",
+        "tags": [
+          "adventure",
+          "snow",
+          "trekking",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Baisaran Valley",
+        "description": "Meadow surrounded by forested slopes, typically visited as a local excursion.",
+        "tags": [
+          "nature",
+          "family",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Mamleshwar Temple",
+        "description": "Historic temple close to Pahalgam town and the Lidder river.",
+        "tags": [
+          "heritage",
+          "spirituality"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Pahalgam Golf Course",
+        "description": "Open meadow-style recreational space against the mountain landscape.",
+        "tags": [
+          "relaxation",
+          "family",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Pahalgam market & riverside walks",
+        "description": "Easy-paced local exploration around shops, cafés and the riverfront.",
+        "tags": [
+          "shopping",
+          "food",
+          "relaxation",
+          "culture"
+        ],
+        "season": "all"
+      }
+    ],
+    "things_to_do": [
+      "Spend a full day around Aru and nearby valleys",
+      "Visit Betaab Valley",
+      "Travel to Chandanwari when open",
+      "Walk along the Lidder",
+      "Ride or trek to Baisaran where locally available",
+      "Keep a leisure day for the town and river"
+    ],
+    "activities": [
+      "Horse riding where regulated and available",
+      "Riverfront photography",
+      "Nature walks and short hikes",
+      "Trekking from Aru / Pahalgam trails",
+      "Picnic and meadow time",
+      "Winter snow play where conditions allow"
+    ],
+    "photoQuery": "Pahalgam Kashmir Aru Betaab Lidder River"
+  },
+  {
+    "name": "Sonamarg",
+    "tier": "Iconic",
+    "district": "Ganderbal",
+    "tags": [
+      "snow",
+      "nature",
+      "photography",
+      "adventure",
+      "family"
+    ],
+    "overnight_allowed": true,
+    "min_nights": 1,
+    "ideal_nights": 1,
+    "max_nights": 2,
+    "season": "late-spring-summer-autumn",
+    "access": "weather-sensitive",
+    "source": "Divisional Commissioner Kashmir — Tourist Places",
+    "highlights": [
+      "Thajiwas",
+      "Zero Point",
+      "Sindh Valley",
+      "Baltal"
+    ],
+    "sites": [
+      {
+        "name": "Sonamarg Meadow",
+        "description": "Open alpine meadow beside the Sindh River with dramatic mountain walls.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "months": "late-spring-summer-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Thajiwas Glacier area",
+        "description": "Popular summer excursion zone for snow and glacier views; access and local arrangements are variable.",
+        "tags": [
+          "snow",
+          "nature",
+          "adventure",
+          "photography"
+        ],
+        "months": "late-spring-summer-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Baltal Valley",
+        "description": "Mountain valley and major base area for the Amarnath pilgrimage route.",
+        "tags": [
+          "nature",
+          "spirituality",
+          "photography"
+        ],
+        "months": "late-spring-summer-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Zero Point / higher snow area",
+        "description": "High-altitude excursion used for snow experiences when access is open.",
+        "tags": [
+          "snow",
+          "photography",
+          "family"
+        ],
+        "months": "late-spring-summer-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Sindh River",
+        "description": "The river corridor through the valley, associated with trout landscapes and scenic viewpoints.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "months": "late-spring-summer-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Gagangeer",
+        "description": "Mountain village and scenic stop on the approach to Sonamarg.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "months": "late-spring-summer-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Zoji La approach",
+        "description": "High mountain pass approach with dramatic terrain; access is weather and road dependent.",
+        "tags": [
+          "adventure",
+          "photography",
+          "nature"
+        ],
+        "months": "late-spring-summer-autumn",
+        "conditional": false
+      }
+    ],
+    "base": true,
+    "cluster": "east",
+    "description": "The Meadow of Gold in the Sindh Valley, used as a base for glacier viewpoints, alpine drives and high-mountain excursions.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 2,
+    "local_sightseeing": [
+      {
+        "name": "Sonamarg Meadow",
+        "description": "Open alpine meadow beside the Sindh River with dramatic mountain walls.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "season": "late-spring-summer-autumn"
+      },
+      {
+        "name": "Thajiwas Glacier area",
+        "description": "Popular summer excursion zone for snow and glacier views; access and local arrangements are variable.",
+        "tags": [
+          "snow",
+          "nature",
+          "adventure",
+          "photography"
+        ],
+        "season": "late-spring-summer-autumn"
+      },
+      {
+        "name": "Baltal Valley",
+        "description": "Mountain valley and major base area for the Amarnath pilgrimage route.",
+        "tags": [
+          "nature",
+          "spirituality",
+          "photography"
+        ],
+        "season": "late-spring-summer-autumn"
+      },
+      {
+        "name": "Zero Point / higher snow area",
+        "description": "High-altitude excursion used for snow experiences when access is open.",
+        "tags": [
+          "snow",
+          "photography",
+          "family"
+        ],
+        "season": "late-spring-summer-autumn"
+      },
+      {
+        "name": "Sindh River",
+        "description": "The river corridor through the valley, associated with trout landscapes and scenic viewpoints.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "season": "late-spring-summer-autumn"
+      },
+      {
+        "name": "Gagangeer",
+        "description": "Mountain village and scenic stop on the approach to Sonamarg.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "season": "late-spring-summer-autumn"
+      },
+      {
+        "name": "Zoji La approach",
+        "description": "High mountain pass approach with dramatic terrain; access is weather and road dependent.",
+        "tags": [
+          "adventure",
+          "photography",
+          "nature"
+        ],
+        "season": "late-spring-summer-autumn"
+      }
+    ],
+    "things_to_do": [
+      "Explore the Sonamarg meadow",
+      "Visit Thajiwas area",
+      "See the Sindh Valley",
+      "Combine Sonamarg with Baltal",
+      "Take a seasonal snow excursion",
+      "Use Sonamarg as a base for high-altitude trekking"
+    ],
+    "activities": [
+      "Snow play in season",
+      "Pony riding where locally available",
+      "River and mountain photography",
+      "Short valley walks",
+      "Seasonal rafting where officially operated",
+      "Trekking and alpine excursions"
+    ],
+    "photoQuery": "Sonamarg Kashmir Thajiwas Baltal Sindh River"
+  },
+  {
+    "name": "Gurez",
+    "tier": "Established",
+    "district": "Bandipora",
+    "tags": [
+      "nature",
+      "offbeat",
+      "photography",
+      "culture",
+      "adventure",
+      "relaxation"
+    ],
+    "overnight_allowed": true,
+    "min_nights": 2,
+    "ideal_nights": 3,
+    "max_nights": 4,
+    "season": "seasonal",
+    "access": "seasonal/route-sensitive",
+    "source": "District Bandipora — Gurez Valley",
+    "highlights": [
+      "Dawar",
+      "Kishanganga River",
+      "Habba Khatoon",
+      "Tulail"
+    ],
+    "sites": [
+      {
+        "name": "Dawar",
+        "description": "The main settlement and practical base for exploring the Gurez valley.",
+        "tags": [
+          "culture",
+          "photography",
+          "family"
+        ],
+        "months": "seasonal",
+        "conditional": false
+      },
+      {
+        "name": "Kishanganga River",
+        "description": "The defining river of the valley with village and mountain views.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "months": "seasonal",
+        "conditional": false
+      },
+      {
+        "name": "Habba Khatoon Peak & viewpoint area",
+        "description": "One of Gurez's signature mountain landscapes, associated with local cultural memory.",
+        "tags": [
+          "nature",
+          "photography",
+          "culture"
+        ],
+        "months": "seasonal",
+        "conditional": false
+      },
+      {
+        "name": "Habba Khatoon Waterfall area",
+        "description": "Seasonal waterfall and viewpoint associated with the Habba Khatoon landscape.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "seasonal",
+        "conditional": false
+      },
+      {
+        "name": "Tulail Valley",
+        "description": "Longer excursion into a quieter upper valley with traditional villages and wide mountain views.",
+        "tags": [
+          "offbeat",
+          "nature",
+          "photography",
+          "trekking"
+        ],
+        "months": "seasonal",
+        "conditional": false
+      },
+      {
+        "name": "Razdan Pass viewpoints",
+        "description": "Mountain pass approach with expansive views and weather-sensitive access.",
+        "tags": [
+          "nature",
+          "photography",
+          "adventure"
+        ],
+        "months": "seasonal",
+        "conditional": false
+      },
+      {
+        "name": "Gurez village circuit",
+        "description": "Small settlements, farms and traditional architecture that reward slow exploration.",
+        "tags": [
+          "culture",
+          "photography",
+          "offbeat"
+        ],
+        "months": "seasonal",
+        "conditional": false
+      },
+      {
+        "name": "Kanzalwan / mountain river landscapes",
+        "description": "Scenic countryside around the valley routes and rivers.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "seasonal",
+        "conditional": false
+      }
+    ],
+    "base": true,
+    "cluster": "north",
+    "description": "A remote high valley on the Kishanganga with wide meadows, distinctive mountain villages and a strong sense of frontier landscape.",
+    "min_days": 2,
+    "ideal_days": 3,
+    "max_days": 4,
+    "local_sightseeing": [
+      {
+        "name": "Dawar",
+        "description": "The main settlement and practical base for exploring the Gurez valley.",
+        "tags": [
+          "culture",
+          "photography",
+          "family"
+        ],
+        "season": "seasonal"
+      },
+      {
+        "name": "Kishanganga River",
+        "description": "The defining river of the valley with village and mountain views.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "season": "seasonal"
+      },
+      {
+        "name": "Habba Khatoon Peak & viewpoint area",
+        "description": "One of Gurez's signature mountain landscapes, associated with local cultural memory.",
+        "tags": [
+          "nature",
+          "photography",
+          "culture"
+        ],
+        "season": "seasonal"
+      },
+      {
+        "name": "Habba Khatoon Waterfall area",
+        "description": "Seasonal waterfall and viewpoint associated with the Habba Khatoon landscape.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "seasonal"
+      },
+      {
+        "name": "Tulail Valley",
+        "description": "Longer excursion into a quieter upper valley with traditional villages and wide mountain views.",
+        "tags": [
+          "offbeat",
+          "nature",
+          "photography",
+          "trekking"
+        ],
+        "season": "seasonal"
+      },
+      {
+        "name": "Razdan Pass viewpoints",
+        "description": "Mountain pass approach with expansive views and weather-sensitive access.",
+        "tags": [
+          "nature",
+          "photography",
+          "adventure"
+        ],
+        "season": "seasonal"
+      },
+      {
+        "name": "Gurez village circuit",
+        "description": "Small settlements, farms and traditional architecture that reward slow exploration.",
+        "tags": [
+          "culture",
+          "photography",
+          "offbeat"
+        ],
+        "season": "seasonal"
+      },
+      {
+        "name": "Kanzalwan / mountain river landscapes",
+        "description": "Scenic countryside around the valley routes and rivers.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "seasonal"
+      }
+    ],
+    "things_to_do": [
+      "Stay in Dawar and explore on foot",
+      "Drive deeper into Tulail",
+      "Photograph the Kishanganga valley",
+      "Meet local village life",
+      "Enjoy slow mountain evenings",
+      "Use Gurez for multi-day offbeat travel"
+    ],
+    "activities": [
+      "Village walks",
+      "Camping where permitted and arranged",
+      "Angling only where locally permitted",
+      "Landscape photography",
+      "Short hikes and longer treks",
+      "Local food and homestay experiences"
+    ],
+    "photoQuery": "Gurez Kashmir Dawar Tulail Kishanganga"
+  },
+  {
+    "name": "Doodhpathri",
+    "tier": "Established",
+    "district": "Budgam",
+    "tags": [
+      "nature",
+      "relaxation",
+      "family",
+      "photography",
+      "offbeat"
+    ],
+    "overnight_allowed": true,
+    "min_nights": 1,
+    "ideal_nights": 1,
+    "max_nights": 2,
+    "season": "spring-summer",
+    "access": "seasonal/road-sensitive",
+    "source": "District Budgam — Doodhpathri",
+    "highlights": [
+      "Doodhganga",
+      "meadows",
+      "pine forests"
+    ],
+    "sites": [
+      {
+        "name": "Doodhpathri Meadow",
+        "description": "The main open meadow and picnic landscape surrounded by rolling green hills.",
+        "tags": [
+          "nature",
+          "family",
+          "photography"
+        ],
+        "months": "spring-summer",
+        "conditional": false
+      },
+      {
+        "name": "Shaliganga River",
+        "description": "Clear mountain stream that shapes the valley scenery and local picnic spots.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "months": "spring-summer",
+        "conditional": false
+      },
+      {
+        "name": "Tangnar meadow area",
+        "description": "Quieter meadow-and-forest scenery on the wider Doodhpathri approach.",
+        "tags": [
+          "nature",
+          "offbeat",
+          "photography"
+        ],
+        "months": "spring-summer",
+        "conditional": false
+      },
+      {
+        "name": "Forest viewpoints",
+        "description": "Pine and deodar landscapes along local tracks and slopes.",
+        "tags": [
+          "nature",
+          "photography",
+          "trekking"
+        ],
+        "months": "spring-summer",
+        "conditional": false
+      },
+      {
+        "name": "Local village and shepherd landscapes",
+        "description": "Rural scenery, grazing areas and seasonal pastoral activity around the valley.",
+        "tags": [
+          "culture",
+          "photography",
+          "offbeat"
+        ],
+        "months": "spring-summer",
+        "conditional": false
+      }
+    ],
+    "base": true,
+    "cluster": "west",
+    "description": "A broad green meadow landscape in Budgam known for the Shaliganga stream, forested hills and easy-paced nature outings.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 2,
+    "local_sightseeing": [
+      {
+        "name": "Doodhpathri Meadow",
+        "description": "The main open meadow and picnic landscape surrounded by rolling green hills.",
+        "tags": [
+          "nature",
+          "family",
+          "photography"
+        ],
+        "season": "spring-summer"
+      },
+      {
+        "name": "Shaliganga River",
+        "description": "Clear mountain stream that shapes the valley scenery and local picnic spots.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "season": "spring-summer"
+      },
+      {
+        "name": "Tangnar meadow area",
+        "description": "Quieter meadow-and-forest scenery on the wider Doodhpathri approach.",
+        "tags": [
+          "nature",
+          "offbeat",
+          "photography"
+        ],
+        "season": "spring-summer"
+      },
+      {
+        "name": "Forest viewpoints",
+        "description": "Pine and deodar landscapes along local tracks and slopes.",
+        "tags": [
+          "nature",
+          "photography",
+          "trekking"
+        ],
+        "season": "spring-summer"
+      },
+      {
+        "name": "Local village and shepherd landscapes",
+        "description": "Rural scenery, grazing areas and seasonal pastoral activity around the valley.",
+        "tags": [
+          "culture",
+          "photography",
+          "offbeat"
+        ],
+        "season": "spring-summer"
+      }
+    ],
+    "things_to_do": [
+      "Take a meadow walk",
+      "Picnic by the stream",
+      "Explore forest tracks",
+      "Spend a quiet photography day",
+      "Combine with Yusmarg on a west-Budgam circuit"
+    ],
+    "activities": [
+      "Horse riding where available",
+      "Nature photography",
+      "Short hikes",
+      "Family picnic",
+      "Bird and landscape watching"
+    ],
+    "photoQuery": "Doodhpathri Kashmir meadow Shaliganga"
+  },
+  {
+    "name": "Yusmarg",
+    "tier": "Established",
+    "district": "Budgam",
+    "tags": [
+      "nature",
+      "trekking",
+      "relaxation",
+      "photography",
+      "offbeat",
+      "spirituality"
+    ],
+    "overnight_allowed": true,
+    "min_nights": 1,
+    "ideal_nights": 1,
+    "max_nights": 2,
+    "season": "all",
+    "access": "seasonal/road-sensitive",
+    "source": "District Budgam — Yusmarg",
+    "highlights": [
+      "Yusmarg meadow",
+      "Nilnag",
+      "Sang-e-Safed",
+      "Charar-e-Sharif"
+    ],
+    "sites": [
+      {
+        "name": "Yusmarg Meadow",
+        "description": "Wide open meadow framed by forested slopes and mountain views.",
+        "tags": [
+          "nature",
+          "relaxation",
+          "photography",
+          "family"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Doodh Ganga",
+        "description": "Forest stream and valley landscape used for quiet walks and picnics.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Nilnag Lake",
+        "description": "Small forested lake destination reached by a longer excursion/trek from the Yusmarg side.",
+        "tags": [
+          "nature",
+          "trekking",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Sang-e-Safed area",
+        "description": "Scenic white-rock and meadow landscape used as a nature excursion.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Charar-e-Sharief",
+        "description": "Important cultural and spiritual town in the wider Yusmarg circuit.",
+        "tags": [
+          "spirituality",
+          "culture",
+          "heritage"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Pakherpora side villages",
+        "description": "Rural Budgam landscapes suitable for slow local exploration.",
+        "tags": [
+          "culture",
+          "offbeat",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      }
+    ],
+    "base": true,
+    "cluster": "west",
+    "description": "A calm mountain meadow destination in Budgam, suited to nature walks, forest scenery and slower-paced day or overnight trips.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 2,
+    "local_sightseeing": [
+      {
+        "name": "Yusmarg Meadow",
+        "description": "Wide open meadow framed by forested slopes and mountain views.",
+        "tags": [
+          "nature",
+          "relaxation",
+          "photography",
+          "family"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Doodh Ganga",
+        "description": "Forest stream and valley landscape used for quiet walks and picnics.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Nilnag Lake",
+        "description": "Small forested lake destination reached by a longer excursion/trek from the Yusmarg side.",
+        "tags": [
+          "nature",
+          "trekking",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Sang-e-Safed area",
+        "description": "Scenic white-rock and meadow landscape used as a nature excursion.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Charar-e-Sharief",
+        "description": "Important cultural and spiritual town in the wider Yusmarg circuit.",
+        "tags": [
+          "spirituality",
+          "culture",
+          "heritage"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Pakherpora side villages",
+        "description": "Rural Budgam landscapes suitable for slow local exploration.",
+        "tags": [
+          "culture",
+          "offbeat",
+          "photography"
+        ],
+        "season": "all"
+      }
+    ],
+    "things_to_do": [
+      "Walk the Yusmarg meadow",
+      "Explore Doodh Ganga",
+      "Trek towards Nilnag",
+      "Combine nature with a Charar-e-Sharief visit",
+      "Take a slow forest day"
+    ],
+    "activities": [
+      "Horse riding where available",
+      "Nature walks",
+      "Trekking",
+      "Photography",
+      "Picnic and relaxation",
+      "Village and cultural visits"
+    ],
+    "photoQuery": "Yusmarg Kashmir Doodh Ganga Nilnag"
+  },
+  {
+    "name": "Aharbal",
+    "tier": "Established",
+    "district": "Kulgam",
+    "tags": [
+      "waterfall",
+      "nature",
+      "photography",
+      "trekking",
+      "fishing",
+      "offbeat"
+    ],
+    "overnight_allowed": true,
+    "min_nights": 1,
+    "ideal_nights": 1,
+    "max_nights": 2,
+    "season": "spring-autumn",
+    "access": "standard",
+    "source": "District Shopian — Tourist Places",
+    "highlights": [
+      "Aharbal Waterfall",
+      "Veshaw River",
+      "trekking"
+    ],
+    "sites": [
+      {
+        "name": "Aharbal Waterfall",
+        "description": "A major Veshaw River waterfall set within wooded mountain scenery.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Veshaw River",
+        "description": "Rocky river corridor and cascades forming the visual character of the area.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Aharbal meadow and picnic areas",
+        "description": "Open spaces near the waterfall suitable for relaxed family visits.",
+        "tags": [
+          "family",
+          "nature",
+          "relaxation"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Kounsarnag trail country",
+        "description": "Mountain route network leading toward high lakes and trekking terrain.",
+        "tags": [
+          "trekking",
+          "adventure",
+          "nature"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      }
+    ],
+    "base": true,
+    "cluster": "southwest",
+    "description": "A forested waterfall destination in Kulgam, best known for the Veshaw River cascade and access to scenic trekking country.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 2,
+    "local_sightseeing": [
+      {
+        "name": "Aharbal Waterfall",
+        "description": "A major Veshaw River waterfall set within wooded mountain scenery.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Veshaw River",
+        "description": "Rocky river corridor and cascades forming the visual character of the area.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Aharbal meadow and picnic areas",
+        "description": "Open spaces near the waterfall suitable for relaxed family visits.",
+        "tags": [
+          "family",
+          "nature",
+          "relaxation"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Kounsarnag trail country",
+        "description": "Mountain route network leading toward high lakes and trekking terrain.",
+        "tags": [
+          "trekking",
+          "adventure",
+          "nature"
+        ],
+        "season": "spring-autumn"
+      }
+    ],
+    "things_to_do": [
+      "See the waterfall",
+      "Walk along the river",
+      "Plan a short forest hike",
+      "Use Aharbal as a base for longer treks"
+    ],
+    "activities": [
+      "Photography",
+      "Short hikes",
+      "Trekking",
+      "Picnicking",
+      "Nature walks"
+    ],
+    "photoQuery": "Aharbal Waterfall Kashmir Veshaw"
+  },
+  {
+    "name": "Kokernag",
+    "tier": "Established",
+    "district": "Anantnag",
+    "tags": [
+      "spring",
+      "garden",
+      "family",
+      "nature",
+      "photography",
+      "food"
+    ],
+    "overnight_allowed": true,
+    "min_nights": 1,
+    "ideal_nights": 1,
+    "max_nights": 2,
+    "season": "spring-autumn",
+    "access": "standard",
+    "source": "District Anantnag — Tourism",
+    "highlights": [
+      "Kokernag Spring",
+      "terraced garden",
+      "trout farm"
+    ],
+    "sites": [
+      {
+        "name": "Kokernag Springs",
+        "description": "The famous spring complex and its landscaped surroundings.",
+        "tags": [
+          "nature",
+          "family",
+          "relaxation"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Kokernag Botanical Garden",
+        "description": "Garden and park setting around the spring landscape.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Trout Fish Farm area",
+        "description": "Aquatic and fisheries landscape associated with Kokernag; access varies by local arrangements.",
+        "tags": [
+          "nature",
+          "food",
+          "culture"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Kokernag forest and stream walks",
+        "description": "Green mountain scenery around the spring and local roads.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Daksum excursion",
+        "description": "Nearby conifer and stream landscape that can be combined with a Kokernag stay.",
+        "tags": [
+          "nature",
+          "trekking",
+          "photography"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      }
+    ],
+    "base": true,
+    "cluster": "south",
+    "description": "A spring-fed garden and trout landscape in south Kashmir, combining water, gardens and access to nearby mountain circuits.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 2,
+    "local_sightseeing": [
+      {
+        "name": "Kokernag Springs",
+        "description": "The famous spring complex and its landscaped surroundings.",
+        "tags": [
+          "nature",
+          "family",
+          "relaxation"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Kokernag Botanical Garden",
+        "description": "Garden and park setting around the spring landscape.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Trout Fish Farm area",
+        "description": "Aquatic and fisheries landscape associated with Kokernag; access varies by local arrangements.",
+        "tags": [
+          "nature",
+          "food",
+          "culture"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Kokernag forest and stream walks",
+        "description": "Green mountain scenery around the spring and local roads.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Daksum excursion",
+        "description": "Nearby conifer and stream landscape that can be combined with a Kokernag stay.",
+        "tags": [
+          "nature",
+          "trekking",
+          "photography"
+        ],
+        "season": "spring-autumn"
+      }
+    ],
+    "things_to_do": [
+      "Visit the spring and garden",
+      "See the trout landscape",
+      "Combine with Daksum",
+      "Take a quiet south-Kashmir nature day"
+    ],
+    "activities": [
+      "Garden walks",
+      "Photography",
+      "Picnic",
+      "Nature walks",
+      "Short scenic drives"
+    ],
+    "photoQuery": "Kokernag Kashmir spring garden trout"
+  },
+  {
+    "name": "Achabal",
+    "tier": "Secondary",
+    "district": "Anantnag",
+    "tags": [
+      "gardens",
+      "heritage",
+      "spring",
+      "photography",
+      "family"
+    ],
+    "overnight_allowed": false,
+    "min_nights": 0,
+    "ideal_nights": 0,
+    "max_nights": 0,
+    "season": "spring-autumn",
+    "access": "standard",
+    "source": "District Anantnag — Tourist Places",
+    "highlights": [
+      "Achabal Garden",
+      "spring",
+      "water channels"
+    ],
+    "sites": [
+      {
+        "name": "Achabal Mughal Garden",
+        "description": "Terraced Mughal garden built around the Achabal spring.",
+        "tags": [
+          "heritage",
+          "nature",
+          "photography"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Achabal Spring",
+        "description": "The water source and channels that shape the garden.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Historic garden pavilions and channels",
+        "description": "Architectural details and landscaped water features within the garden complex.",
+        "tags": [
+          "heritage",
+          "photography"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      }
+    ],
+    "base": false,
+    "cluster": "south",
+    "description": "A historic Mughal garden destination in south Kashmir, built around a perennial spring and lush water channels.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 1,
+    "local_sightseeing": [
+      {
+        "name": "Achabal Mughal Garden",
+        "description": "Terraced Mughal garden built around the Achabal spring.",
+        "tags": [
+          "heritage",
+          "nature",
+          "photography"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Achabal Spring",
+        "description": "The water source and channels that shape the garden.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Historic garden pavilions and channels",
+        "description": "Architectural details and landscaped water features within the garden complex.",
+        "tags": [
+          "heritage",
+          "photography"
+        ],
+        "season": "spring-autumn"
+      }
+    ],
+    "things_to_do": [
+      "Walk the Mughal garden",
+      "Photograph the spring and channels",
+      "Combine with Kokernag or Anantnag circuit"
+    ],
+    "activities": [
+      "Garden photography",
+      "Heritage walk",
+      "Picnic and relaxation"
+    ],
+    "photoQuery": "Achabal Mughal Garden Kashmir"
+  },
+  {
+    "name": "Daksum",
+    "tier": "Secondary",
+    "district": "Anantnag",
+    "tags": [
+      "forest",
+      "nature",
+      "relaxation",
+      "trekking",
+      "photography",
+      "offbeat"
+    ],
+    "overnight_allowed": true,
+    "min_nights": 1,
+    "ideal_nights": 1,
+    "max_nights": 2,
+    "season": "spring-autumn",
+    "access": "standard",
+    "source": "District Anantnag — Tourism",
+    "highlights": [
+      "evergreen forests",
+      "Brengi valley",
+      "sheep farm"
+    ],
+    "sites": [
+      {
+        "name": "Daksum Forests",
+        "description": "Dense conifer and broadleaf mountain forest around the Bringhi valley.",
+        "tags": [
+          "nature",
+          "photography",
+          "trekking"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Bringhi River / stream landscapes",
+        "description": "Clear mountain water and wooded banks for relaxed exploration.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Daksum meadow areas",
+        "description": "Open clearings in the forest landscape for picnics and photography.",
+        "tags": [
+          "nature",
+          "family",
+          "relaxation"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Kokernag circuit",
+        "description": "Nearby spring-and-garden destination that pairs naturally with Daksum.",
+        "tags": [
+          "nature",
+          "family",
+          "photography"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Sinthan approach landscapes",
+        "description": "Mountain road scenery towards higher terrain and the Sinthan Top region.",
+        "tags": [
+          "adventure",
+          "photography",
+          "nature"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      }
+    ],
+    "base": true,
+    "cluster": "south",
+    "description": "A quiet forest valley in south Kashmir, suited to conifer walks, streams, trout landscapes and longer mountain excursions.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 2,
+    "local_sightseeing": [
+      {
+        "name": "Daksum Forests",
+        "description": "Dense conifer and broadleaf mountain forest around the Bringhi valley.",
+        "tags": [
+          "nature",
+          "photography",
+          "trekking"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Bringhi River / stream landscapes",
+        "description": "Clear mountain water and wooded banks for relaxed exploration.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Daksum meadow areas",
+        "description": "Open clearings in the forest landscape for picnics and photography.",
+        "tags": [
+          "nature",
+          "family",
+          "relaxation"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Kokernag circuit",
+        "description": "Nearby spring-and-garden destination that pairs naturally with Daksum.",
+        "tags": [
+          "nature",
+          "family",
+          "photography"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Sinthan approach landscapes",
+        "description": "Mountain road scenery towards higher terrain and the Sinthan Top region.",
+        "tags": [
+          "adventure",
+          "photography",
+          "nature"
+        ],
+        "season": "spring-autumn"
+      }
+    ],
+    "things_to_do": [
+      "Walk the conifer forests",
+      "Relax by streams",
+      "Combine with Kokernag",
+      "Use Daksum for a slow mountain stay",
+      "Drive towards Sinthan when conditions permit"
+    ],
+    "activities": [
+      "Forest walks",
+      "Landscape photography",
+      "Picnic",
+      "Birdwatching",
+      "Short hikes"
+    ],
+    "photoQuery": "Daksum Kashmir forest Bringhi"
+  },
+  {
+    "name": "Verinag",
+    "tier": "Secondary",
+    "district": "Anantnag",
+    "tags": [
+      "spring",
+      "heritage",
+      "gardens",
+      "photography",
+      "family"
+    ],
+    "overnight_allowed": false,
+    "min_nights": 0,
+    "ideal_nights": 0,
+    "max_nights": 0,
+    "season": "all",
+    "access": "standard",
+    "source": "District Anantnag — Tourist Places",
+    "highlights": [
+      "Verinag Spring",
+      "Mughal garden"
+    ],
+    "sites": [
+      {
+        "name": "Verinag Spring",
+        "description": "The famous stone-lined spring regarded as the source of the Jhelum system.",
+        "tags": [
+          "nature",
+          "heritage",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Verinag Mughal Garden",
+        "description": "Mughal-era garden enclosing the spring in a formal geometric layout.",
+        "tags": [
+          "heritage",
+          "nature",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Spring canals and masonry works",
+        "description": "Water channels and historic structures around the garden.",
+        "tags": [
+          "heritage",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      }
+    ],
+    "base": false,
+    "cluster": "south",
+    "description": "A spring-town destination known for its Mughal garden surrounding the source of the Jhelum and its formal water channels.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 1,
+    "local_sightseeing": [
+      {
+        "name": "Verinag Spring",
+        "description": "The famous stone-lined spring regarded as the source of the Jhelum system.",
+        "tags": [
+          "nature",
+          "heritage",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Verinag Mughal Garden",
+        "description": "Mughal-era garden enclosing the spring in a formal geometric layout.",
+        "tags": [
+          "heritage",
+          "nature",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Spring canals and masonry works",
+        "description": "Water channels and historic structures around the garden.",
+        "tags": [
+          "heritage",
+          "photography"
+        ],
+        "season": "all"
+      }
+    ],
+    "things_to_do": [
+      "Visit the spring",
+      "Walk the Mughal garden",
+      "Combine with Kokernag and south Kashmir circuits"
+    ],
+    "activities": [
+      "Heritage photography",
+      "Garden walk",
+      "Scenic drive and picnic"
+    ],
+    "photoQuery": "Verinag Spring Mughal Garden Kashmir"
+  },
+  {
+    "name": "Sinthan Top",
+    "tier": "Secondary",
+    "district": "Anantnag/Kulgam",
+    "tags": [
+      "mountain",
+      "snow",
+      "photography",
+      "adventure",
+      "nature"
+    ],
+    "overnight_allowed": false,
+    "min_nights": 0,
+    "ideal_nights": 0,
+    "max_nights": 0,
+    "season": "late-spring-summer-autumn",
+    "access": "weather-sensitive",
+    "source": "JKTDC — Kashmir Destinations",
+    "highlights": [
+      "high-altitude views",
+      "snow in season"
+    ],
+    "sites": [
+      {
+        "name": "Sinthan Top viewpoint",
+        "description": "Broad high-altitude views and open ridge landscape; access is seasonal.",
+        "tags": [
+          "nature",
+          "snow",
+          "photography"
+        ],
+        "months": "late-spring-summer-autumn",
+        "conditional": false
+      },
+      {
+        "name": "High mountain meadows",
+        "description": "Open alpine slopes around the pass used for scenic stops and snow views.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "months": "late-spring-summer-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Sinthan road viewpoints",
+        "description": "Hairpin-road panoramas across south Kashmir mountain terrain.",
+        "tags": [
+          "photography",
+          "adventure"
+        ],
+        "months": "late-spring-summer-autumn",
+        "conditional": false
+      }
+    ],
+    "base": false,
+    "cluster": "south",
+    "description": "A high mountain pass and viewpoint on the Anantnag-Kishtwar road, visited for dramatic ridgelines and seasonal snow.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 1,
+    "local_sightseeing": [
+      {
+        "name": "Sinthan Top viewpoint",
+        "description": "Broad high-altitude views and open ridge landscape; access is seasonal.",
+        "tags": [
+          "nature",
+          "snow",
+          "photography"
+        ],
+        "season": "late-spring-summer-autumn"
+      },
+      {
+        "name": "High mountain meadows",
+        "description": "Open alpine slopes around the pass used for scenic stops and snow views.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "season": "late-spring-summer-autumn"
+      },
+      {
+        "name": "Sinthan road viewpoints",
+        "description": "Hairpin-road panoramas across south Kashmir mountain terrain.",
+        "tags": [
+          "photography",
+          "adventure"
+        ],
+        "season": "late-spring-summer-autumn"
+      }
+    ],
+    "things_to_do": [
+      "Drive to the viewpoint when open",
+      "See seasonal snow",
+      "Pair with Daksum or Kokernag"
+    ],
+    "activities": [
+      "Landscape photography",
+      "Snow play in season",
+      "Scenic drive",
+      "Short walks"
+    ],
+    "photoQuery": "Sinthan Top Kashmir snow viewpoint"
+  },
+  {
+    "name": "Naranag",
+    "tier": "Secondary",
+    "district": "Ganderbal",
+    "tags": [
+      "trekking",
+      "heritage",
+      "nature",
+      "photography",
+      "adventure"
+    ],
+    "overnight_allowed": true,
+    "min_nights": 1,
+    "ideal_nights": 2,
+    "max_nights": 2,
+    "season": "late-spring-autumn",
+    "access": "trek/route-sensitive",
+    "source": "JKTDC — Kashmir Destinations",
+    "highlights": [
+      "ancient temple ruins",
+      "trek base",
+      "high-altitude lakes"
+    ],
+    "sites": [
+      {
+        "name": "Naranag Temple Ruins",
+        "description": "Historic stone temple remains at the foot of the mountain landscape.",
+        "tags": [
+          "heritage",
+          "photography"
+        ],
+        "months": "late-spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Wangath Temple complex",
+        "description": "Ancient stone architecture and river-valley heritage near Naranag.",
+        "tags": [
+          "heritage",
+          "photography",
+          "culture"
+        ],
+        "months": "late-spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Naranag spring and stream",
+        "description": "Cool water landscape around the village and trailheads.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "late-spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Gangbal / Nundkol trek approach",
+        "description": "Major trekking gateway towards high-altitude lakes below Harmukh.",
+        "tags": [
+          "trekking",
+          "adventure",
+          "nature"
+        ],
+        "months": "late-spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Kangan Valley viewpoints",
+        "description": "Mountain roads and village scenery around the wider Naranag approach.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "late-spring-autumn",
+        "conditional": false
+      }
+    ],
+    "base": true,
+    "cluster": "northeast",
+    "description": "A historic mountain village and trek gateway near Harmukh, combining ancient ruins, forested slopes and access to alpine lakes.",
+    "min_days": 1,
+    "ideal_days": 2,
+    "max_days": 2,
+    "local_sightseeing": [
+      {
+        "name": "Naranag Temple Ruins",
+        "description": "Historic stone temple remains at the foot of the mountain landscape.",
+        "tags": [
+          "heritage",
+          "photography"
+        ],
+        "season": "late-spring-autumn"
+      },
+      {
+        "name": "Wangath Temple complex",
+        "description": "Ancient stone architecture and river-valley heritage near Naranag.",
+        "tags": [
+          "heritage",
+          "photography",
+          "culture"
+        ],
+        "season": "late-spring-autumn"
+      },
+      {
+        "name": "Naranag spring and stream",
+        "description": "Cool water landscape around the village and trailheads.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "late-spring-autumn"
+      },
+      {
+        "name": "Gangbal / Nundkol trek approach",
+        "description": "Major trekking gateway towards high-altitude lakes below Harmukh.",
+        "tags": [
+          "trekking",
+          "adventure",
+          "nature"
+        ],
+        "season": "late-spring-autumn"
+      },
+      {
+        "name": "Kangan Valley viewpoints",
+        "description": "Mountain roads and village scenery around the wider Naranag approach.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "late-spring-autumn"
+      }
+    ],
+    "things_to_do": [
+      "Explore the temple ruins",
+      "Walk the village and streams",
+      "Use Naranag as a trek gateway",
+      "Combine heritage with mountain scenery"
+    ],
+    "activities": [
+      "Trekking to Gangbal/Nundkol",
+      "Heritage photography",
+      "Nature walks",
+      "Camping on permitted trek routes"
+    ],
+    "photoQuery": "Naranag Kashmir Wangath Gangbal"
+  },
+  {
+    "name": "Wular Lake",
+    "tier": "Secondary",
+    "district": "Bandipora",
+    "tags": [
+      "lake",
+      "birding",
+      "photography",
+      "sunset",
+      "nature"
+    ],
+    "overnight_allowed": false,
+    "min_nights": 0,
+    "ideal_nights": 0,
+    "max_nights": 0,
+    "season": "all",
+    "access": "standard",
+    "source": "Divisional Commissioner Kashmir — Tourist Places",
+    "highlights": [
+      "lake views",
+      "sunset",
+      "Zaina Lank"
+    ],
+    "sites": [
+      {
+        "name": "Wular Lake shoreline",
+        "description": "Expansive lake views and wetland scenery across north Kashmir.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Wular wetland villages",
+        "description": "Rural lakeside landscapes where local livelihoods remain closely tied to the water.",
+        "tags": [
+          "culture",
+          "photography",
+          "offbeat"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Lake viewpoints near Bandipora",
+        "description": "Scenic stops for broad water and mountain panoramas.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      }
+    ],
+    "base": false,
+    "cluster": "north",
+    "description": "One of the region's major freshwater lake landscapes, best experienced through quiet shore views, wetlands and village scenery.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 1,
+    "local_sightseeing": [
+      {
+        "name": "Wular Lake shoreline",
+        "description": "Expansive lake views and wetland scenery across north Kashmir.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Wular wetland villages",
+        "description": "Rural lakeside landscapes where local livelihoods remain closely tied to the water.",
+        "tags": [
+          "culture",
+          "photography",
+          "offbeat"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Lake viewpoints near Bandipora",
+        "description": "Scenic stops for broad water and mountain panoramas.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "all"
+      }
+    ],
+    "things_to_do": [
+      "See the lake at a quiet viewpoint",
+      "Combine with Watlab or Bandipora",
+      "Plan a photography-focused excursion"
+    ],
+    "activities": [
+      "Landscape photography",
+      "Birdwatching",
+      "Village exploration",
+      "Picnic and scenic stops"
+    ],
+    "photoQuery": "Wular Lake Kashmir Bandipora"
+  },
+  {
+    "name": "Manasbal Lake",
+    "tier": "Secondary",
+    "district": "Ganderbal",
+    "tags": [
+      "lake",
+      "birding",
+      "photography",
+      "relaxation",
+      "family"
+    ],
+    "overnight_allowed": false,
+    "min_nights": 0,
+    "ideal_nights": 0,
+    "max_nights": 0,
+    "season": "spring-autumn",
+    "access": "standard",
+    "source": "District Ganderbal — Manasbal Lake",
+    "highlights": [
+      "lotus",
+      "birding",
+      "Jaroka"
+    ],
+    "sites": [
+      {
+        "name": "Manasbal Lake",
+        "description": "Lake shoreline and mountain reflections in a quieter north-central Kashmir setting.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Manasbal Garden",
+        "description": "Historic garden overlooking the lake.",
+        "tags": [
+          "heritage",
+          "nature",
+          "photography"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Mughal-era lakefront remains",
+        "description": "Historic structures and viewpoints around the lake circuit.",
+        "tags": [
+          "heritage",
+          "photography"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Lake birdlife",
+        "description": "Seasonal birdwatching around the reedbeds and open water.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      }
+    ],
+    "base": false,
+    "cluster": "northeast",
+    "description": "A clear, reed-fringed lake near the Jhelum corridor, appreciated for water views, garden landscapes and birdlife.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 1,
+    "local_sightseeing": [
+      {
+        "name": "Manasbal Lake",
+        "description": "Lake shoreline and mountain reflections in a quieter north-central Kashmir setting.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Manasbal Garden",
+        "description": "Historic garden overlooking the lake.",
+        "tags": [
+          "heritage",
+          "nature",
+          "photography"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Mughal-era lakefront remains",
+        "description": "Historic structures and viewpoints around the lake circuit.",
+        "tags": [
+          "heritage",
+          "photography"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Lake birdlife",
+        "description": "Seasonal birdwatching around the reedbeds and open water.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "spring-autumn"
+      }
+    ],
+    "things_to_do": [
+      "Relax by the lake",
+      "Combine with Wular or Naranag",
+      "Plan a photography and birding stop"
+    ],
+    "activities": [
+      "Birdwatching",
+      "Photography",
+      "Scenic picnic",
+      "Local boat experience where permitted"
+    ],
+    "photoQuery": "Manasbal Lake Kashmir garden"
+  },
+  {
+    "name": "Nigeen Lake",
+    "tier": "Secondary",
+    "district": "Srinagar",
+    "tags": [
+      "lake",
+      "houseboat",
+      "photography",
+      "relaxation",
+      "food"
+    ],
+    "overnight_allowed": true,
+    "min_nights": 1,
+    "ideal_nights": 1,
+    "max_nights": 2,
+    "season": "all",
+    "access": "standard",
+    "source": "JKTDC — Kashmir Destinations",
+    "highlights": [
+      "Nigeen Lake",
+      "houseboats",
+      "sunset"
+    ],
+    "sites": [
+      {
+        "name": "Nigeen Lake",
+        "description": "The main lake landscape, houseboats and quieter waterways north of Dal.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Nigeen houseboat belt",
+        "description": "Traditional houseboats and lakefront stays in a calmer setting.",
+        "tags": [
+          "culture",
+          "relaxation",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Hazratbal lakeside view",
+        "description": "Approach to the shrine and lake edge with classic Srinagar views.",
+        "tags": [
+          "spirituality",
+          "heritage",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Nigeen to Dal water corridor",
+        "description": "Waterway landscapes and shikara routes connecting the two lake systems.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      }
+    ],
+    "base": true,
+    "cluster": "central",
+    "description": "A quieter lake beside Srinagar, lined with houseboats and residential waterfronts and suited to slower lake experiences.",
+    "min_days": 1,
+    "ideal_days": 2,
+    "max_days": 2,
+    "local_sightseeing": [
+      {
+        "name": "Nigeen Lake",
+        "description": "The main lake landscape, houseboats and quieter waterways north of Dal.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Nigeen houseboat belt",
+        "description": "Traditional houseboats and lakefront stays in a calmer setting.",
+        "tags": [
+          "culture",
+          "relaxation",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Hazratbal lakeside view",
+        "description": "Approach to the shrine and lake edge with classic Srinagar views.",
+        "tags": [
+          "spirituality",
+          "heritage",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Nigeen to Dal water corridor",
+        "description": "Waterway landscapes and shikara routes connecting the two lake systems.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "all"
+      }
+    ],
+    "things_to_do": [
+      "Stay on a houseboat",
+      "Take a quiet shikara ride",
+      "See Hazratbal from the lake side",
+      "Use Nigeen as a slower Srinagar base"
+    ],
+    "activities": [
+      "Shikara ride",
+      "Sunrise/sunset photography",
+      "Houseboat stay",
+      "Bird and lake watching"
+    ],
+    "photoQuery": "Nigeen Lake Srinagar Kashmir houseboat"
+  },
+  {
+    "name": "Lolab Valley",
+    "tier": "Offbeat",
+    "district": "Kupwara",
+    "tags": [
+      "offbeat",
+      "nature",
+      "photography",
+      "culture",
+      "relaxation",
+      "trekking"
+    ],
+    "overnight_allowed": true,
+    "min_nights": 2,
+    "ideal_nights": 3,
+    "max_nights": 4,
+    "season": "late-spring-autumn",
+    "access": "route-sensitive",
+    "source": "District Kupwara — Lolab Valley",
+    "highlights": [
+      "Lalkul",
+      "Sat Barran",
+      "village landscapes"
+    ],
+    "sites": [
+      {
+        "name": "Lolab Valley meadows",
+        "description": "Open valley floor with agricultural and pastoral scenery.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "months": "late-spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Chandigam area",
+        "description": "Village and forest landscapes within the wider Lolab circuit.",
+        "tags": [
+          "culture",
+          "offbeat",
+          "photography"
+        ],
+        "months": "late-spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Kalaroos area",
+        "description": "Mountain village zone associated with striking rock and cave landscapes.",
+        "tags": [
+          "nature",
+          "offbeat",
+          "photography"
+        ],
+        "months": "late-spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Lolab orchards and village roads",
+        "description": "Seasonal orchards and rural scenes ideal for slow exploration.",
+        "tags": [
+          "culture",
+          "photography",
+          "food"
+        ],
+        "months": "late-spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Machil side approach",
+        "description": "Remote mountain country on the wider north Kashmir route; access is condition dependent.",
+        "tags": [
+          "offbeat",
+          "adventure",
+          "nature"
+        ],
+        "months": "late-spring-autumn",
+        "conditional": false
+      }
+    ],
+    "base": true,
+    "cluster": "northwest",
+    "description": "A lush north Kashmir valley of meadows, orchards, forests and villages, suited to slower offbeat travel.",
+    "min_days": 2,
+    "ideal_days": 3,
+    "max_days": 4,
+    "local_sightseeing": [
+      {
+        "name": "Lolab Valley meadows",
+        "description": "Open valley floor with agricultural and pastoral scenery.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "season": "late-spring-autumn"
+      },
+      {
+        "name": "Chandigam area",
+        "description": "Village and forest landscapes within the wider Lolab circuit.",
+        "tags": [
+          "culture",
+          "offbeat",
+          "photography"
+        ],
+        "season": "late-spring-autumn"
+      },
+      {
+        "name": "Kalaroos area",
+        "description": "Mountain village zone associated with striking rock and cave landscapes.",
+        "tags": [
+          "nature",
+          "offbeat",
+          "photography"
+        ],
+        "season": "late-spring-autumn"
+      },
+      {
+        "name": "Lolab orchards and village roads",
+        "description": "Seasonal orchards and rural scenes ideal for slow exploration.",
+        "tags": [
+          "culture",
+          "photography",
+          "food"
+        ],
+        "season": "late-spring-autumn"
+      },
+      {
+        "name": "Machil side approach",
+        "description": "Remote mountain country on the wider north Kashmir route; access is condition dependent.",
+        "tags": [
+          "offbeat",
+          "adventure",
+          "nature"
+        ],
+        "season": "late-spring-autumn"
+      }
+    ],
+    "things_to_do": [
+      "Stay in the valley",
+      "Drive through village and orchard country",
+      "Explore Kalaroos",
+      "Use Lolab for an offbeat north Kashmir circuit"
+    ],
+    "activities": [
+      "Village walks",
+      "Landscape photography",
+      "Short hikes",
+      "Camping where arranged",
+      "Rural food experiences"
+    ],
+    "photoQuery": "Lolab Valley Kashmir Kalaroos"
+  },
+  {
+    "name": "Bangus Valley",
+    "tier": "Offbeat",
+    "district": "Kupwara",
+    "tags": [
+      "offbeat",
+      "meadow",
+      "nature",
+      "photography",
+      "camping",
+      "trekking"
+    ],
+    "overnight_allowed": true,
+    "min_nights": 1,
+    "ideal_nights": 2,
+    "max_nights": 3,
+    "season": "late-spring-autumn",
+    "access": "route-sensitive",
+    "source": "District Kupwara — Bungus Valley",
+    "highlights": [
+      "Bodh Bangus",
+      "Lokut Bangus",
+      "conifer forests"
+    ],
+    "sites": [
+      {
+        "name": "Bungus main meadow",
+        "description": "Large highland meadow ringed by mountains.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "months": "late-spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Twin Bungus landscapes",
+        "description": "Open meadow and valley views across the wider upper valley.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "late-spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Bungus stream and grazing areas",
+        "description": "Pastoral and stream landscapes around the meadow.",
+        "tags": [
+          "culture",
+          "nature",
+          "photography"
+        ],
+        "months": "late-spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Handwara-Kupwara approach villages",
+        "description": "Rural landscapes on the way to the valley.",
+        "tags": [
+          "culture",
+          "offbeat",
+          "photography"
+        ],
+        "months": "late-spring-autumn",
+        "conditional": false
+      }
+    ],
+    "base": true,
+    "cluster": "northwest",
+    "description": "A broad highland valley in Kupwara known for open meadows, mountain panoramas and an increasingly popular offbeat character.",
+    "min_days": 1,
+    "ideal_days": 2,
+    "max_days": 3,
+    "local_sightseeing": [
+      {
+        "name": "Bungus main meadow",
+        "description": "Large highland meadow ringed by mountains.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "season": "late-spring-autumn"
+      },
+      {
+        "name": "Twin Bungus landscapes",
+        "description": "Open meadow and valley views across the wider upper valley.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "late-spring-autumn"
+      },
+      {
+        "name": "Bungus stream and grazing areas",
+        "description": "Pastoral and stream landscapes around the meadow.",
+        "tags": [
+          "culture",
+          "nature",
+          "photography"
+        ],
+        "season": "late-spring-autumn"
+      },
+      {
+        "name": "Handwara-Kupwara approach villages",
+        "description": "Rural landscapes on the way to the valley.",
+        "tags": [
+          "culture",
+          "offbeat",
+          "photography"
+        ],
+        "season": "late-spring-autumn"
+      }
+    ],
+    "things_to_do": [
+      "Spend time in the main meadow",
+      "Photograph wide mountain landscapes",
+      "Combine with Lolab or north Kashmir",
+      "Use as an offbeat overnight base"
+    ],
+    "activities": [
+      "Trekking",
+      "Camping where arranged",
+      "Horse riding where available",
+      "Landscape photography",
+      "Village walks"
+    ],
+    "photoQuery": "Bangus Valley Kashmir meadow"
+  },
+  {
+    "name": "Watlab",
+    "tier": "Offbeat",
+    "district": "Bandipora",
+    "tags": [
+      "lake",
+      "photography",
+      "sunset",
+      "offbeat"
+    ],
+    "overnight_allowed": false,
+    "min_nights": 0,
+    "ideal_nights": 0,
+    "max_nights": 0,
+    "season": "spring-autumn",
+    "access": "standard",
+    "source": "JKTDC — Kashmir Destinations",
+    "highlights": [
+      "lake landscape",
+      "sunset"
+    ],
+    "sites": [
+      {
+        "name": "Watlab Hill viewpoint",
+        "description": "Elevated views across Wular Lake and surrounding mountains.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Wular Lake panorama",
+        "description": "Wide lake and wetland landscapes from the hill.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Watlab village surroundings",
+        "description": "Rural Bandipora scenery around the approach.",
+        "tags": [
+          "culture",
+          "offbeat",
+          "photography"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      }
+    ],
+    "base": false,
+    "cluster": "north",
+    "description": "A hill-and-lake viewpoint in Bandipora overlooking Wular, valued for broad water panoramas and quiet rural scenery.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 1,
+    "local_sightseeing": [
+      {
+        "name": "Watlab Hill viewpoint",
+        "description": "Elevated views across Wular Lake and surrounding mountains.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Wular Lake panorama",
+        "description": "Wide lake and wetland landscapes from the hill.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Watlab village surroundings",
+        "description": "Rural Bandipora scenery around the approach.",
+        "tags": [
+          "culture",
+          "offbeat",
+          "photography"
+        ],
+        "season": "spring-autumn"
+      }
+    ],
+    "things_to_do": [
+      "Stop for a Wular panorama",
+      "Combine with Wular Lake",
+      "Plan a quiet north Kashmir photography circuit"
+    ],
+    "activities": [
+      "Landscape photography",
+      "Birdwatching",
+      "Scenic picnic",
+      "Village walk"
+    ],
+    "photoQuery": "Watlab Wular Lake Kashmir"
+  },
+  {
+    "name": "Tosa Maidan",
+    "tier": "Offbeat",
+    "district": "Budgam",
+    "tags": [
+      "offbeat",
+      "meadow",
+      "trekking",
+      "history",
+      "nature",
+      "photography"
+    ],
+    "overnight_allowed": true,
+    "min_nights": 1,
+    "ideal_nights": 1,
+    "max_nights": 2,
+    "season": "spring-autumn",
+    "access": "seasonal/route-sensitive",
+    "source": "District Budgam — Tosa Maidan",
+    "highlights": [
+      "large meadow",
+      "historical routes",
+      "Basmai Gali"
+    ],
+    "sites": [
+      {
+        "name": "Tosa Maidan meadow",
+        "description": "Large open meadow surrounded by mountain terrain.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Forest and ridge viewpoints",
+        "description": "Conifer slopes and ridgeline scenery around the meadow.",
+        "tags": [
+          "nature",
+          "photography",
+          "trekking"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Pastoral summer settlements",
+        "description": "Seasonal shepherd and village landscapes in the wider meadow country.",
+        "tags": [
+          "culture",
+          "offbeat",
+          "photography"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Approach valleys toward Budgam",
+        "description": "Scenic rural road landscapes on the way to the meadow.",
+        "tags": [
+          "photography",
+          "nature"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      }
+    ],
+    "base": true,
+    "cluster": "west",
+    "description": "A high meadow landscape in western Kashmir, suited to open pastoral scenery, photography and offbeat mountain stays.",
+    "min_days": 1,
+    "ideal_days": 2,
+    "max_days": 2,
+    "local_sightseeing": [
+      {
+        "name": "Tosa Maidan meadow",
+        "description": "Large open meadow surrounded by mountain terrain.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Forest and ridge viewpoints",
+        "description": "Conifer slopes and ridgeline scenery around the meadow.",
+        "tags": [
+          "nature",
+          "photography",
+          "trekking"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Pastoral summer settlements",
+        "description": "Seasonal shepherd and village landscapes in the wider meadow country.",
+        "tags": [
+          "culture",
+          "offbeat",
+          "photography"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Approach valleys toward Budgam",
+        "description": "Scenic rural road landscapes on the way to the meadow.",
+        "tags": [
+          "photography",
+          "nature"
+        ],
+        "season": "spring-autumn"
+      }
+    ],
+    "things_to_do": [
+      "Stay around the meadow",
+      "Walk open mountain terrain",
+      "Photograph pastoral landscapes",
+      "Combine with Doodhpathri or Yusmarg"
+    ],
+    "activities": [
+      "Trekking",
+      "Camping where arranged",
+      "Landscape photography",
+      "Picnic",
+      "Village and pastoral life observation"
+    ],
+    "photoQuery": "Tosa Maidan Kashmir meadow"
+  },
+  {
+    "name": "Peer Ki Gali",
+    "tier": "Offbeat",
+    "district": "Shopian",
+    "tags": [
+      "mountain",
+      "history",
+      "photography",
+      "nature",
+      "roadtrip"
+    ],
+    "overnight_allowed": false,
+    "min_nights": 0,
+    "ideal_nights": 0,
+    "max_nights": 0,
+    "season": "late-spring-autumn",
+    "access": "weather/road-sensitive",
+    "source": "District Shopian — Tourist Places",
+    "highlights": [
+      "Pir Panjal pass",
+      "Mughal Road"
+    ],
+    "sites": [
+      {
+        "name": "Peer Ki Gali pass",
+        "description": "High pass landscape and an important stop on the Mughal Road.",
+        "tags": [
+          "nature",
+          "heritage",
+          "photography"
+        ],
+        "months": "late-spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Peer Ki Gali shrine",
+        "description": "Local spiritual site associated with the pass.",
+        "tags": [
+          "spirituality",
+          "heritage"
+        ],
+        "months": "late-spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Mughal Road viewpoints",
+        "description": "Mountain roads and open views along the historic route.",
+        "tags": [
+          "nature",
+          "photography",
+          "adventure"
+        ],
+        "months": "late-spring-autumn",
+        "conditional": false
+      }
+    ],
+    "base": false,
+    "cluster": "southwest",
+    "description": "A historic pass and roadside spiritual stop on the Mughal Road, surrounded by forest, meadows and broad mountain views.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 1,
+    "local_sightseeing": [
+      {
+        "name": "Peer Ki Gali pass",
+        "description": "High pass landscape and an important stop on the Mughal Road.",
+        "tags": [
+          "nature",
+          "heritage",
+          "photography"
+        ],
+        "season": "late-spring-autumn"
+      },
+      {
+        "name": "Peer Ki Gali shrine",
+        "description": "Local spiritual site associated with the pass.",
+        "tags": [
+          "spirituality",
+          "heritage"
+        ],
+        "season": "late-spring-autumn"
+      },
+      {
+        "name": "Mughal Road viewpoints",
+        "description": "Mountain roads and open views along the historic route.",
+        "tags": [
+          "nature",
+          "photography",
+          "adventure"
+        ],
+        "season": "late-spring-autumn"
+      }
+    ],
+    "things_to_do": [
+      "Drive the Mughal Road",
+      "Stop at the pass",
+      "Combine with Hirpora/Shopian or Poonch circuits"
+    ],
+    "activities": [
+      "Scenic drive",
+      "Photography",
+      "Picnic and short walks",
+      "Heritage stop"
+    ],
+    "photoQuery": "Peer Ki Gali Mughal Road Kashmir"
+  },
+  {
+    "name": "Mughal Road",
+    "tier": "Offbeat",
+    "district": "Shopian/Poonch",
+    "tags": [
+      "roadtrip",
+      "history",
+      "mountain",
+      "photography",
+      "offbeat"
+    ],
+    "overnight_allowed": true,
+    "min_nights": 1,
+    "ideal_nights": 1,
+    "max_nights": 1,
+    "season": "late-spring-autumn",
+    "access": "road-sensitive",
+    "source": "District Shopian — Tourist Places",
+    "highlights": [
+      "Peer Ki Gali",
+      "Shadmarag",
+      "historic route"
+    ],
+    "sites": [
+      {
+        "name": "Peer Ki Gali",
+        "description": "Signature high-pass landscape and spiritual stop.",
+        "tags": [
+          "nature",
+          "heritage",
+          "photography"
+        ],
+        "months": "late-spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Hirpora / Shopian-side meadows",
+        "description": "Green mountain landscapes on the Kashmir side of the road.",
+        "tags": [
+          "nature",
+          "photography",
+          "offbeat"
+        ],
+        "months": "late-spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Buffliaz side landscapes",
+        "description": "Forested and pastoral scenery on the Poonch approach.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "late-spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Mughal Road viewpoints",
+        "description": "Scenic pull-offs across the historic mountain route.",
+        "tags": [
+          "photography",
+          "adventure"
+        ],
+        "months": "late-spring-autumn",
+        "conditional": false
+      }
+    ],
+    "base": true,
+    "cluster": "southwest",
+    "description": "A historic cross-valley road linking south Kashmir with the Poonch-Rajouri side, known for forest passes and scenic mountain travel.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 2,
+    "local_sightseeing": [
+      {
+        "name": "Peer Ki Gali",
+        "description": "Signature high-pass landscape and spiritual stop.",
+        "tags": [
+          "nature",
+          "heritage",
+          "photography"
+        ],
+        "season": "late-spring-autumn"
+      },
+      {
+        "name": "Hirpora / Shopian-side meadows",
+        "description": "Green mountain landscapes on the Kashmir side of the road.",
+        "tags": [
+          "nature",
+          "photography",
+          "offbeat"
+        ],
+        "season": "late-spring-autumn"
+      },
+      {
+        "name": "Buffliaz side landscapes",
+        "description": "Forested and pastoral scenery on the Poonch approach.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "late-spring-autumn"
+      },
+      {
+        "name": "Mughal Road viewpoints",
+        "description": "Scenic pull-offs across the historic mountain route.",
+        "tags": [
+          "photography",
+          "adventure"
+        ],
+        "season": "late-spring-autumn"
+      }
+    ],
+    "things_to_do": [
+      "Experience a full scenic road day",
+      "Combine with south Kashmir",
+      "Continue towards Poonch/Rajouri where trip routing allows"
+    ],
+    "activities": [
+      "Scenic driving",
+      "Landscape photography",
+      "Short walks",
+      "Roadside picnic"
+    ],
+    "photoQuery": "Mughal Road Peer Ki Gali Kashmir"
+  },
+  {
+    "name": "Warwan Valley",
+    "tier": "Offbeat",
+    "district": "Kishtwar",
+    "tags": [
+      "offbeat",
+      "expedition",
+      "trekking",
+      "nature",
+      "photography",
+      "adventure"
+    ],
+    "overnight_allowed": true,
+    "min_nights": 2,
+    "ideal_nights": 3,
+    "max_nights": 5,
+    "season": "seasonal",
+    "access": "highly seasonal/remote",
+    "source": "JKTDC — Kashmir Destinations",
+    "highlights": [
+      "Margan Top",
+      "remote valley",
+      "trek crossing"
+    ],
+    "sites": [
+      {
+        "name": "Warwan Valley floor",
+        "description": "Long open valley landscapes with rivers, villages and steep mountain walls.",
+        "tags": [
+          "nature",
+          "offbeat",
+          "photography"
+        ],
+        "months": "seasonal",
+        "conditional": false
+      },
+      {
+        "name": "Marwah valley",
+        "description": "Remote settlement landscape and mountain scenery on the approach.",
+        "tags": [
+          "culture",
+          "offbeat",
+          "photography"
+        ],
+        "months": "seasonal",
+        "conditional": false
+      },
+      {
+        "name": "Margan Pass approaches",
+        "description": "High mountain terrain and dramatic pass landscapes; access is seasonal.",
+        "tags": [
+          "adventure",
+          "nature",
+          "photography"
+        ],
+        "months": "seasonal",
+        "conditional": false
+      },
+      {
+        "name": "River and village corridors",
+        "description": "Traditional settlements and farming landscapes along the valley.",
+        "tags": [
+          "culture",
+          "nature",
+          "photography"
+        ],
+        "months": "seasonal",
+        "conditional": false
+      },
+      {
+        "name": "Alpine meadow and trek country",
+        "description": "Remote trekking terrain beyond road access.",
+        "tags": [
+          "trekking",
+          "adventure",
+          "nature"
+        ],
+        "months": "seasonal",
+        "conditional": false
+      }
+    ],
+    "base": true,
+    "cluster": "south",
+    "description": "A very remote trans-Himalayan valley around Marwah and Warwan, suited to expedition-style travel, village stays and multi-day trekking.",
+    "min_days": 2,
+    "ideal_days": 4,
+    "max_days": 6,
+    "local_sightseeing": [
+      {
+        "name": "Warwan Valley floor",
+        "description": "Long open valley landscapes with rivers, villages and steep mountain walls.",
+        "tags": [
+          "nature",
+          "offbeat",
+          "photography"
+        ],
+        "season": "seasonal"
+      },
+      {
+        "name": "Marwah valley",
+        "description": "Remote settlement landscape and mountain scenery on the approach.",
+        "tags": [
+          "culture",
+          "offbeat",
+          "photography"
+        ],
+        "season": "seasonal"
+      },
+      {
+        "name": "Margan Pass approaches",
+        "description": "High mountain terrain and dramatic pass landscapes; access is seasonal.",
+        "tags": [
+          "adventure",
+          "nature",
+          "photography"
+        ],
+        "season": "seasonal"
+      },
+      {
+        "name": "River and village corridors",
+        "description": "Traditional settlements and farming landscapes along the valley.",
+        "tags": [
+          "culture",
+          "nature",
+          "photography"
+        ],
+        "season": "seasonal"
+      },
+      {
+        "name": "Alpine meadow and trek country",
+        "description": "Remote trekking terrain beyond road access.",
+        "tags": [
+          "trekking",
+          "adventure",
+          "nature"
+        ],
+        "season": "seasonal"
+      }
+    ],
+    "things_to_do": [
+      "Build a multi-day expedition itinerary",
+      "Stay in village/homestay setups where arranged",
+      "Explore valley roads and tracks",
+      "Use Warwan for serious offbeat travel"
+    ],
+    "activities": [
+      "Multi-day trekking",
+      "Camping where permitted and arranged",
+      "Landscape photography",
+      "Village walks",
+      "Expedition-style road travel"
+    ],
+    "photoQuery": "Warwan Valley Kashmir Marwah"
+  },
+  {
+    "name": "Chatpal",
+    "tier": "Offbeat",
+    "district": "Anantnag/Shopian fringe",
+    "tags": [
+      "offbeat",
+      "nature",
+      "forest",
+      "photography",
+      "relaxation"
+    ],
+    "overnight_allowed": true,
+    "min_nights": 1,
+    "ideal_nights": 1,
+    "max_nights": 2,
+    "season": "spring-autumn",
+    "access": "route-sensitive",
+    "source": "District Anantnag — Tourism",
+    "highlights": [
+      "forest retreat",
+      "meadows"
+    ],
+    "sites": [
+      {
+        "name": "Chatpal meadow",
+        "description": "Open green landscape surrounded by forested mountain slopes.",
+        "tags": [
+          "nature",
+          "relaxation",
+          "photography"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Chatpal stream",
+        "description": "Mountain stream and wooded banks around the settlement.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Forest walking trails",
+        "description": "Quiet local tracks through pine and mixed forest.",
+        "tags": [
+          "trekking",
+          "nature",
+          "photography"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Village and orchard landscapes",
+        "description": "Rural south Kashmir setting around local settlements.",
+        "tags": [
+          "culture",
+          "food",
+          "photography"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      }
+    ],
+    "base": true,
+    "cluster": "south",
+    "description": "A quiet forested corner of south Kashmir known for green meadows, streams and low-key village landscapes.",
+    "min_days": 1,
+    "ideal_days": 2,
+    "max_days": 2,
+    "local_sightseeing": [
+      {
+        "name": "Chatpal meadow",
+        "description": "Open green landscape surrounded by forested mountain slopes.",
+        "tags": [
+          "nature",
+          "relaxation",
+          "photography"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Chatpal stream",
+        "description": "Mountain stream and wooded banks around the settlement.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Forest walking trails",
+        "description": "Quiet local tracks through pine and mixed forest.",
+        "tags": [
+          "trekking",
+          "nature",
+          "photography"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Village and orchard landscapes",
+        "description": "Rural south Kashmir setting around local settlements.",
+        "tags": [
+          "culture",
+          "food",
+          "photography"
+        ],
+        "season": "spring-autumn"
+      }
+    ],
+    "things_to_do": [
+      "Stay in a quiet cottage or homestay",
+      "Walk the meadow and stream",
+      "Use Chatpal for an offbeat rest day",
+      "Combine with Aharbal or south Kashmir circuits"
+    ],
+    "activities": [
+      "Nature walks",
+      "Trekking",
+      "Landscape photography",
+      "Picnic",
+      "Village exploration"
+    ],
+    "photoQuery": "Chatpal Kashmir meadow forest"
+  },
+  {
+    "name": "Tulail Valley",
+    "tier": "Offbeat",
+    "district": "Bandipora",
+    "tags": [
+      "offbeat",
+      "nature",
+      "photography",
+      "culture",
+      "adventure"
+    ],
+    "overnight_allowed": true,
+    "min_nights": 1,
+    "ideal_nights": 2,
+    "max_nights": 3,
+    "season": "seasonal",
+    "access": "route-sensitive",
+    "source": "District Bandipora — Gurez Valley",
+    "highlights": [
+      "remote villages",
+      "Kishanganga valley",
+      "mountain scenery"
+    ],
+    "sites": [
+      {
+        "name": "Tulail Valley villages",
+        "description": "Traditional settlements spread across broad mountain landscapes.",
+        "tags": [
+          "culture",
+          "offbeat",
+          "photography"
+        ],
+        "months": "seasonal",
+        "conditional": false
+      },
+      {
+        "name": "Kishanganga river corridor",
+        "description": "River-and-village scenes defining the valley.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "months": "seasonal",
+        "conditional": false
+      },
+      {
+        "name": "Alpine meadows",
+        "description": "Open highland meadows and grazing areas around the valley.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "months": "seasonal",
+        "conditional": false
+      },
+      {
+        "name": "Mountain road viewpoints",
+        "description": "Long scenic stretches on the route from Gurez.",
+        "tags": [
+          "nature",
+          "photography",
+          "adventure"
+        ],
+        "months": "seasonal",
+        "conditional": false
+      }
+    ],
+    "base": true,
+    "cluster": "north",
+    "description": "An upper extension of Gurez with wide alpine valleys, traditional villages and a road that becomes part of the experience.",
+    "min_days": 2,
+    "ideal_days": 3,
+    "max_days": 4,
+    "local_sightseeing": [
+      {
+        "name": "Tulail Valley villages",
+        "description": "Traditional settlements spread across broad mountain landscapes.",
+        "tags": [
+          "culture",
+          "offbeat",
+          "photography"
+        ],
+        "season": "seasonal"
+      },
+      {
+        "name": "Kishanganga river corridor",
+        "description": "River-and-village scenes defining the valley.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "season": "seasonal"
+      },
+      {
+        "name": "Alpine meadows",
+        "description": "Open highland meadows and grazing areas around the valley.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "season": "seasonal"
+      },
+      {
+        "name": "Mountain road viewpoints",
+        "description": "Long scenic stretches on the route from Gurez.",
+        "tags": [
+          "nature",
+          "photography",
+          "adventure"
+        ],
+        "season": "seasonal"
+      }
+    ],
+    "things_to_do": [
+      "Spend at least one slow day",
+      "Drive village to village",
+      "Photograph alpine landscapes",
+      "Combine with a longer Gurez stay"
+    ],
+    "activities": [
+      "Trekking",
+      "Village walks",
+      "Camping where arranged",
+      "Landscape photography",
+      "Fishing only where locally permitted"
+    ],
+    "photoQuery": "Tulail Valley Gurez Kashmir"
+  },
+  {
+    "name": "Baltal",
+    "tier": "Secondary",
+    "district": "Ganderbal",
+    "tags": [
+      "pilgrimage",
+      "mountain",
+      "adventure",
+      "nature"
+    ],
+    "overnight_allowed": true,
+    "min_nights": 1,
+    "ideal_nights": 1,
+    "max_nights": 2,
+    "season": "summer",
+    "access": "pilgrimage/seasonal",
+    "source": "Divisional Commissioner Kashmir — Tourist Places",
+    "highlights": [
+      "Baltal Valley",
+      "Amarnath base"
+    ],
+    "sites": [
+      {
+        "name": "Baltal Meadow",
+        "description": "Open valley landscape beneath steep mountain slopes.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "months": "summer",
+        "conditional": false
+      },
+      {
+        "name": "Sindh River corridor",
+        "description": "River landscapes near the valley and approach roads.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "summer",
+        "conditional": false
+      },
+      {
+        "name": "Zoji La views",
+        "description": "High mountain pass scenery on the route beyond Baltal; access varies.",
+        "tags": [
+          "adventure",
+          "photography",
+          "nature"
+        ],
+        "months": "summer",
+        "conditional": false
+      },
+      {
+        "name": "Amarnath route base area",
+        "description": "Pilgrimage infrastructure and mountain gateway landscape in season.",
+        "tags": [
+          "spirituality",
+          "adventure",
+          "photography"
+        ],
+        "months": "summer",
+        "conditional": false
+      }
+    ],
+    "base": true,
+    "cluster": "east",
+    "description": "A compact high-altitude valley near Sonamarg, best known as a gateway to the Amarnath route and a dramatic mountain base.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 2,
+    "local_sightseeing": [
+      {
+        "name": "Baltal Meadow",
+        "description": "Open valley landscape beneath steep mountain slopes.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "season": "summer"
+      },
+      {
+        "name": "Sindh River corridor",
+        "description": "River landscapes near the valley and approach roads.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "summer"
+      },
+      {
+        "name": "Zoji La views",
+        "description": "High mountain pass scenery on the route beyond Baltal; access varies.",
+        "tags": [
+          "adventure",
+          "photography",
+          "nature"
+        ],
+        "season": "summer"
+      },
+      {
+        "name": "Amarnath route base area",
+        "description": "Pilgrimage infrastructure and mountain gateway landscape in season.",
+        "tags": [
+          "spirituality",
+          "adventure",
+          "photography"
+        ],
+        "season": "summer"
+      }
+    ],
+    "things_to_do": [
+      "Use Baltal for an overnight near Sonamarg",
+      "Visit during pilgrimage season if relevant",
+      "Combine with Sonamarg and Zojila-side scenery"
+    ],
+    "activities": [
+      "Mountain photography",
+      "Pilgrimage support travel in season",
+      "Short hikes",
+      "Camping where arranged"
+    ],
+    "photoQuery": "Baltal Sonamarg Kashmir meadow"
+  },
+  {
+    "name": "Mattan",
+    "tier": "Secondary",
+    "district": "Anantnag",
+    "tags": [
+      "heritage",
+      "spirituality",
+      "culture",
+      "photography"
+    ],
+    "overnight_allowed": false,
+    "min_nights": 0,
+    "ideal_nights": 0,
+    "max_nights": 0,
+    "season": "all",
+    "access": "standard",
+    "source": "District Anantnag — Tourism",
+    "highlights": [
+      "Mattan spring",
+      "cultural heritage"
+    ],
+    "sites": [
+      {
+        "name": "Mattan Temple complex",
+        "description": "Historic temple and sacred spring landscape.",
+        "tags": [
+          "heritage",
+          "spirituality",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Mattan sacred springs",
+        "description": "Clear spring water and landscaped religious surroundings.",
+        "tags": [
+          "spirituality",
+          "nature",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "South Kashmir countryside",
+        "description": "Green agricultural and village scenery around Mattan.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      }
+    ],
+    "base": false,
+    "cluster": "south",
+    "description": "A cultural stop in south Kashmir known for its historic Hindu temple complex, springs and green surroundings.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 1,
+    "local_sightseeing": [
+      {
+        "name": "Mattan Temple complex",
+        "description": "Historic temple and sacred spring landscape.",
+        "tags": [
+          "heritage",
+          "spirituality",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Mattan sacred springs",
+        "description": "Clear spring water and landscaped religious surroundings.",
+        "tags": [
+          "spirituality",
+          "nature",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "South Kashmir countryside",
+        "description": "Green agricultural and village scenery around Mattan.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "all"
+      }
+    ],
+    "things_to_do": [
+      "Visit the temple complex",
+      "Combine with Martand and Anantnag",
+      "Use as a cultural stop on a south Kashmir circuit"
+    ],
+    "activities": [
+      "Heritage photography",
+      "Cultural visit",
+      "Scenic drive"
+    ],
+    "photoQuery": "Mattan Anantnag Kashmir temple spring"
+  },
+  {
+    "name": "Martand Sun Temple",
+    "tier": "Secondary",
+    "district": "Anantnag",
+    "tags": [
+      "heritage",
+      "photography",
+      "history",
+      "culture"
+    ],
+    "overnight_allowed": false,
+    "min_nights": 0,
+    "ideal_nights": 0,
+    "max_nights": 0,
+    "season": "all",
+    "access": "standard",
+    "source": "District Anantnag — Tourist Places",
+    "highlights": [
+      "8th-century ruins",
+      "architecture"
+    ],
+    "sites": [
+      {
+        "name": "Martand Sun Temple ruins",
+        "description": "Monumental stone temple remains overlooking the south Kashmir plains.",
+        "tags": [
+          "heritage",
+          "photography",
+          "culture"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Temple hill viewpoints",
+        "description": "Open views across surrounding countryside.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Architectural details and colonnades",
+        "description": "Carved stonework and structural remains across the complex.",
+        "tags": [
+          "heritage",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      }
+    ],
+    "base": false,
+    "cluster": "south",
+    "description": "A spectacular hilltop temple ruin in south Kashmir, valued for its stone architecture and expansive views.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 1,
+    "local_sightseeing": [
+      {
+        "name": "Martand Sun Temple ruins",
+        "description": "Monumental stone temple remains overlooking the south Kashmir plains.",
+        "tags": [
+          "heritage",
+          "photography",
+          "culture"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Temple hill viewpoints",
+        "description": "Open views across surrounding countryside.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Architectural details and colonnades",
+        "description": "Carved stonework and structural remains across the complex.",
+        "tags": [
+          "heritage",
+          "photography"
+        ],
+        "season": "all"
+      }
+    ],
+    "things_to_do": [
+      "Spend time on the temple hill",
+      "Combine with Mattan and Anantnag",
+      "Plan a heritage-focused south Kashmir day"
+    ],
+    "activities": [
+      "Heritage photography",
+      "Architecture walk",
+      "Scenic countryside stop"
+    ],
+    "photoQuery": "Martand Sun Temple Kashmir ruins"
+  },
+  {
+    "name": "Panzath Nag",
+    "tier": "Offbeat",
+    "district": "Anantnag",
+    "tags": [
+      "spring",
+      "culture",
+      "offbeat",
+      "photography"
+    ],
+    "overnight_allowed": false,
+    "min_nights": 0,
+    "ideal_nights": 0,
+    "max_nights": 0,
+    "season": "spring-autumn",
+    "access": "standard",
+    "source": "District Anantnag — Tourist Places",
+    "highlights": [
+      "spring",
+      "local festival context"
+    ],
+    "sites": [
+      {
+        "name": "Panzath Nag spring",
+        "description": "Fresh spring-water landscape and local sacred setting.",
+        "tags": [
+          "nature",
+          "spirituality",
+          "photography"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Village surroundings",
+        "description": "Rural fields and water channels around the spring.",
+        "tags": [
+          "culture",
+          "photography",
+          "offbeat"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "South Kashmir orchard country",
+        "description": "Seasonal green and orchard scenery around the approach.",
+        "tags": [
+          "nature",
+          "food",
+          "photography"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      }
+    ],
+    "base": false,
+    "cluster": "south",
+    "description": "A spring destination in south Kashmir known for clear water, green surroundings and a quieter local character.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 1,
+    "local_sightseeing": [
+      {
+        "name": "Panzath Nag spring",
+        "description": "Fresh spring-water landscape and local sacred setting.",
+        "tags": [
+          "nature",
+          "spirituality",
+          "photography"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Village surroundings",
+        "description": "Rural fields and water channels around the spring.",
+        "tags": [
+          "culture",
+          "photography",
+          "offbeat"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "South Kashmir orchard country",
+        "description": "Seasonal green and orchard scenery around the approach.",
+        "tags": [
+          "nature",
+          "food",
+          "photography"
+        ],
+        "season": "spring-autumn"
+      }
+    ],
+    "things_to_do": [
+      "Make a short spring stop",
+      "Combine with Anantnag/Kokernag",
+      "Use for an offbeat local circuit"
+    ],
+    "activities": [
+      "Photography",
+      "Scenic drive",
+      "Village exploration"
+    ],
+    "photoQuery": "Panzath Nag Kashmir spring"
+  },
+  {
+    "name": "Wasaknag",
+    "tier": "Offbeat",
+    "district": "Anantnag",
+    "tags": [
+      "spring",
+      "offbeat",
+      "nature",
+      "photography"
+    ],
+    "overnight_allowed": false,
+    "min_nights": 0,
+    "ideal_nights": 0,
+    "max_nights": 0,
+    "season": "seasonal",
+    "access": "season-sensitive",
+    "source": "District Anantnag — Tourist Places",
+    "highlights": [
+      "seasonal spring"
+    ],
+    "sites": [
+      {
+        "name": "Wasaknag spring area",
+        "description": "Local spring and surrounding green landscape.",
+        "tags": [
+          "nature",
+          "photography",
+          "offbeat"
+        ],
+        "months": "seasonal",
+        "conditional": false
+      },
+      {
+        "name": "Village countryside",
+        "description": "Agricultural and rural scenery around the spring.",
+        "tags": [
+          "culture",
+          "photography"
+        ],
+        "months": "seasonal",
+        "conditional": false
+      },
+      {
+        "name": "South Kashmir mountain backdrop",
+        "description": "Quiet road views across the surrounding foothills.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "seasonal",
+        "conditional": false
+      }
+    ],
+    "base": false,
+    "cluster": "south",
+    "description": "A lesser-known spring and village landscape in south Kashmir, suited to short offbeat stops rather than a long stay.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 1,
+    "local_sightseeing": [
+      {
+        "name": "Wasaknag spring area",
+        "description": "Local spring and surrounding green landscape.",
+        "tags": [
+          "nature",
+          "photography",
+          "offbeat"
+        ],
+        "season": "seasonal"
+      },
+      {
+        "name": "Village countryside",
+        "description": "Agricultural and rural scenery around the spring.",
+        "tags": [
+          "culture",
+          "photography"
+        ],
+        "season": "seasonal"
+      },
+      {
+        "name": "South Kashmir mountain backdrop",
+        "description": "Quiet road views across the surrounding foothills.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "seasonal"
+      }
+    ],
+    "things_to_do": [
+      "Use as a short local stop",
+      "Combine with south Kashmir springs and temples"
+    ],
+    "activities": [
+      "Photography",
+      "Village walk",
+      "Scenic drive"
+    ],
+    "photoQuery": "Wasaknag Kashmir spring"
+  },
+  {
+    "name": "Aru Valley",
+    "tier": "Secondary",
+    "district": "Anantnag",
+    "tags": [
+      "nature",
+      "trekking",
+      "photography",
+      "family"
+    ],
+    "overnight_allowed": false,
+    "min_nights": 0,
+    "ideal_nights": 0,
+    "max_nights": 0,
+    "season": "spring-autumn",
+    "access": "local-vehicle-sensitive",
+    "source": "District Anantnag — Tourist Places",
+    "highlights": [
+      "meadow village",
+      "trek base"
+    ],
+    "sites": [
+      {
+        "name": "Aru Meadow",
+        "description": "Open meadow and village landscape framed by pine and mountain slopes.",
+        "tags": [
+          "nature",
+          "family",
+          "photography"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Aru River / stream",
+        "description": "Clear mountain water and riverbank scenery through the valley.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Forest trails and trek gateways",
+        "description": "Trail networks leading towards alpine lakes and longer routes.",
+        "tags": [
+          "trekking",
+          "adventure",
+          "nature"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      }
+    ],
+    "base": false,
+    "cluster": "south",
+    "description": "A mountain valley near Pahalgam with meadows, forests, streams and access to some of Kashmir's best-known trekking routes.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 1,
+    "local_sightseeing": [
+      {
+        "name": "Aru Meadow",
+        "description": "Open meadow and village landscape framed by pine and mountain slopes.",
+        "tags": [
+          "nature",
+          "family",
+          "photography"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Aru River / stream",
+        "description": "Clear mountain water and riverbank scenery through the valley.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Forest trails and trek gateways",
+        "description": "Trail networks leading towards alpine lakes and longer routes.",
+        "tags": [
+          "trekking",
+          "adventure",
+          "nature"
+        ],
+        "season": "spring-autumn"
+      }
+    ],
+    "things_to_do": [
+      "Walk the meadow",
+      "Explore the river",
+      "Use Aru as a trek starting point",
+      "Combine with Pahalgam"
+    ],
+    "activities": [
+      "Trekking",
+      "Horse riding where available",
+      "Nature walks",
+      "Photography",
+      "Picnic"
+    ],
+    "photoQuery": "Aru Valley Pahalgam Kashmir"
+  },
+  {
+    "name": "Betaab Valley",
+    "tier": "Secondary",
+    "district": "Anantnag",
+    "tags": [
+      "nature",
+      "family",
+      "photography",
+      "film"
+    ],
+    "overnight_allowed": false,
+    "min_nights": 0,
+    "ideal_nights": 0,
+    "max_nights": 0,
+    "season": "all",
+    "access": "local-vehicle-sensitive",
+    "source": "District Anantnag — Tourist Places",
+    "highlights": [
+      "meadow",
+      "mountain scenery"
+    ],
+    "sites": [
+      {
+        "name": "Betaab Valley meadow",
+        "description": "Open valley park and mountain scenery beside the Lidder.",
+        "tags": [
+          "nature",
+          "family",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Lidder river corridor",
+        "description": "Streamside views and forested slopes around the valley.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Pine and mountain viewpoints",
+        "description": "Short scenic spots around the valley road.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      }
+    ],
+    "base": false,
+    "cluster": "south",
+    "description": "A compact scenic valley near Pahalgam with river views, green lawns and a dramatic forest-and-mountain setting.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 1,
+    "local_sightseeing": [
+      {
+        "name": "Betaab Valley meadow",
+        "description": "Open valley park and mountain scenery beside the Lidder.",
+        "tags": [
+          "nature",
+          "family",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Lidder river corridor",
+        "description": "Streamside views and forested slopes around the valley.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Pine and mountain viewpoints",
+        "description": "Short scenic spots around the valley road.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "all"
+      }
+    ],
+    "things_to_do": [
+      "Take a relaxed valley walk",
+      "Photograph the river and mountains",
+      "Combine with Aru and Chandanwari"
+    ],
+    "activities": [
+      "Photography",
+      "Picnic",
+      "Short walks",
+      "Family leisure"
+    ],
+    "photoQuery": "Betaab Valley Pahalgam Kashmir"
+  },
+  {
+    "name": "Chandanwari",
+    "tier": "Secondary",
+    "district": "Anantnag",
+    "tags": [
+      "snow",
+      "adventure",
+      "pilgrimage",
+      "photography"
+    ],
+    "overnight_allowed": false,
+    "min_nights": 0,
+    "ideal_nights": 0,
+    "max_nights": 0,
+    "season": "summer/winter-conditional",
+    "access": "weather/road-sensitive",
+    "source": "District Anantnag — Tourist Places",
+    "highlights": [
+      "roadhead",
+      "high-altitude scenery"
+    ],
+    "sites": [
+      {
+        "name": "Chandanwari valley",
+        "description": "Mountain valley and river landscape at the excursion point.",
+        "tags": [
+          "nature",
+          "photography",
+          "adventure"
+        ],
+        "months": "summer/winter-conditional",
+        "conditional": false
+      },
+      {
+        "name": "Pissu Top approach",
+        "description": "Mountain trail and viewpoint on the Amarnath route.",
+        "tags": [
+          "trekking",
+          "adventure",
+          "nature"
+        ],
+        "months": "summer/winter-conditional",
+        "conditional": false
+      },
+      {
+        "name": "Seasonal snow and river landscapes",
+        "description": "Snow and high-altitude scenery that varies strongly by month.",
+        "tags": [
+          "snow",
+          "photography",
+          "adventure"
+        ],
+        "months": "summer/winter-conditional",
+        "conditional": false
+      }
+    ],
+    "base": false,
+    "cluster": "south",
+    "description": "A high-altitude excursion point beyond Pahalgam, important as a gateway for the Amarnath route and seasonal snow landscapes.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 1,
+    "local_sightseeing": [
+      {
+        "name": "Chandanwari valley",
+        "description": "Mountain valley and river landscape at the excursion point.",
+        "tags": [
+          "nature",
+          "photography",
+          "adventure"
+        ],
+        "season": "summer/winter-conditional"
+      },
+      {
+        "name": "Pissu Top approach",
+        "description": "Mountain trail and viewpoint on the Amarnath route.",
+        "tags": [
+          "trekking",
+          "adventure",
+          "nature"
+        ],
+        "season": "summer/winter-conditional"
+      },
+      {
+        "name": "Seasonal snow and river landscapes",
+        "description": "Snow and high-altitude scenery that varies strongly by month.",
+        "tags": [
+          "snow",
+          "photography",
+          "adventure"
+        ],
+        "season": "summer/winter-conditional"
+      }
+    ],
+    "things_to_do": [
+      "Visit as a Pahalgam excursion",
+      "Use for seasonal snow experiences",
+      "Combine with the Amarnath route only when operationally appropriate"
+    ],
+    "activities": [
+      "Trekking",
+      "Snow play in season",
+      "Landscape photography",
+      "Pilgrimage route travel in season"
+    ],
+    "photoQuery": "Chandanwari Pahalgam Kashmir"
+  },
+  {
+    "name": "Lidderwat",
+    "tier": "Offbeat",
+    "district": "Anantnag",
+    "tags": [
+      "trekking",
+      "adventure",
+      "nature",
+      "offbeat"
+    ],
+    "overnight_allowed": false,
+    "min_nights": 0,
+    "ideal_nights": 0,
+    "max_nights": 0,
+    "season": "summer-autumn",
+    "access": "trek-only",
+    "source": "District Anantnag — Tourist Places",
+    "highlights": [
+      "Kolahoi/Tarsar/Marsar trek base"
+    ],
+    "sites": [
+      {
+        "name": "Lidderwat meadows",
+        "description": "Remote alpine meadow landscapes along the trekking corridor.",
+        "tags": [
+          "trekking",
+          "nature",
+          "photography"
+        ],
+        "months": "summer-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Lidder River upper valley",
+        "description": "Mountain river and forest scenery beyond Aru.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "summer-autumn",
+        "conditional": false
+      },
+      {
+        "name": "High-altitude trek country",
+        "description": "Trail landscapes towards Kashmir Great Lakes and alpine routes.",
+        "tags": [
+          "adventure",
+          "trekking"
+        ],
+        "months": "summer-autumn",
+        "conditional": false
+      }
+    ],
+    "base": false,
+    "cluster": "south",
+    "description": "A high valley and trekking area beyond Aru, reached as part of longer mountain routes rather than conventional sightseeing.",
+    "min_days": 2,
+    "ideal_days": 3,
+    "max_days": 4,
+    "local_sightseeing": [
+      {
+        "name": "Lidderwat meadows",
+        "description": "Remote alpine meadow landscapes along the trekking corridor.",
+        "tags": [
+          "trekking",
+          "nature",
+          "photography"
+        ],
+        "season": "summer-autumn"
+      },
+      {
+        "name": "Lidder River upper valley",
+        "description": "Mountain river and forest scenery beyond Aru.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "summer-autumn"
+      },
+      {
+        "name": "High-altitude trek country",
+        "description": "Trail landscapes towards Kashmir Great Lakes and alpine routes.",
+        "tags": [
+          "adventure",
+          "trekking"
+        ],
+        "season": "summer-autumn"
+      }
+    ],
+    "things_to_do": [
+      "Use as a trekking objective",
+      "Plan a multi-day alpine route",
+      "Combine with Aru/Pahalgam"
+    ],
+    "activities": [
+      "Multi-day trekking",
+      "Camping",
+      "Landscape photography"
+    ],
+    "photoQuery": "Lidderwat Kashmir trek"
+  },
+  {
+    "name": "Tulian Lake",
+    "tier": "Offbeat",
+    "district": "Anantnag",
+    "tags": [
+      "trekking",
+      "adventure",
+      "nature",
+      "photography"
+    ],
+    "overnight_allowed": false,
+    "min_nights": 0,
+    "ideal_nights": 0,
+    "max_nights": 0,
+    "season": "summer-autumn",
+    "access": "trek-only",
+    "source": "District Anantnag — Tourist Places",
+    "highlights": [
+      "glacial lake",
+      "trek"
+    ],
+    "sites": [
+      {
+        "name": "Tulian Lake",
+        "description": "High-altitude alpine lake surrounded by dramatic mountain terrain.",
+        "tags": [
+          "trekking",
+          "nature",
+          "photography"
+        ],
+        "months": "summer-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Tulian Pass / mountain approach",
+        "description": "Alpine route landscapes on the trek to the lake.",
+        "tags": [
+          "adventure",
+          "trekking",
+          "nature"
+        ],
+        "months": "summer-autumn",
+        "conditional": false
+      }
+    ],
+    "base": false,
+    "cluster": "south",
+    "description": "A high alpine lake in the Pahalgam region, suited to dedicated trekking days rather than casual sightseeing.",
+    "min_days": 1,
+    "ideal_days": 2,
+    "max_days": 2,
+    "local_sightseeing": [
+      {
+        "name": "Tulian Lake",
+        "description": "High-altitude alpine lake surrounded by dramatic mountain terrain.",
+        "tags": [
+          "trekking",
+          "nature",
+          "photography"
+        ],
+        "season": "summer-autumn"
+      },
+      {
+        "name": "Tulian Pass / mountain approach",
+        "description": "Alpine route landscapes on the trek to the lake.",
+        "tags": [
+          "adventure",
+          "trekking",
+          "nature"
+        ],
+        "season": "summer-autumn"
+      }
+    ],
+    "things_to_do": [
+      "Dedicate a full trekking day",
+      "Start early from a Pahalgam-area base",
+      "Use as an adventure add-on"
+    ],
+    "activities": [
+      "Trekking",
+      "High-altitude photography",
+      "Camping on permitted routes"
+    ],
+    "photoQuery": "Tulian Lake Pahalgam Kashmir"
+  },
+  {
+    "name": "Kausar Nag",
+    "tier": "Offbeat",
+    "district": "Kulgam/Shopian",
+    "tags": [
+      "trekking",
+      "adventure",
+      "nature",
+      "offbeat"
+    ],
+    "overnight_allowed": false,
+    "min_nights": 0,
+    "ideal_nights": 0,
+    "max_nights": 0,
+    "season": "summer-autumn",
+    "access": "trek-only",
+    "source": "District Shopian — Tourist Places",
+    "highlights": [
+      "high-altitude lake",
+      "Pir Panjal"
+    ],
+    "sites": [
+      {
+        "name": "Kausar Nag Lake",
+        "description": "High alpine lake surrounded by rugged mountain terrain.",
+        "tags": [
+          "trekking",
+          "nature",
+          "photography"
+        ],
+        "months": "summer-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Kausar Nag trek landscapes",
+        "description": "Long mountain trails, meadows and ridges around the lake approach.",
+        "tags": [
+          "adventure",
+          "trekking",
+          "nature"
+        ],
+        "months": "summer-autumn",
+        "conditional": false
+      }
+    ],
+    "base": false,
+    "cluster": "southwest",
+    "description": "A remote high-altitude lake in south Kashmir requiring a dedicated trek and route planning.",
+    "min_days": 2,
+    "ideal_days": 3,
+    "max_days": 3,
+    "local_sightseeing": [
+      {
+        "name": "Kausar Nag Lake",
+        "description": "High alpine lake surrounded by rugged mountain terrain.",
+        "tags": [
+          "trekking",
+          "nature",
+          "photography"
+        ],
+        "season": "summer-autumn"
+      },
+      {
+        "name": "Kausar Nag trek landscapes",
+        "description": "Long mountain trails, meadows and ridges around the lake approach.",
+        "tags": [
+          "adventure",
+          "trekking",
+          "nature"
+        ],
+        "season": "summer-autumn"
+      }
+    ],
+    "things_to_do": [
+      "Treat it as a dedicated trek",
+      "Build a safety and weather buffer",
+      "Combine only with an experienced local route plan"
+    ],
+    "activities": [
+      "Multi-day trekking",
+      "Camping on permitted routes",
+      "Landscape photography"
+    ],
+    "photoQuery": "Kausar Nag Kashmir lake trek"
+  },
+  {
+    "name": "Gangabal Lake",
+    "tier": "Offbeat",
+    "district": "Ganderbal",
+    "tags": [
+      "trekking",
+      "adventure",
+      "nature",
+      "photography"
+    ],
+    "overnight_allowed": false,
+    "min_nights": 0,
+    "ideal_nights": 0,
+    "max_nights": 0,
+    "season": "summer-autumn",
+    "access": "trek-only",
+    "source": "JKTDC — Kashmir Destinations",
+    "highlights": [
+      "high-altitude lake",
+      "Gangabal/Naranag trek"
+    ],
+    "sites": [
+      {
+        "name": "Gangabal Lake",
+        "description": "Large alpine lake in the Harmukh landscape.",
+        "tags": [
+          "trekking",
+          "nature",
+          "photography"
+        ],
+        "months": "summer-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Nundkol Lake",
+        "description": "Smaller companion lake in the same alpine trekking landscape.",
+        "tags": [
+          "nature",
+          "trekking",
+          "photography"
+        ],
+        "months": "summer-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Harmukh mountain views",
+        "description": "High mountain backdrop around the lake basin.",
+        "tags": [
+          "nature",
+          "adventure",
+          "photography"
+        ],
+        "months": "summer-autumn",
+        "conditional": false
+      }
+    ],
+    "base": false,
+    "cluster": "northeast",
+    "description": "A high-altitude lake below Harmukh and part of the Naranag trekking network, best planned as a dedicated alpine outing.",
+    "min_days": 2,
+    "ideal_days": 3,
+    "max_days": 4,
+    "local_sightseeing": [
+      {
+        "name": "Gangabal Lake",
+        "description": "Large alpine lake in the Harmukh landscape.",
+        "tags": [
+          "trekking",
+          "nature",
+          "photography"
+        ],
+        "season": "summer-autumn"
+      },
+      {
+        "name": "Nundkol Lake",
+        "description": "Smaller companion lake in the same alpine trekking landscape.",
+        "tags": [
+          "nature",
+          "trekking",
+          "photography"
+        ],
+        "season": "summer-autumn"
+      },
+      {
+        "name": "Harmukh mountain views",
+        "description": "High mountain backdrop around the lake basin.",
+        "tags": [
+          "nature",
+          "adventure",
+          "photography"
+        ],
+        "season": "summer-autumn"
+      }
+    ],
+    "things_to_do": [
+      "Plan a multi-day trek",
+      "Use Naranag as the main access base",
+      "Build weather and acclimatization time"
+    ],
+    "activities": [
+      "Trekking",
+      "Camping on permitted routes",
+      "Alpine photography"
+    ],
+    "photoQuery": "Gangbal Lake Kashmir Harmukh"
+  },
+  {
+    "name": "Sheshnag",
+    "tier": "Offbeat",
+    "district": "Anantnag",
+    "tags": [
+      "pilgrimage",
+      "trekking",
+      "mountain",
+      "nature"
+    ],
+    "overnight_allowed": false,
+    "min_nights": 0,
+    "ideal_nights": 0,
+    "max_nights": 0,
+    "season": "summer",
+    "access": "pilgrimage/trek-only",
+    "source": "Divisional Commissioner Kashmir — Tourist Places",
+    "highlights": [
+      "high-altitude lake",
+      "Amarnath route"
+    ],
+    "sites": [
+      {
+        "name": "Sheshnag Lake",
+        "description": "High mountain lake surrounded by steep alpine terrain.",
+        "tags": [
+          "nature",
+          "photography",
+          "spirituality"
+        ],
+        "months": "summer",
+        "conditional": false
+      },
+      {
+        "name": "Amarnath trail landscapes",
+        "description": "Mountain route and glacier-fed terrain on the pilgrimage corridor.",
+        "tags": [
+          "trekking",
+          "adventure",
+          "spirituality"
+        ],
+        "months": "summer",
+        "conditional": false
+      },
+      {
+        "name": "High-altitude camping area",
+        "description": "Seasonal pilgrimage camping landscape along the route.",
+        "tags": [
+          "adventure",
+          "photography",
+          "spirituality"
+        ],
+        "months": "summer",
+        "conditional": false
+      }
+    ],
+    "base": false,
+    "cluster": "south",
+    "description": "A high-altitude lake on the Amarnath pilgrimage route, visited as a mountain and pilgrimage landscape rather than a conventional overnight base.",
+    "min_days": 1,
+    "ideal_days": 2,
+    "max_days": 2,
+    "local_sightseeing": [
+      {
+        "name": "Sheshnag Lake",
+        "description": "High mountain lake surrounded by steep alpine terrain.",
+        "tags": [
+          "nature",
+          "photography",
+          "spirituality"
+        ],
+        "season": "summer"
+      },
+      {
+        "name": "Amarnath trail landscapes",
+        "description": "Mountain route and glacier-fed terrain on the pilgrimage corridor.",
+        "tags": [
+          "trekking",
+          "adventure",
+          "spirituality"
+        ],
+        "season": "summer"
+      },
+      {
+        "name": "High-altitude camping area",
+        "description": "Seasonal pilgrimage camping landscape along the route.",
+        "tags": [
+          "adventure",
+          "photography",
+          "spirituality"
+        ],
+        "season": "summer"
+      }
+    ],
+    "things_to_do": [
+      "Visit as part of a permitted pilgrimage plan",
+      "Use a dedicated mountain day",
+      "Do not treat as a standard hotel base"
+    ],
+    "activities": [
+      "Pilgrimage trekking",
+      "Landscape photography",
+      "Seasonal camping"
+    ],
+    "photoQuery": "Sheshnag Lake Kashmir Amarnath"
+  },
+  {
+    "name": "Amarnath Cave",
+    "tier": "Special",
+    "district": "Anantnag",
+    "tags": [
+      "pilgrimage",
+      "spirituality",
+      "trekking"
+    ],
+    "overnight_allowed": false,
+    "min_nights": 0,
+    "ideal_nights": 0,
+    "max_nights": 0,
+    "season": "summer-only",
+    "access": "pilgrimage-only",
+    "source": "Divisional Commissioner Kashmir — Tourist Places",
+    "highlights": [
+      "Amarnath pilgrimage"
+    ],
+    "sites": [
+      {
+        "name": "Amarnath Cave",
+        "description": "Sacred cave pilgrimage destination with access controlled by seasonal and operational arrangements.",
+        "tags": [
+          "spirituality",
+          "trekking",
+          "adventure"
+        ],
+        "months": "summer-only",
+        "conditional": false
+      },
+      {
+        "name": "Pilgrimage route landscapes",
+        "description": "High mountain valleys, camps and trails on the approach.",
+        "tags": [
+          "spirituality",
+          "nature",
+          "trekking"
+        ],
+        "months": "summer-only",
+        "conditional": false
+      },
+      {
+        "name": "Seasonal base camps",
+        "description": "Pilgrimage support zones on the Pahalgam/Baltal approaches.",
+        "tags": [
+          "spirituality",
+          "culture"
+        ],
+        "months": "summer-only",
+        "conditional": false
+      }
+    ],
+    "base": false,
+    "cluster": "south",
+    "description": "A major Himalayan pilgrimage destination reached by designated seasonal routes from the Pahalgam or Baltal sides.",
+    "min_days": 1,
+    "ideal_days": 2,
+    "max_days": 2,
+    "local_sightseeing": [
+      {
+        "name": "Amarnath Cave",
+        "description": "Sacred cave pilgrimage destination with access controlled by seasonal and operational arrangements.",
+        "tags": [
+          "spirituality",
+          "trekking",
+          "adventure"
+        ],
+        "season": "summer-only"
+      },
+      {
+        "name": "Pilgrimage route landscapes",
+        "description": "High mountain valleys, camps and trails on the approach.",
+        "tags": [
+          "spirituality",
+          "nature",
+          "trekking"
+        ],
+        "season": "summer-only"
+      },
+      {
+        "name": "Seasonal base camps",
+        "description": "Pilgrimage support zones on the Pahalgam/Baltal approaches.",
+        "tags": [
+          "spirituality",
+          "culture"
+        ],
+        "season": "summer-only"
+      }
+    ],
+    "things_to_do": [
+      "Build the visit around official pilgrimage arrangements",
+      "Use Pahalgam or Baltal as a planning base",
+      "Allow weather and operational buffers"
+    ],
+    "activities": [
+      "Pilgrimage trekking",
+      "Pony support where officially available",
+      "Helicopter services where officially offered and available"
+    ],
+    "photoQuery": "Amarnath Cave Kashmir pilgrimage"
+  },
+  {
+    "name": "Badamwari",
+    "tier": "Secondary",
+    "district": "Srinagar",
+    "tags": [
+      "gardens",
+      "photography",
+      "spring",
+      "heritage"
+    ],
+    "overnight_allowed": false,
+    "min_nights": 0,
+    "ideal_nights": 0,
+    "max_nights": 0,
+    "season": "spring",
+    "access": "standard",
+    "source": "Divisional Commissioner Kashmir — Tourist Places",
+    "highlights": [
+      "almond bloom",
+      "historic garden"
+    ],
+    "sites": [
+      {
+        "name": "Badamwari Garden",
+        "description": "Historic garden landscape especially associated with springtime almond blossom.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "months": "spring",
+        "conditional": false
+      },
+      {
+        "name": "Hari Parbat foothills",
+        "description": "Historic hill setting around the garden and old city.",
+        "tags": [
+          "heritage",
+          "photography"
+        ],
+        "months": "spring",
+        "conditional": false
+      },
+      {
+        "name": "Spring blossom landscapes",
+        "description": "Seasonal floral scenery that changes through the spring period.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "spring",
+        "conditional": false
+      }
+    ],
+    "base": false,
+    "cluster": "central",
+    "description": "A historic garden in Srinagar known for spring blossom and its old terraced landscape beneath Hari Parbat.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 1,
+    "local_sightseeing": [
+      {
+        "name": "Badamwari Garden",
+        "description": "Historic garden landscape especially associated with springtime almond blossom.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "season": "spring"
+      },
+      {
+        "name": "Hari Parbat foothills",
+        "description": "Historic hill setting around the garden and old city.",
+        "tags": [
+          "heritage",
+          "photography"
+        ],
+        "season": "spring"
+      },
+      {
+        "name": "Spring blossom landscapes",
+        "description": "Seasonal floral scenery that changes through the spring period.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "spring"
+      }
+    ],
+    "things_to_do": [
+      "Visit during spring blossom",
+      "Combine with old Srinagar",
+      "Use as a short morning garden stop"
+    ],
+    "activities": [
+      "Spring photography",
+      "Garden walk",
+      "Heritage sightseeing"
+    ],
+    "photoQuery": "Badamwari Srinagar Kashmir spring"
+  },
+  {
+    "name": "Tulip Garden",
+    "tier": "Seasonal Icon",
+    "district": "Srinagar",
+    "tags": [
+      "gardens",
+      "photography",
+      "spring",
+      "family"
+    ],
+    "overnight_allowed": false,
+    "min_nights": 0,
+    "ideal_nights": 0,
+    "max_nights": 0,
+    "season": "spring-only",
+    "access": "seasonal",
+    "source": "Divisional Commissioner Kashmir — Tourist Places",
+    "highlights": [
+      "tulip bloom",
+      "Zabarwan views"
+    ],
+    "sites": [
+      {
+        "name": "Indira Gandhi Memorial Tulip Garden",
+        "description": "Large seasonal tulip display at the base of the Zabarwan range.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "months": "spring-only",
+        "conditional": false
+      },
+      {
+        "name": "Dal Lake viewpoints",
+        "description": "Water and mountain views from the garden approaches.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "spring-only",
+        "conditional": false
+      },
+      {
+        "name": "Zabarwan foothill landscape",
+        "description": "Garden-and-mountain setting around the eastern Srinagar circuit.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "spring-only",
+        "conditional": false
+      }
+    ],
+    "base": false,
+    "cluster": "central",
+    "description": "A seasonal flower garden in the Zabarwan foothills, best known for the spring tulip display overlooking Dal Lake.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 1,
+    "local_sightseeing": [
+      {
+        "name": "Indira Gandhi Memorial Tulip Garden",
+        "description": "Large seasonal tulip display at the base of the Zabarwan range.",
+        "tags": [
+          "nature",
+          "photography",
+          "family"
+        ],
+        "season": "spring-only"
+      },
+      {
+        "name": "Dal Lake viewpoints",
+        "description": "Water and mountain views from the garden approaches.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "spring-only"
+      },
+      {
+        "name": "Zabarwan foothill landscape",
+        "description": "Garden-and-mountain setting around the eastern Srinagar circuit.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "spring-only"
+      }
+    ],
+    "things_to_do": [
+      "Visit in tulip season",
+      "Combine with Chashme Shahi and Nishat",
+      "Photograph the flower terraces and Zabarwan backdrop"
+    ],
+    "activities": [
+      "Flower photography",
+      "Garden walk",
+      "Seasonal sightseeing"
+    ],
+    "photoQuery": "Tulip Garden Srinagar Kashmir"
+  },
+  {
+    "name": "Mughal Gardens Cluster",
+    "tier": "Iconic Site",
+    "district": "Srinagar",
+    "tags": [
+      "gardens",
+      "heritage",
+      "photography",
+      "family"
+    ],
+    "overnight_allowed": false,
+    "min_nights": 0,
+    "ideal_nights": 0,
+    "max_nights": 0,
+    "season": "spring-autumn",
+    "access": "standard",
+    "source": "Divisional Commissioner Kashmir — Tourist Places",
+    "highlights": [
+      "Nishat",
+      "Shalimar",
+      "Chashma Shahi",
+      "Pari Mahal"
+    ],
+    "sites": [
+      {
+        "name": "Nishat Bagh",
+        "description": "Largest of the three principal Mughal gardens on the Dal Lake circuit.",
+        "tags": [
+          "heritage",
+          "nature",
+          "photography"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Shalimar Bagh",
+        "description": "Formal terraced garden with water channels and mature chinar trees.",
+        "tags": [
+          "heritage",
+          "nature",
+          "photography"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Chashme Shahi",
+        "description": "Smaller terraced garden built around a spring in the Zabarwan foothills.",
+        "tags": [
+          "heritage",
+          "nature",
+          "photography"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      },
+      {
+        "name": "Pari Mahal",
+        "description": "Historic terraced monument and viewpoint above Dal Lake.",
+        "tags": [
+          "heritage",
+          "photography"
+        ],
+        "months": "spring-autumn",
+        "conditional": false
+      }
+    ],
+    "base": false,
+    "cluster": "central",
+    "description": "A one-day Srinagar garden circuit centred on Nishat, Shalimar and Chashme Shahi, with Pari Mahal as a natural add-on.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 1,
+    "local_sightseeing": [
+      {
+        "name": "Nishat Bagh",
+        "description": "Largest of the three principal Mughal gardens on the Dal Lake circuit.",
+        "tags": [
+          "heritage",
+          "nature",
+          "photography"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Shalimar Bagh",
+        "description": "Formal terraced garden with water channels and mature chinar trees.",
+        "tags": [
+          "heritage",
+          "nature",
+          "photography"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Chashme Shahi",
+        "description": "Smaller terraced garden built around a spring in the Zabarwan foothills.",
+        "tags": [
+          "heritage",
+          "nature",
+          "photography"
+        ],
+        "season": "spring-autumn"
+      },
+      {
+        "name": "Pari Mahal",
+        "description": "Historic terraced monument and viewpoint above Dal Lake.",
+        "tags": [
+          "heritage",
+          "photography"
+        ],
+        "season": "spring-autumn"
+      }
+    ],
+    "things_to_do": [
+      "Do a complete garden circuit",
+      "Pair gardens with Dal Lake",
+      "Visit at golden hour for photography"
+    ],
+    "activities": [
+      "Heritage photography",
+      "Garden walk",
+      "Shikara add-on",
+      "Architecture and landscape study"
+    ],
+    "photoQuery": "Mughal Gardens Srinagar Nishat Shalimar Chashme Shahi"
+  },
+  {
+    "name": "Dal Lake",
+    "tier": "Iconic Site",
+    "district": "Srinagar",
+    "tags": [
+      "lake",
+      "houseboat",
+      "photography",
+      "relaxation",
+      "food"
+    ],
+    "overnight_allowed": false,
+    "min_nights": 0,
+    "ideal_nights": 0,
+    "max_nights": 0,
+    "season": "all",
+    "access": "standard",
+    "source": "Divisional Commissioner Kashmir — Tourist Places",
+    "highlights": [
+      "Shikara",
+      "floating gardens",
+      "houseboats"
+    ],
+    "sites": [
+      {
+        "name": "Dal Lake waterfront",
+        "description": "The principal lake views, houseboats and Boulevard scenery.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Shikara routes",
+        "description": "Water routes through lake basins and neighbourhood waterways.",
+        "tags": [
+          "photography",
+          "relaxation",
+          "family"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Floating Market / vegetable market",
+        "description": "Early-morning trading activity on the lake.",
+        "tags": [
+          "culture",
+          "photography",
+          "shopping"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Nehru Park and lake islands",
+        "description": "Popular waterfront recreation and photography spots.",
+        "tags": [
+          "family",
+          "nature",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      },
+      {
+        "name": "Lotus and floating garden areas",
+        "description": "Seasonal floating vegetation and lake agriculture.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "months": "all",
+        "conditional": false
+      }
+    ],
+    "base": false,
+    "cluster": "central",
+    "description": "Srinagar's iconic urban lake, central to shikara rides, houseboats, floating markets and the city's classic waterfront experience.",
+    "min_days": 1,
+    "ideal_days": 1,
+    "max_days": 2,
+    "local_sightseeing": [
+      {
+        "name": "Dal Lake waterfront",
+        "description": "The principal lake views, houseboats and Boulevard scenery.",
+        "tags": [
+          "nature",
+          "photography",
+          "relaxation"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Shikara routes",
+        "description": "Water routes through lake basins and neighbourhood waterways.",
+        "tags": [
+          "photography",
+          "relaxation",
+          "family"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Floating Market / vegetable market",
+        "description": "Early-morning trading activity on the lake.",
+        "tags": [
+          "culture",
+          "photography",
+          "shopping"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Nehru Park and lake islands",
+        "description": "Popular waterfront recreation and photography spots.",
+        "tags": [
+          "family",
+          "nature",
+          "photography"
+        ],
+        "season": "all"
+      },
+      {
+        "name": "Lotus and floating garden areas",
+        "description": "Seasonal floating vegetation and lake agriculture.",
+        "tags": [
+          "nature",
+          "photography"
+        ],
+        "season": "all"
+      }
+    ],
+    "things_to_do": [
+      "Take a sunrise shikara ride",
+      "Watch the floating market",
+      "See sunset on the lake",
+      "Explore houseboats",
+      "Photograph lotus and floating gardens in season"
+    ],
+    "activities": [
+      "Shikara ride",
+      "Floating market visit",
+      "Sunrise photography",
+      "Sunset photography",
+      "Lake birdwatching"
+    ],
+    "photoQuery": "Dal Lake Srinagar Kashmir shikara floating market"
+  }
+]

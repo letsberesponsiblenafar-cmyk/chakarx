@@ -1,0 +1,7 @@
+'use client';
+import AppShell from '@/components/AppShell';
+import {useState} from 'react';
+import {ExternalLink,RefreshCw} from 'lucide-react';
+import {sources} from '@/lib/data';
+export default function SourcesPage(){const [status,setStatus]=useState<Record<number,string>>({});async function check(i:number){setStatus(s=>({...s,[i]:'Checking...'}));try{const r=await fetch(`/api/source-check?source=${i}`);const d=await r.json();if(!r.ok)throw new Error(d.error||'Check failed');setStatus(s=>({...s,[i]:`HTTP ${d.status} · ${new Date(d.retrieved_at).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'})}`}))}catch(e){setStatus(s=>({...s,[i]:e instanceof Error?e.message:'Check failed'}))}}
+return <AppShell><main className="page"><div className="planner-heading"><div><span className="eyebrow">SOURCES & FRESHNESS</span><h1>See where the planner gets its facts.</h1><p>Chakar Experience separates verified source records from planning estimates and provider-dependent information.</p></div></div><section className="source-grid">{sources.map((s,i)=><article className="source-card" key={`${s.name}-${i}`}><div className="source-top"><b>{s.name}</b><span className="source-type">{s.type}</span></div><a href={s.url} target="_blank" rel="noreferrer">{s.url} <ExternalLink size={11}/></a><p>{s.note}</p><div className="source-actions"><span className="fresh">{status[i]||`Observed ${s.observed}`}</span><button onClick={()=>check(i)}><RefreshCw size={11}/> Check now</button></div></article>)}</section></main></AppShell>}

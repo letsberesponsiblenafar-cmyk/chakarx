@@ -1,0 +1,2 @@
+'use client';
+export default function GlobalError({reset}:{error:Error&{digest?:string};reset:()=>void}){return <html lang="en"><body><main className="error-screen"><section className="error-card"><span className="eyebrow">CHAKAR EXPERIENCE</span><h1>The site encountered an unexpected error.</h1><p>The deployment is alive but the application boundary failed. Retry the workspace without hiding the problem behind a blank screen.</p><button onClick={reset}>Reload Chakar Experience</button></section></main></body></html>}
