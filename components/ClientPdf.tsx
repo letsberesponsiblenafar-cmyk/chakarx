@@ -4,12 +4,13 @@ import { useState } from 'react';
 import { ChevronLeft, CheckCircle2, Download, FileText, LockKeyhole } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import PlannerChrome from '@/components/PlannerChrome';
-import { usePlanner } from '@/components/PlannerProvider';
+import { usePlanner, type PaymentPlan } from '@/components/PlannerProvider';
 import { calculateCosts } from '@/lib/costing';
-import { destinationByName } from '@/lib/data';
+import { dayNarrative, dayTitle } from '@/lib/narrative';
+import { paymentAmounts } from '@/lib/pricing';
 
 const PAGE_W = 540;
-const PAGE_H = 780;
+const PAGE_H = 787.9;
 type RGB = [number, number, number];
 const BROWN: RGB = [42, 23, 11];
 const GOLD: RGB = [181, 145, 71];
@@ -17,19 +18,11 @@ const MUTED: RGB = [104, 91, 77];
 const CREAM: RGB = [248, 243, 234];
 const WHITE: RGB = [255, 255, 255];
 
-const COVER_MASTER = '/pdf-assets/chakar-cover-master.jpg';
-const RULES_MASTER = '/pdf-assets/chakar-rules-master.jpg';
-
-const FIXED_PACKAGE_RULES = [
-  'Standard package transport covers the planned route according to the selected vehicle and rate rules.',
-  'Union/local cabs are excluded unless specifically added to the quotation.',
-  'Pony rides, ATV rides and river rafting are excluded unless specifically quoted.',
-  'Gondola tickets are excluded unless the package explicitly includes them.',
-  'Snow activities, skiing, snowboarding, sledging and snowmobile/snowbike rides are optional and normally extra.',
-  'Fishing/angling may require permits and is treated as an optional paid activity.',
-  'Protected-area visits require current entry, permit and timing checks.',
-  'Remote/border-area excursions require current local, security and access confirmation.',
-];
+type PdfTemplate = 'madiha' | 'asna';
+const PDF_TEMPLATES: Record<PdfTemplate, { label: string; cover: string; policies: string }> = {
+  madiha: { label: 'Madiha sample', cover: '/pdf-assets/madiha-cover-template.png', policies: '/pdf-assets/madiha-policies-template.png' },
+  asna: { label: 'Asna sample', cover: '/pdf-assets/asna-cover-template.png', policies: '/pdf-assets/asna-policies-template.png' },
+};
 
 function fmtDate(s: string) {
   if (!s) return '—';
@@ -68,8 +61,12 @@ function sectionHeader(doc: jsPDF, eyebrow: string, title: string, subtitle?: st
   doc.setTextColor(...GOLD);
   doc.text(eyebrow.toUpperCase(), 28, 25);
   doc.setFont('helvetica', 'bold');
-  const titleLines = doc.splitTextToSize(safe(title), subtitle ? 330 : 470) as string[];
-  doc.setFontSize(titleLines.length > 1 ? 14.5 : 18);
+  doc.setFontSize(18);
+  let titleLines = doc.splitTextToSize(safe(title), subtitle ? 330 : 470) as string[];
+  if (titleLines.length > 1) {
+    doc.setFontSize(14.5);
+    titleLines = doc.splitTextToSize(safe(title), subtitle ? 330 : 470) as string[];
+  }
   doc.setTextColor(...WHITE);
   const titleText = titleLines.length > 1 ? `${titleLines[0].replace(/[.,;:!?]?\s*$/, '')}…` : (titleLines[0] || '');
   doc.text(titleText, 28, 49);
@@ -98,38 +95,32 @@ async function publicImageDataUrl(path: string): Promise<string> {
   });
 }
 
-async function addCover(doc: jsPDF, coverData: string) {
-  doc.addImage(coverData, 'JPEG', 0, 0, PAGE_W, PAGE_H, undefined, 'NONE');
-}
-
-async function addRulesPage(doc: jsPDF, rulesData: string) {
-  doc.addPage();
-  doc.addImage(rulesData, 'JPEG', 0, 0, PAGE_W, PAGE_H, undefined, 'NONE');
-  // The supplied master intentionally leaves the upper amber area open for the
-  // fixed package rules. Nothing is drawn over the photographic lower half.
-  doc.setTextColor(...BROWN);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.text('Package Notes & Exclusions', 34, 44);
+async function addCover(doc: jsPDF, coverData: string, customerName: string, template: PdfTemplate) {
+  doc.addImage(coverData, 'PNG', 0, 0, PAGE_W, PAGE_H, undefined, 'NONE');
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.1);
-  let y = 66;
-  for (const rule of FIXED_PACKAGE_RULES) {
-    const block = wrapped(doc, `• ${rule}`, 36, y, 468, 7.1, BROWN, 2, 1.22);
-    y += block.height + 4.5;
-    if (y > 385) break;
-  }
-  pageNumber(doc);
+  doc.setFontSize(11);
+  doc.setTextColor(255, 255, 255);
+  const greeting = `Dear ${customerName}${template === 'asna' ? ',' : ''}`;
+  doc.text(greeting, 28.44, template === 'asna' ? 529.4 : 527.7);
 }
 
-function dayAbout(day: any) {
-  if (safe(day.customAbout)) return safe(day.customAbout);
-  const destination = destinationByName(safe(day.stay));
-  const arrival = (day.blocks || []).find((b: any) => b.kind === 'arrival');
-  const arrivalText = safe(arrival?.description);
-  const baseText = safe(destination?.description) || `A considered day in ${safe(day.stay)}, shaped around the destination and the transfer schedule.`;
-  if (arrivalText) return `${arrivalText} ${baseText}`.trim();
-  return baseText;
+function policyLine(booking: number, arrival: number) {
+  return `${booking}% at the time of booking, ${arrival}% on arrival, and ${100-booking-arrival}% during the trip.`;
+}
+
+async function addPoliciesPage(doc: jsPDF, policiesData: string, paymentPlan: PaymentPlan) {
+  doc.addPage();
+  // The source artwork and legal text are fixed. Only the two payment lines
+  // below were cleared from the source page for operator-selected percentages.
+  doc.addImage(policiesData, 'PNG', 0, 0, PAGE_W, PAGE_H, undefined, 'NONE');
+  for (const [index, key] of (['one', 'two'] as const).entries()) {
+    const plan = paymentPlan[key];
+    const y = 374.2 + index * 15.75;
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(11.1);
+    doc.setFont('helvetica', 'bold'); doc.text(`Plan ${key === 'one' ? 'One' : 'Two'}:`, 38.7, y);
+    doc.setFont('helvetica', 'normal'); doc.text(policyLine(plan.booking, plan.arrival), 95, y);
+  }
 }
 
 function addJourneyOverview(doc: jsPDF, currentPlan: any, input: any) {
@@ -155,27 +146,33 @@ function addJourneyOverview(doc: jsPDF, currentPlan: any, input: any) {
   pageNumber(doc);
 }
 
-function addDayPage(doc: jsPDF, day: any) {
+function addDayPage(doc: jsPDF, day: any, pickup: string) {
   doc.addPage();
-  const title = safe(day.customTitle) || (day.day === 1 ? `Arrival in ${safe(day.from || day.stay)} & ${safe(day.stay)} local sightseeing` : safe(day.stay) || 'Kashmir');
-  sectionHeader(doc, `Day ${day.day}`, title, `${shortDate(day.date)} · ${safe(day.from)} → ${safe(day.to)}`);
+  const title = dayTitle(day, pickup);
+  sectionHeader(doc, `Day ${day.day}`, `${day.label === 'Departure day' ? 'Depart from' : 'Stay in'} ${safe(day.stay)}`, `${shortDate(day.date)} | ${safe(day.from)} to ${safe(day.to)}`);
   let y = 102;
   doc.setFont('helvetica', 'bold'); doc.setFontSize(19); doc.setTextColor(...BROWN);
   doc.text(`Day ${day.day}`, 28, y);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(...GOLD);
-  const stayTitle = doc.splitTextToSize(safe(day.stay) || 'Kashmir', 430) as string[];
-  doc.text(stayTitle[0] || 'Kashmir', 28, y + 22);
-  y += 48;
+  const fullTitle = doc.splitTextToSize(title, 450) as string[];
+  doc.text(fullTitle, 28, y + 23, { lineHeightFactor: 1.2 });
+  y += 31 + fullTitle.length * 15.6;
 
-  const aboutText = dayAbout(day);
+  const aboutText = dayNarrative(day, pickup);
   const aboutLines = doc.splitTextToSize(aboutText, 438) as string[];
-  const aboutUsed = Math.min(aboutLines.length, 7);
-  const aboutH = Math.max(116, 42 + aboutUsed * 9.1 + 22);
-  if (y + aboutH > PAGE_H - 50) { pageNumber(doc); doc.addPage(); sectionHeader(doc, `Day ${day.day}`, `${safe(day.stay)} · continued`); y = 100; }
-  doc.setFillColor(...CREAM); doc.roundedRect(28, y, 484, aboutH, 12, 12, 'F');
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...BROWN); doc.text('ABOUT THIS DAY', 44, y + 21);
-  wrapped(doc, aboutText, 44, y + 41, 438, 8.7, BROWN, 7, 1.32);
-  y += aboutH + 18;
+  let aboutOffset = 0;
+  while (aboutOffset < aboutLines.length) {
+    const available = Math.floor((PAGE_H - 55 - y - 60) / (8.7 * 1.32));
+    if (available < 3) { pageNumber(doc); doc.addPage(); sectionHeader(doc, `Day ${day.day}`, `${safe(day.stay)} · continued`); y = 100; continue; }
+    const shown = aboutLines.slice(aboutOffset, aboutOffset + available);
+    const aboutH = Math.max(116, 60 + shown.length * 8.7 * 1.32);
+    doc.setFillColor(...CREAM); doc.roundedRect(28, y, 484, aboutH, 12, 12, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...BROWN); doc.text(aboutOffset ? 'ABOUT THIS DAY · CONTINUED' : 'ABOUT THIS DAY', 44, y + 21);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.7); doc.text(shown, 44, y + 41, { lineHeightFactor: 1.32 });
+    y += aboutH + 18;
+    aboutOffset += shown.length;
+    if (aboutOffset < aboutLines.length) { pageNumber(doc); doc.addPage(); sectionHeader(doc, `Day ${day.day}`, `${safe(day.stay)} · continued`); y = 100; }
+  }
 
   const blocks = (day.blocks || []).filter((b: any) => b.kind !== 'departure' && b.kind !== 'arrival');
   if (blocks.length) {
@@ -183,33 +180,50 @@ function addDayPage(doc: jsPDF, day: any) {
     y += 18;
   }
   for (const block of blocks) {
-    const titleText = safe(block.name);
-    const desc = safe(block.description);
-    const titleLines = doc.splitTextToSize(titleText, 435) as string[];
-    const descLines = doc.splitTextToSize(desc, 420) as string[];
-    const titleUsed = Math.min(titleLines.length, 2);
-    const descUsed = Math.min(descLines.length, 4);
-    const boxH = Math.max(52, 20 + titleUsed * 10.5 + descUsed * 7.6 * 1.28 + 15);
-    if (y + boxH > PAGE_H - 50) {
-      pageNumber(doc); doc.addPage(); sectionHeader(doc, `Day ${day.day}`, `${safe(day.stay)} · continued`); y = 100;
-    }
-    doc.setFillColor(250, 247, 241); doc.roundedRect(28, y, 484, boxH, 9, 9, 'F');
-    doc.setFillColor(...GOLD); doc.circle(43, y + 16, 3, 'F');
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(9.2); doc.setTextColor(...BROWN);
-    const shownTitle = titleLines.slice(0, titleUsed); if (titleLines.length > titleUsed && shownTitle.length) shownTitle[shownTitle.length-1] += '…';
-    doc.text(shownTitle, 55, y + 19, { lineHeightFactor: 1.15 });
-    wrapped(doc, desc, 55, y + 35 + (titleUsed - 1) * 10, 420, 7.6, MUTED, descUsed, 1.28);
-    y += boxH + 9;
+    const descLines = doc.splitTextToSize(safe(block.description), 420) as string[];
+    let offset = 0;
+    let first = true;
+    do {
+      const blockTitle = `${safe(block.name)}${first ? '' : ' · continued'}`;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9.2);
+      const titleLines = doc.splitTextToSize(blockTitle, 420) as string[];
+      const titleH = titleLines.length * 10.5;
+      let available = Math.floor((PAGE_H - 50 - y - 35 - titleH) / (7.6 * 1.28));
+      if (available < 1) {
+        pageNumber(doc); doc.addPage(); sectionHeader(doc, `Day ${day.day}`, `${safe(day.stay)} · continued`); y = 100;
+        available = Math.floor((PAGE_H - 50 - y - 35 - titleH) / (7.6 * 1.28));
+      }
+      const shownDesc = descLines.slice(offset, offset + Math.max(1, available));
+      const boxH = Math.max(52, 35 + titleH + shownDesc.length * 7.6 * 1.28);
+      doc.setFillColor(250, 247, 241); doc.roundedRect(28, y, 484, boxH, 9, 9, 'F');
+      doc.setFillColor(...GOLD); doc.circle(43, y + 16, 3, 'F');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9.2); doc.setTextColor(...BROWN);
+      doc.text(titleLines, 55, y + 19, { lineHeightFactor: 1.15 });
+      if (shownDesc.length) {
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(7.6); doc.setTextColor(...MUTED);
+        doc.text(shownDesc, 55, y + 26 + titleH, { lineHeightFactor: 1.28 });
+      }
+      y += boxH + 9;
+      offset += shownDesc.length;
+      first = false;
+    } while (offset < descLines.length);
   }
 
   if (day.notes?.length) {
     const noteText = day.notes.join(' ');
     const noteLines = doc.splitTextToSize(noteText, 438) as string[];
-    const noteH = Math.max(70, 40 + Math.min(noteLines.length, 5) * 7.5 * 1.25);
-    if (y + noteH > PAGE_H - 40) { pageNumber(doc); doc.addPage(); sectionHeader(doc, `Day ${day.day}`, `${safe(day.stay)} · notes`); y = 100; }
-    doc.setFillColor(244, 237, 222); doc.roundedRect(28, y, 484, noteH, 10, 10, 'F');
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...BROWN); doc.text('OPERATIONAL NOTES', 44, y + 20);
-    wrapped(doc, noteText, 44, y + 39, 438, 7.5, MUTED, 5, 1.25);
+    let offset = 0;
+    while (offset < noteLines.length) {
+      let available = Math.floor((PAGE_H - 45 - y - 40) / (7.5 * 1.25));
+      if (available < 1) { pageNumber(doc); doc.addPage(); sectionHeader(doc, `Day ${day.day}`, `${safe(day.stay)} · notes`); y = 100; available = Math.floor((PAGE_H - 45 - y - 40) / (7.5 * 1.25)); }
+      const shown = noteLines.slice(offset, offset + available);
+      const noteH = Math.max(70, 40 + shown.length * 7.5 * 1.25);
+      doc.setFillColor(244, 237, 222); doc.roundedRect(28, y, 484, noteH, 10, 10, 'F');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...BROWN); doc.text(offset ? 'OPERATIONAL NOTES · CONTINUED' : 'OPERATIONAL NOTES', 44, y + 20);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...MUTED); doc.text(shown, 44, y + 39, { lineHeightFactor: 1.25 });
+      y += noteH + 9;
+      offset += shown.length;
+    }
   }
   pageNumber(doc);
 }
@@ -238,15 +252,13 @@ function addStaysPage(doc: jsPDF, hotels: any[]) {
   pageNumber(doc);
 }
 
-function addInvestmentPage(doc: jsPDF, costs: any) {
+function addInvestmentPage(doc: jsPDF, costs: any, paymentPlan: PaymentPlan) {
   doc.addPage();
   sectionHeader(doc, 'Trip investment', 'Your package investment', 'Customer-facing pricing');
   const pricingPending = costs.missingHotelRates.length > 0;
   const value = (amount: number) => pricingPending ? 'To be confirmed' : money(amount);
   const rows = [
-    ['Accommodation', value(costs.accommodation)],
-    ['Transport', money(costs.transport)],
-    ['Others', money(costs.other)],
+    ['Package price before GST', value(costs.subtotalAfterMarkup)],
     ['GST @ 5%', value(costs.gst)],
   ];
   let y = 112;
@@ -259,13 +271,29 @@ function addInvestmentPage(doc: jsPDF, costs: any) {
   doc.setFillColor(...BROWN); doc.roundedRect(28, y + 8, 484, 88, 12, 12, 'F');
   doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...GOLD); doc.text('CUSTOMER SELLING TOTAL', 44, y + 34);
   doc.setFontSize(pricingPending ? 15 : 23); doc.setTextColor(...WHITE); doc.text(pricingPending ? 'PRICING TO BE CONFIRMED' : money(costs.sellingTotal), 44, y + 70);
-  wrapped(doc, 'Internal B2B rates and profit/markup are kept private and are not displayed in the client document.', 44, y + 115, 440, 7.5, MUTED, 3);
+  wrapped(doc, 'The package investment reflects the current itinerary, hotels and selected inclusions. Availability and date-specific services remain subject to confirmation.', 44, y + 115, 440, 7.5, MUTED, 3);
+  const schedule = paymentPlan[paymentPlan.selected];
+  const amounts = paymentAmounts(costs.sellingTotal, schedule.booking, schedule.arrival);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...BROWN); doc.text(`SELECTED PAYMENT PLAN ${paymentPlan.selected === 'one' ? 'ONE' : 'TWO'}`, 28, y + 165);
+  const installments = [
+    ['At booking', schedule.booking, amounts.booking],
+    ['On arrival', schedule.arrival, amounts.arrival],
+    ['During trip', amounts.duringPct, amounts.during],
+  ] as const;
+  installments.forEach(([label, percentage, amount], index) => {
+    const x = 28 + index * 166;
+    doc.setFillColor(...CREAM); doc.roundedRect(x, y + 180, 152, 64, 9, 9, 'F');
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...MUTED); doc.text(`${label} · ${percentage}%`, x + 10, y + 200);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...BROWN); doc.text(pricingPending ? 'To be confirmed' : money(amount), x + 10, y + 225);
+  });
   pageNumber(doc);
 }
 
 export default function ClientPdf() {
-  const { plan, input, hotelSelections, costModel } = usePlanner();
+  const { plan, input, hotelSelections, costModel, paymentPlan } = usePlanner();
   const [downloading, setDownloading] = useState(false);
+  const [template, setTemplate] = useState<PdfTemplate>('madiha');
+  const selectedTemplate = PDF_TEMPLATES[template];
   const costs = plan ? calculateCosts(plan, hotelSelections, costModel) : null;
 
   if (!plan || !costs) return <PlannerChrome title="Client-ready itinerary PDF" eyebrow="STEP 04 · CLIENT PDF"><div className="empty-panel"><FileText size={28}/><h2>Complete the itinerary first.</h2><Link className="primary-cta inline" href="/">Build Your Trip</Link></div></PlannerChrome>;
@@ -274,6 +302,8 @@ export default function ClientPdf() {
   // React state nullability from leaking into PDF generation and fixes TS18047 permanently.
   const currentPlan = plan;
   const currentCosts = costs;
+  const selectedSchedule = paymentPlan[paymentPlan.selected];
+  const previewAmounts = paymentAmounts(currentCosts.sellingTotal, selectedSchedule.booking, selectedSchedule.arrival);
   const customerName = safe(input.name) || 'Traveler';
   // A missing hotel rate must never disable PDF generation. The document can still
   // be generated and will explicitly mark the affected customer-facing prices as
@@ -294,18 +324,18 @@ export default function ClientPdf() {
       // jsPDF cannot reliably consume a public URL string in addImage(). Fetching
       // the artwork first and converting it to a data URL makes the generator
       // deterministic in Vercel, localhost and production browsers.
-      const [coverData, rulesData] = await Promise.all([
-        publicImageDataUrl(COVER_MASTER),
-        publicImageDataUrl(RULES_MASTER),
+      const [coverData, policiesData] = await Promise.all([
+        publicImageDataUrl(selectedTemplate.cover),
+        publicImageDataUrl(selectedTemplate.policies),
       ]);
 
       const doc = new jsPDF({ unit: 'pt', format: [PAGE_W, PAGE_H], compress: true, orientation: 'portrait' });
-      await addCover(doc, coverData);
-      await addRulesPage(doc, rulesData);
+      await addCover(doc, coverData, customerName, template);
       addJourneyOverview(doc, currentPlan, input);
-      currentPlan.dayPlans.forEach((day) => addDayPage(doc, day));
+      currentPlan.dayPlans.forEach((day) => addDayPage(doc, day, input.pickup));
+      addInvestmentPage(doc, currentCosts, paymentPlan);
       addStaysPage(doc, pdfHotels);
-      addInvestmentPage(doc, currentCosts);
+      await addPoliciesPage(doc, policiesData, paymentPlan);
 
       const blob = doc.output('blob');
       if (!blob || blob.size < 1024) throw new Error('The PDF engine returned an empty document.');
@@ -330,24 +360,25 @@ export default function ClientPdf() {
     <section className="pdf-hero">
       <div className="pdf-brand-lockup"><img src="/chakar-experience-logo.png" alt="Chakar Experience"/><span>DISCOVER KASHMIR · HEAVEN ON EARTH</span></div>
       <h2>{customerName}'s Kashmir journey</h2>
-      <p>The client document uses the supplied Chakar artwork as fixed master pages. Dynamic itinerary, hotel and pricing data are placed in bounded content areas so text can wrap and continue to a new page instead of colliding.</p>
+      <p>The cover artwork and Policies page follow your supplied PDF examples. Itinerary, hotels and pricing use the current planner values.</p>
+      <div className="pdf-template-picker" role="group" aria-label="PDF reference design"><span>Reference artwork</span><div>{(Object.keys(PDF_TEMPLATES) as PdfTemplate[]).map((key)=><button type="button" key={key} className={template===key?'active':''} aria-pressed={template===key} onClick={()=>setTemplate(key)}>{PDF_TEMPLATES[key].label}<small>Same page design; payment percentages come from Costing</small></button>)}</div></div>
       {pricingPending && <div className="pdf-block-warning"><LockKeyhole size={15}/><span><b>PDF can still be generated.</b> Hotel rates for {currentCosts.missingHotelRates.join(', ')} are pending, so affected customer-facing prices will be marked “To be confirmed”.</span></div>}
       {!pdfReady && <div className="pdf-block-warning"><LockKeyhole size={15}/><span><b>Itinerary is incomplete.</b> Generate the itinerary before creating the PDF.</span></div>}
       <button className="primary-cta inline" onClick={download} disabled={downloading || !pdfReady}><Download size={17}/>{downloading ? 'Preparing PDF…' : 'Download client PDF'}</button>
     </section>
 
     <section className="pdf-preview">
-      <div className="section-head"><div><span className="eyebrow">PDF PREVIEW</span><h2>Customer document</h2><p>The first page and fixed artwork are preserved from the supplied masters.</p></div></div>
+      <div className="section-head"><div><span className="eyebrow">PDF PREVIEW</span><h2>Customer document</h2><p>The selected cover and Policies artwork come from the supplied sample PDF.</p></div></div>
       <div className="pdf-preview-stack">
-        <article className="pdf-preview-page cover"><img src={COVER_MASTER} alt="Chakar supplied cover"/><span>01</span></article>
-        <article className="pdf-preview-page cover"><img src={RULES_MASTER} alt="Chakar supplied rules page artwork"/><div className="preview-rules-overlay"><b>Package Notes & Exclusions</b><ul>{FIXED_PACKAGE_RULES.slice(0, 5).map((rule) => <li key={rule}>{rule}</li>)}</ul></div><span>02</span></article>
-        <article className="pdf-preview-page"><span>03</span><h3>Kashmir journey overview</h3><div className="pdf-preview-facts">{[['Traveller',customerName],['Travel dates',`${fmtDate(input.arrival)} → ${fmtDate(input.departure)}`],['Pick-up',input.pickup||'Custom pick-up'],['Travellers',`${input.adults} adults · ${input.youngAges.length} children`],['Category',input.hotelCategory],['Meal plan',input.mealPlan]].map(x=><div key={x[0]}><small>{x[0]}</small><b>{x[1]}</b></div>)}</div></article>
-        {currentPlan.dayPlans.map((day, index) => <article className="pdf-preview-page" key={`${day.day}-${day.date}`}><span>{String(index + 4).padStart(2, '0')}</span><h3>Day {day.day} · {day.stay}</h3><small>{shortDate(day.date)} · {day.from} → {day.to}</small><div className="preview-about"><b>ABOUT THIS DAY</b><p>{dayAbout(day)}</p></div></article>)}
-        <article className="pdf-preview-page"><span>LAST</span><h3>Trip investment</h3><div className="pdf-preview-total"><small>Customer selling total</small><b>{money(currentCosts.sellingTotal)}</b></div><div className="pdf-preview-facts"><div><small>Accommodation</small><b>{money(currentCosts.accommodation)}</b></div><div><small>Transport</small><b>{money(currentCosts.transport)}</b></div><div><small>Others</small><b>{money(currentCosts.other)}</b></div><div><small>GST @ 5%</small><b>{money(currentCosts.gst)}</b></div></div></article>
+        <article className="pdf-preview-page cover"><img src={selectedTemplate.cover} alt={`${selectedTemplate.label} cover artwork`}/><div className={`pdf-preview-greeting ${template}`}>Dear {customerName}{template==='asna'?',':''}</div><span>01</span></article>
+        <article className="pdf-preview-page"><span>OVERVIEW</span><h3>Kashmir journey overview</h3><div className="pdf-preview-facts">{[['Traveller',customerName],['Travel dates',`${fmtDate(input.arrival)} → ${fmtDate(input.departure)}`],['Pick-up',input.pickup||'Custom pick-up'],['Travellers',`${input.adults} adults · ${input.youngAges.length} children`],['Category',input.hotelCategory],['Meal plan',input.mealPlan]].map(x=><div key={x[0]}><small>{x[0]}</small><b>{x[1]}</b></div>)}</div></article>
+        {currentPlan.dayPlans.map((day) => <article className="pdf-preview-page" key={`${day.day}-${day.date}`}><span>DAY {String(day.day).padStart(2, '0')}</span><h3>{dayTitle(day, input.pickup)}</h3><small>{shortDate(day.date)} · {day.from} → {day.to}</small><div className="preview-about"><b>ABOUT THIS DAY</b><p>{dayNarrative(day, input.pickup)}</p></div></article>)}
+        <article className="pdf-preview-page"><span>QUOTE</span><h3>Trip investment</h3><div className="pdf-preview-facts"><div><small>Package before GST</small><b>{pricingPending?'To be confirmed':money(currentCosts.subtotalAfterMarkup)}</b></div><div><small>GST @ 5%</small><b>{pricingPending?'To be confirmed':money(currentCosts.gst)}</b></div></div><div className="pdf-preview-total"><small>Customer selling total</small><b>{pricingPending?'To be confirmed':money(currentCosts.sellingTotal)}</b></div><div className="pdf-preview-facts"><div><small>Selected payment plan {paymentPlan.selected==='one'?'One':'Two'}</small><b>{selectedSchedule.booking}% booking: {pricingPending?'To be confirmed':money(previewAmounts.booking)}</b><b>{selectedSchedule.arrival}% arrival: {pricingPending?'To be confirmed':money(previewAmounts.arrival)}</b><b>{previewAmounts.duringPct}% during trip: {pricingPending?'To be confirmed':money(previewAmounts.during)}</b></div></div></article>
+        <article className="pdf-preview-page cover"><img src={selectedTemplate.policies} alt={`${selectedTemplate.label} Policies page artwork`}/><div className="pdf-policy-lines"><div><b>Plan One:</b> {policyLine(paymentPlan.one.booking,paymentPlan.one.arrival)}</div><div><b>Plan Two:</b> {policyLine(paymentPlan.two.booking,paymentPlan.two.arrival)}</div></div><span>POLICIES</span></article>
       </div>
     </section>
 
-    <div className="pdf-page-list"><div><CheckCircle2 size={18}/><span>Supplied cover artwork is preserved as the first PDF page</span></div><div><CheckCircle2 size={18}/><span>Fixed package notes remain consistent across generated PDFs</span></div><div><CheckCircle2 size={18}/><span>Day-wise About sections with bounded text flow</span></div><div><CheckCircle2 size={18}/><span>Selected hotel details and customer-facing pricing</span></div><div><LockKeyhole size={18}/><span>B2B rates and internal profit stay private</span></div></div>
+    <div className="pdf-page-list"><div><CheckCircle2 size={18}/><span>Supplied cover layout with the current traveller's name</span></div><div><CheckCircle2 size={18}/><span>Policies artwork stays fixed; selected payment percentages update</span></div><div><CheckCircle2 size={18}/><span>Day text can continue on a new page</span></div><div><CheckCircle2 size={18}/><span>Current hotel details and selling total</span></div><div><LockKeyhole size={18}/><span>Supplier rates and internal profit stay out of the customer PDF</span></div></div>
     <div className="next-row"><Link className="secondary-link" href="/planner/costing"><ChevronLeft size={16}/> Back to costing</Link><Link className="primary-cta inline" href="/">Start another trip</Link></div>
   </PlannerChrome>;
 }

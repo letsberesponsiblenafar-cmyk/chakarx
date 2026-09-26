@@ -2,6 +2,7 @@ import { destinationByName, destinations, hotelCategories, interests, mealOption
 import type { Destination, Route, Site, Hotel } from '@/lib/data';
 import { firstHotelCandidate, roomsRequired, cnbChildren, extraBedsRequired } from '@/lib/hotels';
 import { destinationPriority, recommendationWeight, routeDecision, routeRule, sightseeingRule, isGurezAllowed, shouldPreferOffbeat, templateFor, destinationAccessFlags, engineRules } from '@/lib/intelligence';
+import { priceTrip } from '@/lib/pricing';
 
 export type TripInput = {
   name: string; arrival: string; departure: string; pickup: string; adults: number; youngAges: number[]; budget: number;
@@ -180,7 +181,14 @@ function siteLimit(style: PlanningStyle, transfer: boolean, isDeparture: boolean
 
 function compatibleSites(d: Destination, used: Set<string>, date: string, input: TripInput) {
   const preferred = new Set(input.interests.map((x) => x.toLowerCase()));
-  return d.local_sightseeing.filter((s) => !used.has(`${d.name}::${s.name}`) && seasonFit({ ...d, season: s.season || d.season }, date) >= 0.45).sort((a, b) => {
+  return d.local_sightseeing.filter((s) => {
+    const rule = sightseeingRule(d.name, s.name);
+    // These upper Gulmarg stops require the Gondola or a separate mountain
+    // excursion, while Gondola tickets are excluded from the base package.
+    const needsExcludedGondola = d.name === 'Gulmarg' && /gondola|kongdori|apharwat|alpather/i.test(`${s.name} ${s.description}`);
+    return !used.has(`${d.name}::${s.name}`) && seasonFit({ ...d, season: s.season || d.season }, date) >= 0.45
+      && !needsExcludedGondola && !rule.extraCost && !['OPTIONAL', 'EXTRA', 'EXCLUDED'].includes(rule.status);
+  }).sort((a, b) => {
     const aFit = a.tags.filter((x) => preferred.has(x.toLowerCase())).length;
     const bFit = b.tags.filter((x) => preferred.has(x.toLowerCase())).length;
     return (bFit * 5 + seasonFit(d, date) * 2) - (aFit * 5 + seasonFit(d, date) * 2);
@@ -362,18 +370,14 @@ export function createPlan(input: TripInput): Plan {
   const staySegments = groupedStays(nightSequence);
   const hotelPlans = makeHotelPlans(nightSequence, normalized.hotelCategory);
   const m = metrics(dayPlans, nights);
-  const rooms = roomsRequired(normalized.adults); const people = normalized.adults + normalized.youngAges.length;
+  const rooms = roomsRequired(normalized.adults);
   const extraBeds = extraBedsRequired(normalized.youngAges); const cnb = cnbChildren(normalized.youngAges);
   const accommodation = hotelPlans.reduce((sum, h) => sum + h.nights * (h.candidate?.mapB2B ?? 0) * rooms + h.nights * (h.candidate?.extraBedB2B ?? 0) * extraBeds + h.nights * (h.candidate?.cnbB2B ?? 0) * cnb, 0);
-  const transport = (transportRates[normalized.transport] ?? transportRates.Ertiga) * Math.max(1, dayPlans.reduce((sum, day) => sum + Math.max(0, day.drive.vehicleDaysCharged), 0));
-  const mealPerPerson = normalized.mealPlan === 'None' ? 0 : normalized.mealPlan === 'Breakfast Only' ? 450 : 780;
-  const meals = people * nights * mealPerPerson;
-  // Optional/extra experiences are deliberately excluded from the base package.
-  // Customer-facing activity pricing belongs in the explicit costing layer, not the sightseeing text.
-  const activities = 0;
-  const contingency = (accommodation + transport + meals + activities) * 0.07;
-  const total = accommodation + transport + meals + activities + contingency;
-  const low = total * 0.92; const high = total * 1.22;
+  // This is only a starting quote. The operator's selected hotels and edits are
+  // priced again from current state in calculateCosts, using the same formula.
+  const estimated = priceTrip({ accommodation, vehicleDays: dayPlans.reduce((sum, day) => sum + Math.max(0, day.drive.vehicleDaysCharged), 0), transportDaily: transportRates[normalized.transport] ?? transportRates.Ertiga, other: 0, profitPct: 10 });
+  const total = estimated.sellingTotal;
+  const low = estimated.low; const high = estimated.high;
   const missingRateHotels = hotelPlans.filter((h) => !h.candidate?.mapB2B).map((h) => h.location);
   const alerts: string[] = [];
   const ruleTrace = engineRules().map((x) => x.rule);
@@ -398,7 +402,7 @@ export function createPlan(input: TripInput): Plan {
     estimatedTotal: total,
     rangeLow: low,
     rangeHigh: high,
-    costs: { accommodation, transport, meals, activities, contingency },
+    costs: { accommodation, transport: estimated.transport, meals: 0, activities: 0, contingency: 0 },
     hotelPlans,
     evaluation: {
       budgetFit: normalized.budget === 0 ? 'No budget supplied' : total <= (normalized.budget * (normalized.adults + normalized.youngAges.length)) ? 'Within entered budget' : 'Above entered budget',
