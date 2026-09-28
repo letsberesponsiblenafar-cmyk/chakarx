@@ -166,3 +166,47 @@ body{font-size:15px}.build-trip-page{max-width:1500px;margin:0 auto}.build-heade
 @media(max-width:700px){.payment-plan-editor,.payment-amount-grid{grid-template-columns:1fr}.pdf-template-picker button{min-width:0;width:100%}}
 /* v18 final costing emphasis */
 .gst-final-card{padding:18px 20px}.gst-final-row{display:grid;grid-template-columns:1fr 1fr 1.35fr;gap:9px;align-items:stretch}.gst-final-row>div{background:#fbf7ef;border:1px solid #eee2d1;border-radius:12px;padding:12px}.gst-final-row>div>span{display:block;font-size:7px;color:#8b7a68;text-transform:uppercase;letter-spacing:.08em}.gst-final-row>div>b{display:block;font-family:var(--serif);font-size:20px;margin-top:5px}.gst-final-row .final-total{background:var(--brown);border-color:var(--brown);padding:15px 16px}.gst-final-row .final-total span{color:#d9c9a6}.gst-final-row .final-total strong{display:block;color:#fff;font-family:var(--serif);font-size:31px;line-height:1;margin-top:6px;letter-spacing:-.03em}@media(max-width:760px){.gst-final-row{grid-template-columns:1fr}.gst-final-row .final-total strong{font-size:27px}}
+
+/* Hotel calendar and operator setup */
+.hotel-policy-refresh{grid-template-columns:1fr;gap:16px;padding:20px 22px;background:linear-gradient(135deg,#fffaf0,#f4e8d2);border:0;box-shadow:0 12px 30px rgba(53,34,14,.08)}
+.hotel-policy-refresh .hotel-policy-intro b{font-family:var(--serif);font-size:25px;color:var(--brown)}
+.hotel-policy-refresh .hotel-policy-intro span{font-size:12px;line-height:1.5;max-width:760px}
+.hotel-policy-refresh .hotel-policy-fields{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.hotel-policy-refresh .hotel-policy-fields label{font-size:12px;font-weight:700;color:#5f4c34}
+.hotel-policy-refresh .hotel-policy-fields input{font-size:14px;padding:12px;border:1px solid #d9c8ae}
+.hotel-policy-refresh .common-apply{justify-self:start;font-size:12px!important;padding:12px 18px!important}
+.refined-hotel-list{gap:16px}
+.refined-hotel-list .hotel-card.refined{padding:23px 24px;border:0;border-radius:19px;box-shadow:0 12px 32px rgba(53,34,14,.09);background:linear-gradient(165deg,#fffdfa,#fff)}
+.refined-hotel-list .hotel-card-head h2{font-size:36px;line-height:1}
+.refined-hotel-list .hotel-card-head p{font-size:12px;line-height:1.5}
+.refined-hotel-list .hotel-card-head .overline,.refined-hotel-list .stay-location-badge{font-size:11px}
+.refined-hotel-list .hotel-night-selector{padding:16px 18px;background:#f7f0e2;border:0;border-radius:15px}
+.refined-hotel-list .night-count-button{padding:9px 14px;background:#fff;border:1px solid #d9c6a6}
+.refined-hotel-list .night-count-button strong{font-size:24px}
+.refined-hotel-list .night-count-button span{font-size:12px}
+.refined-hotel-list .chosen-night-dates>span{font-size:11px;padding:7px 10px;border:0}
+.refined-hotel-list .night-picker-head b{font-size:14px}
+.refined-hotel-list .night-picker-head span{font-size:11px}
+.refined-hotel-list .night-chip-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.refined-hotel-list .night-chip{min-height:79px;padding:10px;border:1px solid #e0d0b8;text-align:left;transition:transform .15s ease,box-shadow .15s ease}
+.refined-hotel-list .night-chip:hover{transform:translateY(-2px);box-shadow:0 5px 12px rgba(42,27,17,.1)}
+.refined-hotel-list .night-chip span{font-size:10px}
+.refined-hotel-list .night-chip b{font-size:15px}
+.refined-hotel-list .night-chip small{display:block;margin-top:4px;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.refined-hotel-list .night-chip.assigned-elsewhere{background:#f2eee8;color:#675b4d}
+.refined-hotel-list .night-chip.active small{color:#ead9c1}
+.refined-hotel-list .picker-copy label,.refined-hotel-list .small-card-head span{font-size:11px}
+.refined-hotel-list .picker-copy b,.refined-hotel-list .small-card-head b{font-size:15px}
+.refined-hotel-list .picker-copy small,.refined-hotel-list .room-setup-note,.refined-hotel-list .hotel-card-foot span{font-size:11px;line-height:1.5}
+.refined-hotel-list .hotel-picker-actions select,.refined-hotel-list .hotel-search-input,.refined-hotel-list .custom-hotel-panel input{font-size:13px!important;min-height:42px}
+.refined-hotel-list .hotel-mode-tabs button,.refined-hotel-list .edit-small{font-size:11px}
+.refined-hotel-list .room-setup-rows label,.refined-hotel-list .rate-rows label,.refined-hotel-list .stay-cost-breakdown span{font-size:11px}
+.refined-hotel-list .rate-rows input,.refined-hotel-list .room-stepper strong{font-size:13px}
+.night-edit-toolbar{margin:18px 0 22px;padding:18px 20px;border:0;background:#ecdfc6}
+.night-edit-toolbar b{font-size:15px}.night-edit-toolbar span{font-size:12px}
+.day-visit-control{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:10px 0;padding:13px 16px;background:#f5f0e7;border-radius:12px}
+.day-visit-control b,.day-visit-control small{display:block}.day-visit-control b{font-size:13px;margin-top:4px}.day-visit-control small{font-size:10px;color:var(--muted);margin-top:4px}
+.day-visit-control select,.day-location-select{border:1px solid #d7c5a8;background:#fff;border-radius:9px;padding:10px 12px;color:var(--brown);font-size:12px;min-width:215px}
+@media(max-width:760px){.hotel-policy-refresh .hotel-policy-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.refined-hotel-list .hotel-card.refined{padding:17px}.refined-hotel-list .hotel-card-head h2{font-size:29px}.day-visit-control{align-items:stretch;flex-direction:column}.day-visit-control select{width:100%}}
+.pdf-review-cover>.pdf-preview-logo{position:absolute;left:1.7%;top:1%;width:33%;height:5.6%;display:flex;align-items:center;padding:2.2%;background:#2a1b11;border-radius:3px}
+.pdf-review-cover>.pdf-preview-logo img{display:block;width:100%;height:100%;object-fit:contain}
