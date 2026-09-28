@@ -8,7 +8,7 @@ export default function AppShell({children}:{children:ReactNode}){
  const items=[['trip','Build Your Trip','/'],['library','Kashmir Destination Library','/library'],['hotels','Hotel Database','/hotels'],['sources','Sources & Freshness','/sources']] as const;
  return <div className="site-shell">
   <aside className="side-rail">
-   <Link className="brand-link" href="/"><img src="/chakar-experience-logo.svg" alt="Chakar Experience"/></Link>
+   <Link className="brand-link" href="/"><span className="original-logo" role="img" aria-label="Chakar Experience"/></Link>
    <div className="brand-caption">DISCOVER KASHMIR</div>
    <nav className="rail-nav">
     {items.map(([key,label,href])=><Link key={key} href={href} className={(key==='trip'?path.startsWith('/planner')||path==='/':path===href)?'active':''} onClick={()=>setOpen(false)}>{key==='trip'?<Route size={18}/>:key==='library'?<Database size={18}/>:key==='hotels'?<Hotel size={18}/>:<Compass size={18}/>}<span>{label}</span></Link>)}
