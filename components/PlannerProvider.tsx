@@ -1,6 +1,6 @@
 'use client';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { createPlan, retargetDay, rebuildPlanFromNightSequence, type Plan, type TripInput } from '@/lib/itinerary';
+import { createPlan, retargetDay, rebuildPlanFromNightSequence, setPlanDayTrip, setPlanDeparturePoint, type Plan, type TripInput } from '@/lib/itinerary';
 import { hotelDatabase as importedHotels, hotelCategories, mealOptions, transportOptions, travelStyles, interests, destinationByName, type Hotel } from '@/lib/data';
 import { firstHotelCandidate, roomsRequired, cnbChildren, extraBedsRequired, sameHotelDestination, matchesPackageCategory } from '@/lib/hotels';
 
@@ -19,6 +19,8 @@ type PlannerContextValue = PlannerState & {
   setInterests: (interests: string[]) => void;
   generate: (overrides?: Partial<TripInput>) => void;
   setDayDestination: (day: number, destination: string) => void;
+  setDayTrip: (day: number, destination: string | null) => void;
+  setDeparturePoint: (destination: string) => void;
   setDayContent: (day: number, patch: { title?: string; about?: string }) => void;
   setStayAllocation: (entries: { location: string; nights: number }[]) => void;
   setNightSequence: (sequence: string[]) => void;
@@ -141,6 +143,20 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
         } catch {
           return s;
         }
+      });
+    },
+    setDayTrip(day, destination) {
+      setState((s) => {
+        if (!s.plan) return s;
+        try { return { ...s, plan: setPlanDayTrip(s.plan, day, destination) }; }
+        catch { return s; }
+      });
+    },
+    setDeparturePoint(destination) {
+      setState((s) => {
+        if (!s.plan) return s;
+        try { return { ...s, plan: setPlanDeparturePoint(s.plan, destination) }; }
+        catch { return s; }
       });
     },
     setDayContent(day, patch) {

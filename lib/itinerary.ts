@@ -10,7 +10,7 @@ export type TripInput = {
 };
 export type RouteLeg = Route & { from: string; to: string; via?: string[]; known: boolean; preference: 'PREFERRED' | 'ALLOWED' | 'AVOID' | 'NOT_ALLOWED'; vehicleDaysCharged: number; rationale: string; preferredAlternative?: string };
 export type DayBlock = { name: string; description: string; reason: string; tags: string[]; source?: string; conditional?: boolean; kind?: 'sightseeing' | 'arrival' | 'transfer' | 'departure' | 'custom'; intelligence?: { status: 'STANDARD' | 'OPTIONAL' | 'CONDITIONAL' | 'EXTRA' | 'EXCLUDED' | 'SEASONAL' | 'LIVE_CHECK'; extraCost?: boolean; note?: string } };
-export type DayPlan = { day: number; date: string; label: string; from: string; to: string; stay: string; transfer: boolean; drive: RouteLeg; blocks: DayBlock[]; notes: string[]; customTitle?: string; customAbout?: string };
+export type DayPlan = { day: number; date: string; label: string; from: string; to: string; stay: string; transfer: boolean; drive: RouteLeg; blocks: DayBlock[]; notes: string[]; dayTripDestination?: string | null; customTitle?: string; customAbout?: string };
 export type Stay = { name: string; nights: number; destination: Destination };
 export type HotelCandidate = Hotel;
 export type HotelPlan = { location: string; nights: number; candidate: HotelCandidate | null };
@@ -239,7 +239,7 @@ function dayTripBlock(base: Destination, target: Destination, date: string, inpu
 
 function chooseDayTrip(base: Destination, nightSequence: string[], date: string, input: TripInput) {
   if (base.name !== 'Srinagar') return null;
-  const candidates = destinations.filter((d) => d.name !== 'Srinagar' && !nightSequence.includes(d.name) && d.base && d.overnight_allowed);
+  const candidates = destinations.filter((d) => d.name !== 'Srinagar' && !nightSequence.includes(d.name) && d.base && (routeByName('Srinagar', d.name)?.hours || 99) <= 3.5);
   const allowed = candidates.filter((d) => seasonFit(d, date) >= 0.45 && (d.name !== 'Gurez' || isGurezAllowed(date)));
   return allowed.sort((a, b) => scoredDestination(b, input, date) - scoredDestination(a, input, date))[0] || null;
 }
@@ -278,29 +278,34 @@ function arrivalBlock(input: TripInput, stay: string, date: string): DayBlock {
   };
 }
 
-function buildDays(input: TripInput, nightSequence: string[]) {
+function buildDays(input: TripInput, nightSequence: string[], departurePoint = 'Srinagar', dayTrips: Record<number, string | null> = {}) {
   const nights = nightSequence.length; const used = new Set<string>(); const days: DayPlan[] = [];
   for (let index = 0; index <= nights; index++) {
     const date = dateAt(input.arrival, index);
     if (index === nights) {
       const stay = nightSequence[nights - 1] || 'Srinagar'; const base = destinationByName(stay)!;
       const blocks = siteBlocks(base, siteLimit(input.style, true, true), used, date, input, 'departure');
-      const drive = routeLeg(stay, 'Srinagar');
-      days.push({ day: index + 1, date, label: 'Departure day', from: stay, to: 'Srinagar', stay, transfer: true, drive, blocks: blocks.length ? blocks : [fallbackBlock(stay)], notes: ['Keep the final sightseeing window flexible around the departure schedule.', ...(drive.preference === 'AVOID' ? [drive.rationale] : [])] });
+      const drive = routeLeg(stay, departurePoint);
+      days.push({ day: index + 1, date, label: 'Departure day', from: stay, to: departurePoint, stay, transfer: stay !== departurePoint, drive, blocks: blocks.length ? blocks : [fallbackBlock(stay)], notes: ['Keep the final sightseeing window flexible around the departure schedule.', ...(drive.preference === 'AVOID' ? [drive.rationale] : [])] });
       continue;
     }
     const stay = nightSequence[index] || 'Srinagar'; const previous = index === 0 ? (input.pickup.toLowerCase().includes('srinagar') ? 'Srinagar' : input.pickup) : (nightSequence[index - 1] || stay);
     const base = destinationByName(stay)!; const transfer = index === 0 ? true : stay !== previous;
     let drive = routeLeg(previous.toLowerCase().includes('jammu') && !previous.toLowerCase().includes('srinagar') ? 'Srinagar' : previous, stay);
     const arrival = index === 0 ? [arrivalBlock(input, stay, date)] : [];
-    const sightseeing = transfer ? siteBlocks(base, siteLimit(input.style, true, false), used, date, input, 'transfer') : siteBlocks(base, siteLimit(input.style, false, false), used, date, input, 'sightseeing');
+    const override = dayTrips[index + 1];
+    const excursion = index === 0 || override === null ? null : override ? destinationByName(override) : (!transfer ? chooseDayTrip(base, nightSequence, date, input) : null);
+    const localLimit = excursion ? (transfer ? 0 : 1) : siteLimit(input.style, transfer, false);
+    const sightseeing = siteBlocks(base, localLimit, used, date, input, transfer ? 'transfer' : 'sightseeing');
     const blocks = [...arrival, ...sightseeing];
-    if (!transfer) {
-      const excursion = chooseDayTrip(base, nightSequence, date, input);
-      if (excursion && blocks.length < siteLimit(input.style, false, false)) {
+    let dayTripDestination: string | null | undefined;
+    if (index > 0) {
+      dayTripDestination = excursion?.name ?? (override === null ? null : undefined);
+      if (excursion && excursion.name !== stay) {
         blocks.unshift(dayTripBlock(base, excursion, date, input));
-        const excursionLeg = routeLeg(base.name, excursion.name);
-        drive = { ...drive, km: excursionLeg.km * 2, hours: excursionLeg.hours * 2, source: `Day-trip round trip: ${base.name} → ${excursion.name} → ${base.name}`, live_required: excursionLeg.live_required, known: excursionLeg.known, preference: excursionLeg.preference, vehicleDaysCharged: Math.max(1, excursionLeg.vehicleDaysCharged), rationale: `Day trip only. Overnight remains ${base.name}; next-day origin remains ${base.name}. ${excursionLeg.rationale}` };
+        const outward = routeLeg(previous, excursion.name);
+        const onward = routeLeg(excursion.name, base.name);
+        drive = { ...drive, km: outward.km + onward.km, hours: outward.hours + onward.hours, source: `Day visit: ${previous} → ${excursion.name} → ${base.name}`, live_required: outward.live_required || onward.live_required, known: outward.known && onward.known, preference: outward.preference === 'AVOID' || onward.preference === 'AVOID' ? 'AVOID' : outward.preference, vehicleDaysCharged: Math.max(1, outward.vehicleDaysCharged, onward.vehicleDaysCharged), rationale: `Day visit only. Overnight remains ${base.name}; next-day origin remains ${base.name}. Confirm that the sightseeing and transfer fit the available time.` };
       }
     }
     const accessFlags = destinationAccessFlags(stay);
@@ -310,7 +315,7 @@ function buildDays(input: TripInput, nightSequence: string[]) {
     if (stay === 'Gurez' && !isGurezAllowed(date)) notes.push('Gurez is blocked outside the May-October planning window.');
     days.push({
       day: index + 1, date, label: index === 0 ? 'Arrival day' : transfer ? 'Move & explore' : 'Explore',
-      from: previous === stay ? stay : previous, to: stay, stay, transfer, drive,
+      from: previous === stay ? stay : previous, to: stay, stay, transfer, drive, dayTripDestination,
       blocks: blocks.length ? blocks : [fallbackBlock(stay)], notes,
     });
   }
@@ -420,11 +425,18 @@ export function createPlan(input: TripInput): Plan {
 export function rebuildPlanFromNightSequence(plan: Plan, nightSequence: string[]): Plan {
   if (nightSequence.length < 1 || nightSequence.length > 30) throw new Error('Night allocation must contain between 1 and 30 nights.');
   if (nightSequence.some((name) => !destinationByName(name)?.overnight_allowed)) throw new Error('Every selected overnight destination must allow overnight stays.');
-  const dayPlans = buildDays(plan.input, nightSequence);
+  const previousTrips: Record<number, string | null> = {};
+  plan.dayPlans.forEach((day, index) => {
+    if (index < nightSequence.length && day.stay === nightSequence[index] && day.dayTripDestination !== undefined) previousTrips[day.day] = day.dayTripDestination;
+  });
+  const dayPlans = buildDays(plan.input, nightSequence, plan.dayPlans[plan.days - 1]?.to || 'Srinagar', previousTrips);
   const previousByDay = new Map(plan.dayPlans.map((d) => [d.day, d]));
   const mergedDays = dayPlans.map((d) => {
     const previous = previousByDay.get(d.day);
-    return previous ? { ...d, customTitle: previous.stay === d.stay ? previous.customTitle : undefined, customAbout: previous.stay === d.stay ? previous.customAbout : undefined } : d;
+    if (!previous) return d;
+    const sameStay = previous.stay === d.stay && previous.label === d.label;
+    const customBlocks = sameStay ? previous.blocks.filter((block) => block.kind === 'custom' && !d.blocks.some((next) => next.name === block.name)) : [];
+    return { ...d, blocks: [...d.blocks, ...customBlocks], customTitle: sameStay ? previous.customTitle : undefined, customAbout: sameStay ? previous.customAbout : undefined };
   });
   const segments = groupedStays(nightSequence);
   const m = metrics(mergedDays, nightSequence.length);
@@ -440,6 +452,7 @@ export function rebuildPlanFromNightSequence(plan: Plan, nightSequence: string[]
     routeKm: m.routeKm,
     driveHours: m.driveHours,
     travelLoad: m.travelLoad,
+    evaluation: { ...plan.evaluation, capacity: `${segments.length} stay segments using destination day and night windows`, route: `${Math.round(m.routeKm)} km across ${m.driveHours.toFixed(1)} planning driving hours` },
   };
 }
 
@@ -450,34 +463,43 @@ export function retargetDay(plan: Plan, dayNumber: number, destinationName: stri
   if (!target.overnight_allowed) throw new Error(`${destinationName} is a sightseeing destination and is not marked as an overnight base.`);
   if (dayNumber < 1 || dayNumber > plan.nights) throw new Error('Only overnight days can change the stay destination.');
 
-  const input = plan.input;
   const overnightNames = plan.dayPlans.slice(0, plan.nights).map((d) => d.stay);
   overnightNames[dayNumber - 1] = destinationName;
-  const used = new Set<string>();
-  const dayPlans: DayPlan[] = [];
+  return rebuildPlanFromNightSequence(plan, overnightNames);
+}
 
-  for (let index = 0; index <= plan.nights; index++) {
-    const date = dateAt(input.arrival, index);
-    if (index === plan.nights) {
-      const stay = overnightNames[overnightNames.length - 1] || 'Srinagar';
-      const base = destinationByName(stay)!;
-      const blocks = index === dayNumber - 1 ? siteBlocks(base, siteLimit(input.style, true, true), used, date, input, 'departure') : plan.dayPlans[index].blocks;
-      dayPlans.push({ ...plan.dayPlans[index], date, from: stay, to: 'Srinagar', stay, transfer: true, drive: routeLeg(stay, 'Srinagar'), blocks: blocks.length ? blocks : [fallbackBlock(stay)] });
-      continue;
-    }
-    const stay = overnightNames[index] || 'Srinagar';
-    const previous = index === 0 ? input.pickup : (overnightNames[index - 1] || stay);
-    const transfer = index === 0 ? true : stay !== previous;
-    const isChanged = index === dayNumber - 1;
-    const base = destinationByName(stay)!;
-    const blocks = isChanged ? siteBlocks(base, siteLimit(input.style, transfer, false), used, date, input, transfer ? 'transfer' : 'sightseeing') : plan.dayPlans[index].blocks;
-    dayPlans.push({
-      ...plan.dayPlans[index], date, label: index === 0 ? 'Arrival day' : transfer ? 'Move & explore' : 'Explore',
-      from: previous.toLowerCase().includes('jammu') && !previous.toLowerCase().includes('srinagar') ? 'Srinagar' : previous, to: stay, stay, transfer, drive: routeLeg(previous === 'Jammu' ? 'Srinagar' : previous, stay), blocks: blocks.length ? blocks : [fallbackBlock(stay)],
-    });
-  }
-  const segments = groupedStays(overnightNames); const m = metrics(dayPlans, plan.nights); const hotelPlans = makeHotelPlans(overnightNames, input.hotelCategory);
-  return { ...plan, dayPlans, stays: segments.map((segment) => ({ name: segment.name, nights: segment.nights, destination: destinationByName(segment.name)! })), hotelChanges: Math.max(0, segments.length - 1), routeKm: m.routeKm, driveHours: m.driveHours, travelLoad: m.travelLoad, hotelPlans, evaluation: { ...plan.evaluation, capacity: `${segments.length} stay segments using destination day and night windows`, route: `${Math.round(m.routeKm)} km across ${m.driveHours.toFixed(1)} planning driving hours` } };
+export function setPlanDayTrip(plan: Plan, dayNumber: number, destinationName: string | null): Plan {
+  if (dayNumber <= 1 || dayNumber > plan.nights) throw new Error('Choose a sightseeing day before departure.');
+  const oldDay = plan.dayPlans[dayNumber - 1];
+  if (destinationName && !destinationByName(destinationName)) throw new Error('Day-trip destination not found.');
+  if (destinationName === oldDay.stay) destinationName = null;
+  const sequence = plan.dayPlans.slice(0, plan.nights).map((d) => d.stay);
+  const trips: Record<number, string | null> = {};
+  plan.dayPlans.forEach((day) => { if (day.dayTripDestination !== undefined) trips[day.day] = day.dayTripDestination; });
+  trips[dayNumber] = destinationName;
+  const days = buildDays(plan.input, sequence, plan.dayPlans[plan.days - 1]?.to || 'Srinagar', trips);
+  const merged = days.map((day) => {
+    const previous = plan.dayPlans[day.day - 1];
+    const manual = previous?.blocks.filter((block) => block.kind === 'custom' && !day.blocks.some((next) => next.name === block.name)) || [];
+    return { ...day, blocks: [...day.blocks, ...manual], customTitle: day.day === dayNumber ? undefined : previous?.customTitle, customAbout: day.day === dayNumber ? undefined : previous?.customAbout };
+  });
+  const m = metrics(merged, plan.nights);
+  return { ...plan, dayPlans: merged, routeKm: m.routeKm, driveHours: m.driveHours, travelLoad: m.travelLoad, evaluation: { ...plan.evaluation, route: `${Math.round(m.routeKm)} km across ${m.driveHours.toFixed(1)} planning driving hours` } };
+}
+
+export function setPlanDeparturePoint(plan: Plan, departurePoint: string): Plan {
+  if (!destinationByName(departurePoint)?.overnight_allowed && departurePoint !== 'Jammu') throw new Error('Choose a recognized departure base.');
+  const sequence = plan.dayPlans.slice(0, plan.nights).map((d) => d.stay);
+  const trips: Record<number, string | null> = {};
+  plan.dayPlans.forEach((day) => { if (day.dayTripDestination !== undefined) trips[day.day] = day.dayTripDestination; });
+  const days = buildDays(plan.input, sequence, departurePoint, trips);
+  const merged = days.map((day) => {
+    const previous = plan.dayPlans[day.day - 1];
+    const manual = previous?.blocks.filter((block) => block.kind === 'custom' && !day.blocks.some((next) => next.name === block.name)) || [];
+    return { ...day, blocks: [...day.blocks, ...manual], customTitle: day.label === 'Departure day' ? undefined : previous?.customTitle, customAbout: day.label === 'Departure day' ? undefined : previous?.customAbout };
+  });
+  const m = metrics(merged, plan.nights);
+  return { ...plan, dayPlans: merged, routeKm: m.routeKm, driveHours: m.driveHours, travelLoad: m.travelLoad, evaluation: { ...plan.evaluation, route: `${Math.round(m.routeKm)} km across ${m.driveHours.toFixed(1)} planning driving hours` } };
 }
 
 export function itineraryPromptContext(plan: Plan) {

@@ -21,7 +21,7 @@ for (const extension of ['.ts', '.tsx']) {
   };
 }
 
-const { createPlan, rebuildPlanFromNightSequence } = require('../lib/itinerary.ts');
+const { createPlan, rebuildPlanFromNightSequence, setPlanDayTrip, setPlanDeparturePoint } = require('../lib/itinerary.ts');
 const { calculateCosts } = require('../lib/costing.ts');
 const { buildClientPdf } = require('../components/ClientPdf.tsx');
 const input = {
@@ -31,6 +31,11 @@ const input = {
 };
 const sequence = ['Srinagar','Pahalgam','Srinagar','Pahalgam','Pahalgam','Srinagar','Gulmarg'];
 const plan = rebuildPlanFromNightSequence(createPlan(input), sequence);
+const dayTripPlan = setPlanDayTrip(rebuildPlanFromNightSequence(createPlan(input), ['Srinagar','Srinagar','Srinagar','Pahalgam','Pahalgam','Srinagar','Sonamarg']), 2, 'Sonamarg');
+if (dayTripPlan.dayPlans[1].dayTripDestination !== 'Sonamarg' || dayTripPlan.dayPlans[1].stay !== 'Srinagar' || dayTripPlan.dayPlans[2].from !== 'Srinagar') throw new Error('A Sonamarg day visit changed the Srinagar overnight or following origin.');
+if (dayTripPlan.dayPlans.at(-1).from !== 'Sonamarg' || dayTripPlan.dayPlans.at(-1).to !== 'Srinagar') throw new Error('Departure transfer should start at the final hotel and default to Srinagar.');
+const changedDeparture = setPlanDeparturePoint(dayTripPlan, 'Sonamarg');
+if (changedDeparture.dayPlans.at(-1).to !== 'Sonamarg' || rebuildPlanFromNightSequence(changedDeparture, ['Srinagar','Srinagar','Srinagar','Pahalgam','Pahalgam','Srinagar','Sonamarg']).dayPlans.at(-1).to !== 'Sonamarg') throw new Error('Edited departure point did not persist.');
 const selections = plan.hotelPlans.map((row) => ({
   location: row.location, hotelId: '', hotelName: `${row.location} Sample Hotel`, category: 'Signature',
   starRating: 3, address: '', roomType: '', website: '', nights: row.nights,
@@ -49,7 +54,11 @@ const art = Object.fromEntries(Object.entries(artFiles).map(([key, file]) => {
   const mime = ext === 'png' ? 'image/png' : 'image/jpeg';
   return [key, `data:${mime};base64,${fs.readFileSync(path.join(root, 'public', 'pdf-assets', file)).toString('base64')}`];
 }));
-const doc = buildClientPdf(art, plan, input, selections, costs, input.name);
+const fonts = {
+  regular: fs.readFileSync(path.join(root, 'public', 'fonts', 'RedHatDisplay-400.ttf')).toString('base64'),
+  bold: fs.readFileSync(path.join(root, 'public', 'fonts', 'RedHatDisplay-700.ttf')).toString('base64'),
+};
+const doc = buildClientPdf(art, plan, input, selections, costs, input.name, fonts);
 const target = path.join(os.tmpdir(), 'chakar-client-pdf-check.pdf');
 fs.writeFileSync(target, Buffer.from(doc.output('arraybuffer')));
 if (doc.getNumberOfPages() < 10 || costs.sellingTotal <= 0) throw new Error('Client PDF is incomplete.');
