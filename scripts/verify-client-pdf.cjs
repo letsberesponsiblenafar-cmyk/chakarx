@@ -54,6 +54,7 @@ const art = Object.fromEntries(Object.entries(artFiles).map(([key, file]) => {
   const mime = ext === 'png' ? 'image/png' : 'image/jpeg';
   return [key, `data:${mime};base64,${fs.readFileSync(path.join(root, 'public', 'pdf-assets', file)).toString('base64')}`];
 }));
+art.brand = `data:image/png;base64,${fs.readFileSync(path.join(root, 'public', 'chakar-experience-logo.png')).toString('base64')}`;
 const fonts = {
   regular: fs.readFileSync(path.join(root, 'public', 'fonts', 'RedHatDisplay-400.ttf')).toString('base64'),
   bold: fs.readFileSync(path.join(root, 'public', 'fonts', 'RedHatDisplay-700.ttf')).toString('base64'),
