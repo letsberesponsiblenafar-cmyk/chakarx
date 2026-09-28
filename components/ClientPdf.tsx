@@ -56,7 +56,7 @@ async function imageData(path: string) {
     reader.readAsDataURL(blob);
   });
 }
-function artworkPage(doc: jsPDF, data: Record<ArtKey,string>, key: ArtKey, first = false) {
+function artworkPage(doc: jsPDF, data: Record<ArtKey,string> & {brand?:string}, key: ArtKey, first = false) {
   if (!first) doc.addPage();
   doc.addImage(data[key], key === 'cover' ? 'PNG' : 'JPEG', 0, 0, PAGE_W, PAGE_H, undefined, 'FAST');
   if (key !== 'daywise' && key !== 'thanks') {
@@ -67,15 +67,12 @@ function artworkPage(doc: jsPDF, data: Record<ArtKey,string>, key: ArtKey, first
     const h = left ? 43 : 42;
     doc.setFillColor(42, 27, 17);
     doc.roundedRect(x, y, w, h, 5, 5, 'F');
-    doc.setDrawColor(255, 255, 255);
-    doc.setLineWidth(.8);
-    doc.circle(x + 22, y + 21, 14, 'S');
-    doc.setFont('times', 'bold'); doc.setFontSize(11); doc.setTextColor(255, 255, 255);
-    doc.text('CH', x + 22, y + 24.5, { align: 'center' });
-    doc.setFont('redhat', 'bold'); doc.setFontSize(left ? 14 : 9.5);
-    doc.text('CHAKAR', x + 43, y + 20);
-    doc.setFont('redhat', 'normal'); doc.setFontSize(left ? 7 : 5.5);
-    doc.text('E X P E R I E N C E', x + 43, y + 30);
+    if(data.brand){
+      doc.saveGraphicsState();doc.rect(x,y,w,h,null);doc.clip();doc.discardPath();
+      const logoWidth=left?155:116;
+      doc.addImage(data.brand,'PNG',x+(w-logoWidth)/2,y-6,logoWidth,logoWidth*135/250,undefined,'FAST');
+      doc.restoreGraphicsState();
+    }
   }
 }
 function addCover(doc: jsPDF, data: Record<ArtKey,string>, name: string) {
@@ -209,7 +206,8 @@ export default function ClientPdf() {
     setDownloading(true);
     try {
       const entries=await Promise.all((Object.keys(ART) as ArtKey[]).map(async (key)=>[key,await imageData(ART[key])] as const));
-      const data=Object.fromEntries(entries) as Record<ArtKey,string>;
+      const data=Object.fromEntries(entries) as Record<ArtKey,string> & {brand?:string};
+      data.brand=await imageData('/chakar-experience-logo.png');
       const [regular,bold]=await Promise.all([imageData('/fonts/RedHatDisplay-400.ttf'),imageData('/fonts/RedHatDisplay-700.ttf')]);
       const doc=buildClientPdf(data,currentPlan,currentInput,hotelSelections,currentCosts,customerName,{regular:regular.split(',')[1],bold:bold.split(',')[1]});
       const blob=doc.output('blob');
@@ -226,8 +224,8 @@ export default function ClientPdf() {
   }
 
   return <PlannerChrome title="Client-ready itinerary PDF" eyebrow="STEP 04 · CLIENT PDF">
-    <section className="pdf-hero"><div className="pdf-brand-lockup"><img src="/chakar-experience-logo.svg" alt="Chakar Experience"/><span>DISCOVER KASHMIR · HEAVEN ON EARTH</span></div><h2>{customerName}&apos;s Kashmir journey</h2><p>The client document follows the supplied Chakar itinerary: cover and letter, tour summary, compact day-wise itinerary, package and hotel tables, then the fixed inclusions, exclusions, policies, testimonials and thank-you page.</p>{currentCosts.missingHotelRates.length>0&&<div className="pdf-block-warning"><Info size={15}/><span><b>Current total is provisional.</b> Add a room rate for {currentCosts.missingHotelRates.join(', ')} to complete the quote. The current calculated amount remains visible in the PDF.</span></div>}<button className="primary-cta inline" type="button" onClick={download} disabled={downloading}><Download size={17}/>{downloading?'Preparing PDF…':'Download client PDF'}</button></section>
-    <section className="pdf-preview"><div className="section-head"><div><span className="eyebrow">DOCUMENT CONTENT</span><h2>Review this itinerary</h2><p>These values are pulled from the live planner. The fixed pages use the same artwork for every customer.</p></div></div><div className="pdf-review-grid"><div className="pdf-review-cover"><img src={ART.cover} alt="Discover Kashmir cover artwork"/><span className="pdf-preview-logo"><img src="/chakar-experience-logo.svg" alt="Chakar Experience"/></span><span>Dear {customerName},</span></div><div className="pdf-review-details"><div><small>Tour summary</small><b>{currentPlan.nights} nights / {currentPlan.days} days</b><span>{date(input.arrival)} – {date(input.departure)}</span><span>{input.pickup} pick-up · {input.adults} adults · {input.youngAges.length} {input.youngAges.length===1?'child':'children'}</span></div><div><small>Package type</small><b>{input.hotelCategory} · {uiMoney(currentCosts.sellingTotal)}</b><span>{input.transport} · {input.mealPlan} · {roomSummary(hotels)}</span></div><div><small>Hotel type</small>{hotels.map((hotel)=><span key={hotel.location}>{hotel.location} {hotel.nights}N (nights {hotel.nightNumbers.join(', ')}) · {hotel.hotelName}</span>)}</div></div></div><div className="pdf-review-days"><h3>Day-wise itinerary</h3>{currentPlan.dayPlans.map((day)=><div key={day.day}><b>Day {day.day} · {date(day.date,true)} · {dayTitle(day,input.pickup)}</b><p>{dayNarrative(day,input.pickup)}</p></div>)}</div><div className="pdf-fixed-pages"><b>Fixed pages in every PDF</b><span>Cover letter</span><span>Inclusions</span><span>Exclusions</span><span>Policies</span><span>Testimonials</span><span>Thank you</span></div></section>
+    <section className="pdf-hero"><div className="pdf-brand-lockup"><span className="original-logo" role="img" aria-label="Chakar Experience"/><span>DISCOVER KASHMIR · HEAVEN ON EARTH</span></div><h2>{customerName}&apos;s Kashmir journey</h2><p>The client document follows the supplied Chakar itinerary: cover and letter, tour summary, compact day-wise itinerary, package and hotel tables, then the fixed inclusions, exclusions, policies, testimonials and thank-you page.</p>{currentCosts.missingHotelRates.length>0&&<div className="pdf-block-warning"><Info size={15}/><span><b>Current total is provisional.</b> Add a room rate for {currentCosts.missingHotelRates.join(', ')} to complete the quote. The current calculated amount remains visible in the PDF.</span></div>}<button className="primary-cta inline" type="button" onClick={download} disabled={downloading}><Download size={17}/>{downloading?'Preparing PDF…':'Download client PDF'}</button></section>
+    <section className="pdf-preview"><div className="section-head"><div><span className="eyebrow">DOCUMENT CONTENT</span><h2>Review this itinerary</h2><p>These values are pulled from the live planner. The fixed pages use the same artwork for every customer.</p></div></div><div className="pdf-review-grid"><div className="pdf-review-cover"><img src={ART.cover} alt="Discover Kashmir cover artwork"/><span className="pdf-preview-logo"><span className="original-logo" role="img" aria-label="Chakar Experience"/></span><span>Dear {customerName},</span></div><div className="pdf-review-details"><div><small>Tour summary</small><b>{currentPlan.nights} nights / {currentPlan.days} days</b><span>{date(input.arrival)} – {date(input.departure)}</span><span>{input.pickup} pick-up · {input.adults} adults · {input.youngAges.length} {input.youngAges.length===1?'child':'children'}</span></div><div><small>Package type</small><b>{input.hotelCategory} · {uiMoney(currentCosts.sellingTotal)}</b><span>{input.transport} · {input.mealPlan} · {roomSummary(hotels)}</span></div><div><small>Hotel type</small>{hotels.map((hotel)=><span key={hotel.location}>{hotel.location} {hotel.nights}N (nights {hotel.nightNumbers.join(', ')}) · {hotel.hotelName}</span>)}</div></div></div><div className="pdf-review-days"><h3>Day-wise itinerary</h3>{currentPlan.dayPlans.map((day)=><div key={day.day}><b>Day {day.day} · {date(day.date,true)} · {dayTitle(day,input.pickup)}</b><p>{dayNarrative(day,input.pickup)}</p></div>)}</div><div className="pdf-fixed-pages"><b>Fixed pages in every PDF</b><span>Cover letter</span><span>Inclusions</span><span>Exclusions</span><span>Policies</span><span>Testimonials</span><span>Thank you</span></div></section>
     <div className="next-row"><Link className="secondary-link" href="/planner/costing"><ChevronLeft size={16}/> Back to costing</Link><Link className="primary-cta inline" href="/">Start another trip</Link></div>
   </PlannerChrome>;
 }
