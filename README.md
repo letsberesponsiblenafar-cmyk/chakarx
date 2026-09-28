@@ -21,11 +21,9 @@ The day editor is date-first: it shows the date, stay destination and local sigh
 ## Hotel master
 Six supplied October 2026 hotel workbooks were verified as identical copies of the same six-destination source and deduplicated to 166 unique hotel records.
 
-Hotel manager: `/hotels`
+Hotel dashboard: `/hotels` (admin sign-in required). The dashboard lists the shared Supabase hotel master, filters by destination and search, and links to an individual edit page for every hotel. Admins can create, update, or delete a hotel. A single text-based PDF using the record format shown in the dashboard can update many hotels at once; the importer previews matched and new records before applying them. The dashboard includes a downloadable sample PDF.
 
-The manager supports destination/category/search filters, clickable destination summaries, inline editing, add/delete, import/export, snapshot refresh, needs-attention filtering, and reset to the supplied import.
-
-Supplier B2B rates are omitted from the customer PDF: MAP B2B, Extra Bed B2B, CNB B2B and operator profit are never printed there. The current public client-side prototype still exposes its imported rate data to anyone who can load the app or repository; see the production boundary below.
+Supplier B2B rates are omitted from the customer PDF. The browser now loads hotel data from an authenticated server endpoint after sign-in and does not bundle or persist the master in localStorage.
 
 Every generated overnight base gets a hotel-selection record. Each destination card shows its exact night numbers and dates. The operator can clear the suggested pattern and select nights from scratch; a night disappears from other pickers once assigned. Applying the pattern updates the itinerary and hotel-night totals. The Hotels step also controls rooms, extra beds, CNB, vehicle and its daily rate. Missing B2B rates are flagged; the current calculated customer amount remains visible and is marked provisional in the PDF. The hotel import uses “Sonmarg” while the destination library uses “Sonamarg”; the planner maps these names when attaching hotels.
 
@@ -51,9 +49,9 @@ npm run dev
 ```
 
 ## Vercel
-Connect the repository and keep the root directory unchanged. Vercel should auto-detect Next.js. No Python configuration is required.
+Connect the repository and keep the root directory unchanged. Vercel should auto-detect Next.js. Set the admin and Supabase environment variables described in `DEPLOY_TO_VERCEL.md` before promoting this version.
 
 ## Production boundary
-The current prototype keeps the imported hotel master in the browser and localStorage for offline-style editing. That is a UI/privacy separation from the customer PDF, not server-side B2B secrecy. For production, move B2B hotel rates to authenticated Supabase/Postgres with role-based access/RLS.
+The itinerary builder and hotel manager require an admin session. The current Git tree no longer contains the supplier-rate JSON; older commits in this public repository still contain that historical snapshot. New Supabase rows are protected by RLS, and the service-role key stays server-side. Import the supplied hotel master into Supabase from a text-based PDF once the project is connected.
 
 Live hotel inventory is distinct from a supplied B2B rate. A dated provider query is required before claiming live room availability.

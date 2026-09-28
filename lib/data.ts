@@ -1,6 +1,5 @@
 import destinationsJson from '@/data/destinations.json';
 import routesJson from '@/data/routes.json';
-import hotelMasterJson from '@/data/hotel-master.json';
 import sourcesJson from '@/data/sources.json';
 
 export type Site = {
@@ -49,7 +48,8 @@ export type Source = { name: string; url: string; type: string; status: string; 
 
 export const destinations = destinationsJson as Destination[];
 export const routes = routesJson as Record<string, Route>;
-export const hotelDatabase = hotelMasterJson as Hotel[];
+// Hotel master data is fetched from the authenticated server API after sign-in.
+export const hotelDatabase: Hotel[] = [];
 export const sources = sourcesJson as Source[];
 
 export const hotelCategories = ['Signature', 'Signature Plus', 'Signature Premium', 'Elite'];

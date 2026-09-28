@@ -60,7 +60,7 @@ function readState(): PlannerState {
       delete x.paymentPlan;
       return {
         ...x,
-        hotelDatabase: Array.isArray(x.hotelDatabase) && x.hotelDatabase.length ? x.hotelDatabase : importedHotels,
+        hotelDatabase: importedHotels,
         hotelDefaults: { ...defaultHotelDefaults, ...(x.hotelDefaults || {}) },
         costModel: { ...defaultCost, ...(x.costModel || {}) },
         input: { ...defaultInput, ...(x.input || {}), pickup: x.input?.pickup === 'Srinagar, Jammu' ? 'Srinagar' : (x.input?.pickup || defaultInput.pickup) },
@@ -100,7 +100,11 @@ function syncHotelSelections(plan: Plan, current: HotelSelection[], db: Hotel[],
   return plan.hotelPlans.map((row) => {
     const existing = current.find((h) => h.location === row.location);
     const existingRecord = existing?.hotelId ? db.find((h) => h.id === existing.hotelId) : null;
-    if (existing && (existingRecord || !existing.hotelId)) return { ...existing, nights: row.nights };
+    if (existing && existingRecord) {
+      const refreshed=selectionFromHotel(row.location,existingRecord,row.nights,input);
+      return existing.status==='user-edited'?{...refreshed,nightlyRate:existing.nightlyRate,extraBedRate:existing.extraBedRate,cnbRate:existing.cnbRate,status:existing.status}:refreshed;
+    }
+    if (existing && !existing.hotelId) return { ...existing, nights: row.nights };
     const candidate = candidateFor(row.location, input.hotelCategory, db);
     return candidate ? selectionFromHotel(row.location, candidate, row.nights, input) : selectionFallback(row.location, row.nights, input, db);
   });
@@ -114,8 +118,16 @@ const Ctx = createContext<PlannerContextValue | null>(null);
 export function PlannerProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<PlannerState>(() => ({ input: { ...defaultInput }, plan: null, hotelSelections: [], hotelDatabase: importedHotels, costModel: { ...defaultCost }, hotelDefaults: { ...defaultHotelDefaults }, generated: false }));
   const [mounted, setMounted] = useState(false);
-  useEffect(() => { setState(readState()); setMounted(true); }, []);
-  useEffect(() => { if (mounted) { try { localStorage.setItem(STORAGE, JSON.stringify(state)); } catch { /* ignore storage errors */ } } }, [state, mounted]);
+  useEffect(() => {
+    const saved=readState();
+    fetch('/api/hotels',{cache:'no-store'}).then(async(response)=>{
+      if(!response.ok)throw new Error('Could not load hotels.');
+      const payload=await response.json();
+      const db=Array.isArray(payload.hotels)?payload.hotels as Hotel[]:[];
+      setState({...saved,hotelDatabase:db,hotelSelections:saved.plan?syncHotelSelections(saved.plan,saved.hotelSelections,db,saved.input):saved.hotelSelections});
+    }).catch(()=>setState(saved)).finally(()=>setMounted(true));
+  }, []);
+  useEffect(() => { if (mounted) { try { const {hotelDatabase: _privateRates, ...saved}=state; localStorage.setItem(STORAGE, JSON.stringify(saved)); } catch { /* ignore storage errors */ } } }, [state, mounted]);
 
   const value = useMemo<PlannerContextValue>(() => ({
     ...state,
