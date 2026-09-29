@@ -21,6 +21,7 @@ export type Plan = {
 };
 
 type PlanningStyle = TripInput['style'];
+export const ROUTE_VERSION = 'kashmir-circuit-2026-09-29';
 const transportRates: Record<string, number> = { Sedan: 3400, Ertiga: 4200, Innova: 5200, 'Tempo Traveller': 7600 };
 
 function daysBetween(a: string, b: string) {
@@ -242,24 +243,91 @@ const essentialVisits = ['Gulmarg', 'Pahalgam', 'Sonamarg', 'Doodhpathri', 'Nara
 function chooseDayTrip(base: Destination, visited: Set<string>, date: string, input: TripInput) {
   if (base.name !== 'Srinagar') return null;
   const candidates = destinations.filter((d) => d.name !== 'Srinagar' && !visited.has(d.name) && d.base && (routeByName('Srinagar', d.name)?.hours || 99) <= 3.5);
-  const allowed = candidates.filter((d) => seasonFit(d, date) >= 0.45 && (d.name !== 'Gurez' || isGurezAllowed(date)));
+  const allowed = candidates.filter((d) => {
+    if (d.name === 'Gurez') return isGurezAllowed(date);
+    if (d.name === 'Doodhpathri') return seasonForDate(date) !== 'winter';
+    if (['Gulmarg', 'Pahalgam', 'Sonamarg'].includes(d.name)) return true;
+    return seasonFit(d, date) >= 0.9;
+  });
+  // Once the three headline excursions have overnight stays, give a spare
+  // Srinagar day to Naranag before adding another western excursion.
+  const priority = visited.has('Sonamarg') && tripNights(input) >= 6
+    ? ['Naranag', ...essentialVisits.filter((name) => name !== 'Naranag')]
+    : essentialVisits;
   return allowed.sort((a, b) => {
-    const aRank = essentialVisits.indexOf(a.name), bRank = essentialVisits.indexOf(b.name);
+    const aRank = priority.indexOf(a.name), bRank = priority.indexOf(b.name);
     if (aRank !== bRank) return (aRank < 0 ? 99 : aRank) - (bRank < 0 ? 99 : bRank);
     return scoredDestination(b, input, date) - scoredDestination(a, input, date);
   })[0] || null;
 }
 
-// Preserve a Srinagar hub for short trips so all three headline excursions can
-// be visited without buying three separate hotel stays. Add destination nights
-// only when the trip has enough days to leave room for the remaining day visits.
-function recommendedNightSequence(nights: number) {
+// A short visit uses Srinagar as its hotel hub. With more time, spend one night
+// at the core destinations, retain Srinagar days for local/day-trip sightseeing,
+// then add suitable lesser-known bases before lengthening existing stays.
+function recommendedNightSequence(input: TripInput) {
+  const nights = tripNights(input);
+  const days = nights + 1;
+  if (days <= 4) return Array.from({ length: nights }, () => 'Srinagar');
+
+  const stays = new Map<string, number>([['Gulmarg', 1], ['Pahalgam', 1]]);
+  if (days >= 7) stays.set('Sonamarg', 1);
+  // Doodhpathri remains an autumn option, subject to a live road check; avoid
+  // automatically promising an overnight stay there in winter.
+  if (days >= 10 && seasonForDate(input.arrival) !== 'winter') stays.set('Doodhpathri', 1);
+
+  // Do not use the Srinagar sightseeing hub as an unlimited filler. Five
+  // nights provide arrival/departure buffers and several full-day excursions.
+  const srinagarNights = Math.min(5, nights - stays.size);
+  const optionalCapacity = Math.max(0, nights - srinagarNights - stays.size);
+  const varietyLimit = input.style === 'Relaxed' ? 3 : input.style === 'Packed' ? 7 : 5;
+  const requestedExtras = Math.min(Math.max(0, days - 10), optionalCapacity, varietyLimit);
+  const extraCandidates = destinations
+    .filter((d) => d.base && d.overnight_allowed && d.min_nights <= 1 && !stays.has(d.name))
+    .filter((d) => d.name !== 'Srinagar' && d.name !== 'Naranag' && d.cluster !== 'central')
+    .filter((d) => (routeByName('Srinagar', d.name)?.hours || 99) <= 4 && seasonFit(d, input.arrival) >= 0.9)
+    .sort((a, b) => scoredDestination(b, input, input.arrival) - scoredDestination(a, input, input.arrival));
+  for (const destination of extraCandidates.slice(0, requestedExtras)) stays.set(destination.name, 1);
+
+  let remaining = nights - srinagarNights - [...stays.values()].reduce((sum, count) => sum + count, 0);
+  const extendable = ['Pahalgam', 'Gulmarg', 'Sonamarg', 'Doodhpathri'];
+  let extensionCursor = 0;
+  while (remaining > 0) {
+    const rotated = [...extendable.slice(extensionCursor), ...extendable.slice(0, extensionCursor)];
+    const next = rotated.find((name) => stays.has(name) && stays.get(name)! < (destinationByName(name)?.ideal_nights || 1))
+      || rotated.find((name) => stays.has(name) && stays.get(name)! < (destinationByName(name)?.max_nights || 1));
+    if (!next) break;
+    stays.set(next, stays.get(next)! + 1);
+    extensionCursor = (extendable.indexOf(next) + 1) % extendable.length;
+    remaining--;
+  }
+  // If a very long trip has filled the core stay windows, add another
+  // seasonally suitable destination rather than repeating only Srinagar.
+  for (const destination of extraCandidates) {
+    if (remaining <= 0) break;
+    if (stays.has(destination.name)) continue;
+    stays.set(destination.name, 1);
+    remaining--;
+  }
+
+  const routeHours = (from: string, to: string) => {
+    const leg = routeLeg(from, to);
+    return leg.known ? leg.hours : 99;
+  };
+  const ordered = [...stays.keys()].filter((name) => ['Gulmarg', 'Pahalgam', 'Sonamarg', 'Doodhpathri'].includes(name));
+  for (const name of stays.keys()) {
+    if (ordered.includes(name)) continue;
+    let bestIndex = ordered.length;
+    let bestCost = Number.POSITIVE_INFINITY;
+    for (let index = 0; index <= ordered.length; index++) {
+      const before = index ? ordered[index - 1] : 'Srinagar';
+      const after = index < ordered.length ? ordered[index] : 'Srinagar';
+      const cost = routeHours(before, name) + routeHours(name, after) - routeHours(before, after);
+      if (cost < bestCost) { bestCost = cost; bestIndex = index; }
+    }
+    ordered.splice(bestIndex, 0, name);
+  }
   const sequence = ['Srinagar'];
-  const overnightStops = nights >= 12 ? ['Gulmarg', 'Sonamarg', 'Pahalgam', 'Doodhpathri']
-    : nights >= 10 ? ['Gulmarg', 'Sonamarg', 'Pahalgam']
-      : nights >= 9 ? ['Gulmarg', 'Pahalgam']
-        : nights >= 6 ? ['Pahalgam'] : [];
-  for (const name of overnightStops) sequence.push(name, 'Srinagar');
+  for (const name of ordered) for (let n = 0; n < stays.get(name)!; n++) sequence.push(name);
   while (sequence.length < nights) sequence.push('Srinagar');
   return sequence.slice(0, nights);
 }
@@ -319,7 +387,9 @@ function buildDays(input: TripInput, nightSequence: string[], departurePoint = '
     // A four-day trip has only two full sightseeing days. Show the third core
     // visit on arrival with an explicit early-arrival condition, never as an
     // unconditional promise about an unknown flight or train time.
-    const arrivalVisit = index === 0 && nights === 3 && stay === 'Srinagar' ? destinationByName('Gulmarg') : null;
+    const arrivalVisit = index === 0 && stay === 'Srinagar'
+      ? destinationByName(nights === 3 ? 'Gulmarg' : nights === 4 ? 'Sonamarg' : '')
+      : null;
     const excursion = override === null ? null : override ? destinationByName(override)
       : arrivalVisit || (!transfer ? chooseDayTrip(base, visited, date, input) : null);
     const localLimit = excursion ? (transfer ? 0 : 1) : siteLimit(input.style, transfer, false);
@@ -396,7 +466,7 @@ export function createPlan(input: TripInput): Plan {
   const nights = tripNights(input);
   const normalizedMix = normalizeChildrenAndAdults(input.adults, input.youngAges);
   const normalized = { ...input, youngAges: normalizedMix.children, adults: normalizedMix.adults, budget: Math.max(0, input.budget) };
-  const nightSequence = recommendedNightSequence(nights);
+  const nightSequence = recommendedNightSequence(normalized);
   const dayPlans = buildDays(normalized, nightSequence);
   const staySegments = groupedStays(nightSequence);
   const hotelPlans = makeHotelPlans(nightSequence, normalized.hotelCategory);
@@ -418,6 +488,10 @@ export function createPlan(input: TripInput): Plan {
   if (budgetTotal > 0 && total > budgetTotal) alerts.push(`Planning baseline is above the entered per-person budget by about ₹${Math.round(total - budgetTotal).toLocaleString('en-IN')} for the group.`);
   if (m.travelLoad === 'Heavy') alerts.push('The route contains a high movement burden; live routing and road conditions should be checked before confirmation.');
   if (['winter', 'spring'].includes(seasonForDate(input.arrival))) alerts.push('Some mountain activities and access points are seasonal; perform a date-specific operating check.');
+  for (const name of [...new Set(nightSequence)]) {
+    const destination = destinationByName(name);
+    if (destination && seasonFit(destination, input.arrival) < 0.9) alerts.push(`${name} overnight is outside its preferred season. Confirm current road access and hotel operations before offering it.`);
+  }
   if (dayPlans.some((d) => d.stay === 'Gurez') && !isGurezAllowed(input.arrival)) alerts.push('Gurez is outside the May-October planning window and should not be confirmed.');
   dayPlans.flatMap((d) => d.blocks).filter((b) => b.intelligence?.status === 'CONDITIONAL' || b.intelligence?.status === 'LIVE_CHECK').forEach((b) => alerts.push(`${b.name}: ${b.intelligence?.note || 'Current access/operation check required.'}`));
   return {

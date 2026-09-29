@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { ChevronRight, Sparkles, MapPin } from 'lucide-react';
 import { usePlanner } from '@/components/PlannerProvider';
 import { hotelCategories, mealOptions } from '@/lib/data';
-import { createPlan } from '@/lib/itinerary';
+import { createPlan, ROUTE_VERSION } from '@/lib/itinerary';
 import { calculateCosts } from '@/lib/costing';
 
 function datePlus(n:number){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}
@@ -12,7 +12,7 @@ function fmtDate(s:string){return new Date(`${s}T12:00:00`).toLocaleDateString('
 function money(v:number){return `₹${Math.round(v).toLocaleString('en-IN')}`}
 
 export default function ChakarPlanner(){
- const router=useRouter(); const {input,plan,setInputField,setYoungAges,generate,hotelSelections,costModel}=usePlanner();
+ const router=useRouter(); const {input,plan,routeVersion,setInputField,setYoungAges,generate,hotelSelections,costModel}=usePlanner();
  const [busy,setBusy]=useState(false); const [quickError,setQuickError]=useState('');
  const [adultsText,setAdultsText]=useState(String(input.adults));
  const [childrenText,setChildrenText]=useState(String(input.youngAges.length));
@@ -47,8 +47,9 @@ export default function ChakarPlanner(){
  return <main className="page build-trip-page">
    <section className="build-header">
      <div><span className="eyebrow">CHAKAR EXPERIENCE</span><h1>Build Your Trip</h1><p>Start with the essentials. Chakar will use your dates, traveller mix, pickup, budget and itinerary category to build the first route.</p></div>
-     <div className="build-header-badge"><Sparkles size={15}/><span>Rule-driven Kashmir planning</span></div>
+     <div className="build-header-badge"><Sparkles size={15}/><span>Expanded Kashmir routes · Sep 2026</span></div>
    </section>
+   {preview && routeVersion !== ROUTE_VERSION && <div className="draft-update-note"><Sparkles size={17}/><span>Your saved draft uses earlier route recommendations. Press <b>Next</b> to build it with the expanded circuit.</span></div>}
    <div className="page-grid build-grid">
     <section className="editor-card">
       <div className="section-head"><div><span className="eyebrow">TRIP DETAILS</span><h2>Tell us about the trip</h2><p>Every field below directly affects the itinerary, hotel occupancy or customer costing.</p></div><span className="step-chip">STEP 01</span></div>

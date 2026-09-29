@@ -1,6 +1,6 @@
 'use client';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { createPlan, retargetDay, rebuildPlanFromNightSequence, setPlanDayTrip, setPlanDeparturePoint, type Plan, type TripInput } from '@/lib/itinerary';
+import { createPlan, retargetDay, rebuildPlanFromNightSequence, setPlanDayTrip, setPlanDeparturePoint, ROUTE_VERSION, type Plan, type TripInput } from '@/lib/itinerary';
 import { hotelDatabase as importedHotels, hotelCategories, mealOptions, transportOptions, travelStyles, interests, destinationByName, type Hotel } from '@/lib/data';
 import { firstHotelCandidate, roomsRequired, cnbChildren, extraBedsRequired, sameHotelDestination, matchesPackageCategory } from '@/lib/hotels';
 
@@ -10,7 +10,7 @@ export type HotelSelection = {
 };
 export type CostModel = { transportDaily: number; mealPerPersonNight: number; activityBudget: number; contingencyPct: number; profitPct: number; otherAmount: number };
 export type HotelDefaults = { rooms: number; extraBeds: number; cnb: number; nightlyRate: number; extraBedRate: number; cnbRate: number };
-export type PlannerState = { input: TripInput; plan: Plan | null; hotelSelections: HotelSelection[]; hotelDatabase: Hotel[]; costModel: CostModel; hotelDefaults: HotelDefaults; generated: boolean };
+export type PlannerState = { input: TripInput; plan: Plan | null; routeVersion: string | null; hotelSelections: HotelSelection[]; hotelDatabase: Hotel[]; costModel: CostModel; hotelDefaults: HotelDefaults; generated: boolean };
 
 type PlannerContextValue = PlannerState & {
   hydrated: boolean;
@@ -60,6 +60,7 @@ function readState(): PlannerState {
       delete x.paymentPlan;
       return {
         ...x,
+        routeVersion: typeof x.routeVersion === 'string' ? x.routeVersion : null,
         hotelDatabase: importedHotels,
         hotelDefaults: { ...defaultHotelDefaults, ...(x.hotelDefaults || {}) },
         costModel: { ...defaultCost, ...(x.costModel || {}) },
@@ -68,7 +69,7 @@ function readState(): PlannerState {
       } as PlannerState;
     }
   } catch { /* fall back to clean state */ }
-  return { input: { ...defaultInput, arrival: safeDatePlus(7), departure: safeDatePlus(14) }, plan: null, hotelSelections: [], hotelDatabase: importedHotels, costModel: { ...defaultCost }, hotelDefaults: { ...defaultHotelDefaults }, generated: false };
+  return { input: { ...defaultInput, arrival: safeDatePlus(7), departure: safeDatePlus(14) }, plan: null, routeVersion: null, hotelSelections: [], hotelDatabase: importedHotels, costModel: { ...defaultCost }, hotelDefaults: { ...defaultHotelDefaults }, generated: false };
 }
 
 function selectionFromHotel(location: string, hotel: Hotel, nights: number, input: TripInput): HotelSelection {
@@ -116,7 +117,7 @@ function shiftDate(date: string, delta: number) {
 
 const Ctx = createContext<PlannerContextValue | null>(null);
 export function PlannerProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<PlannerState>(() => ({ input: { ...defaultInput }, plan: null, hotelSelections: [], hotelDatabase: importedHotels, costModel: { ...defaultCost }, hotelDefaults: { ...defaultHotelDefaults }, generated: false }));
+  const [state, setState] = useState<PlannerState>(() => ({ input: { ...defaultInput }, plan: null, routeVersion: null, hotelSelections: [], hotelDatabase: importedHotels, costModel: { ...defaultCost }, hotelDefaults: { ...defaultHotelDefaults }, generated: false }));
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     const saved=readState();
@@ -139,7 +140,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       const effectiveInput = { ...state.input, ...overrides };
       const plan = createPlan(effectiveInput);
       const selections = syncHotelSelections(plan, [], state.hotelDatabase, effectiveInput);
-      setState((s) => ({ ...s, input: effectiveInput, plan, hotelSelections: selections, hotelDefaults: { ...s.hotelDefaults, rooms: roomsRequired(effectiveInput.adults), extraBeds: extraBedsRequired(effectiveInput.youngAges), cnb: cnbChildren(effectiveInput.youngAges) }, costModel: { ...s.costModel, transportDaily: transportRates[effectiveInput.transport] ?? s.costModel.transportDaily }, generated: true }));
+      setState((s) => ({ ...s, input: effectiveInput, plan, routeVersion: ROUTE_VERSION, hotelSelections: selections, hotelDefaults: { ...s.hotelDefaults, rooms: roomsRequired(effectiveInput.adults), extraBeds: extraBedsRequired(effectiveInput.youngAges), cnb: cnbChildren(effectiveInput.youngAges) }, costModel: { ...s.costModel, transportDaily: transportRates[effectiveInput.transport] ?? s.costModel.transportDaily }, generated: true }));
     },
     setDayDestination(day, destination) {
       setState((s) => {

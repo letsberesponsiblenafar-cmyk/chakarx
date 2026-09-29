@@ -9,6 +9,7 @@ import { destinations, routeByName, type Destination } from '@/lib/data';
 import { destinationPriority } from '@/lib/intelligence';
 import { dayNarrative, dayTitle } from '@/lib/narrative';
 import { sameHotelDestination } from '@/lib/hotels';
+import { ROUTE_VERSION } from '@/lib/itinerary';
 
 function fmtDate(s: string) { return new Date(`${s}T12:00:00`).toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'long', year: 'numeric' }); }
 function routeHours(from: string, to: string) {
@@ -33,7 +34,7 @@ function suggestedDestinations(current: string, hotelDatabase: { destination: st
 }
 
 export default function ItineraryPage() {
-  const { input, plan, hotelSelections, hotelDatabase, setDayDestination, setDayTrip, setDeparturePoint, setDayContent, addDay, removeDay } = usePlanner();
+  const { input, plan, routeVersion, hotelSelections, hotelDatabase, generate, setDayDestination, setDayTrip, setDeparturePoint, setDayContent, addDay, removeDay } = usePlanner();
   const [editDay, setEditDay] = useState<number | null>(null);
   const [destinationSearch, setDestinationSearch] = useState('');
   const [destinationOpen, setDestinationOpen] = useState(false);
@@ -41,6 +42,7 @@ export default function ItineraryPage() {
   const hotelForStay=(stay:string)=>hotelSelections.find((h)=>h.location===stay);
   const attachedHotelCount=plan.stays.filter((s)=>{const h=hotelForStay(s.name);return Boolean(h?.hotelId||h?.hotelName&&h.hotelName!=='Hotel to be added')}).length;
   return <AppShell><PlannerChrome title="Day-wise itinerary" eyebrow="STEP 01 · ITINERARY">
+    {routeVersion !== ROUTE_VERSION && <section className="route-update-banner"><div><span className="eyebrow">NEW ROUTE RULES AVAILABLE</span><b>This saved itinerary uses an earlier route plan.</b><p>Rebuild it to see the expanded Kashmir circuit. This replaces manual day edits and hotel choices in this draft.</p></div><button type="button" className="primary-cta inline" onClick={()=>generate()}>Rebuild itinerary <ChevronRight size={16}/></button></section>}
     <section className="intelligence-banner"><div className="intelligence-banner-main"><div className="intelligence-icon"><Sparkles size={15}/></div><div><span className="eyebrow">CHAKAR INTELLIGENCE</span><b>Rule-driven itinerary active</b><p>Overnight state, destination priority, route preference, seasonal access and package boundaries are applied before the day plan is shown.</p></div></div><div className="intelligence-pills"><span><ShieldCheck size={11}/> Core-first</span><span><RouteIcon size={11}/> Hub routing</span><span><CircleAlert size={11}/> Live checks</span><span><WalletCards size={11}/> Clean costing</span></div></section>
     <section className="summary-ribbon"><div><span>Trip</span><b>{plan.days} days / {plan.nights} nights</b></div><div><span>Stay sequence</span><b>{plan.stays.map((s)=>`${s.name} ${s.nights}N`).join(' → ')}</b></div><div><span>Hotel attachment</span><b>{attachedHotelCount}/{plan.stays.length} stays</b></div><div><span>Planning load</span><b>{plan.travelLoad}</b></div></section>
     <div className="section-title itinerary-section-title"><div><span className="eyebrow">YOUR ITINERARY</span><h2>Days, destinations and local sightseeing.</h2><p>Choose each night’s hotel base separately from the places visited during the day. Set the departure location on the final day.</p></div></div>
