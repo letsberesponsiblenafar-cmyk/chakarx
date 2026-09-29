@@ -44,20 +44,22 @@ const selections = plan.hotelPlans.map((row) => ({
 }));
 const costs = calculateCosts(plan, selections, { transportDaily: 8000, otherAmount: 0, profitPct: 10 });
 const artFiles = {
-  cover: 'asna-cover-template.png', letter: 'standard-letter.jpg', summary: 'standard-summary.jpg',
-  daywise: 'standard-daywise.jpg', package: 'standard-package.jpg', hotels: 'standard-hotels.jpg',
-  inclusions: 'standard-inclusions.jpg', exclusions: 'standard-exclusions.jpg', policies: 'standard-policies.jpg',
-  testimonials: 'standard-testimonials.jpg', thanks: 'standard-thanks.jpg',
+  cover: 'branded-cover.png', letter: 'branded-letter.jpg', summary: 'branded-summary.jpg',
+  daywise: 'standard-daywise.jpg', package: 'branded-package.jpg', hotels: 'branded-hotels.jpg',
+  inclusions: 'branded-inclusions.jpg', exclusions: 'branded-exclusions.jpg', policies: 'branded-policies.jpg',
+  testimonials: 'branded-testimonials.jpg', thanks: 'standard-thanks.jpg',
 };
 const art = Object.fromEntries(Object.entries(artFiles).map(([key, file]) => {
   const ext = path.extname(file).slice(1);
   const mime = ext === 'png' ? 'image/png' : 'image/jpeg';
   return [key, `data:${mime};base64,${fs.readFileSync(path.join(root, 'public', 'pdf-assets', file)).toString('base64')}`];
 }));
-art.brand = `data:image/png;base64,${fs.readFileSync(path.join(root, 'public', 'chakar-experience-logo.png')).toString('base64')}`;
+art.brandWhite = `data:image/png;base64,${fs.readFileSync(path.join(root, 'public', 'chakar-experience-logo-white.png')).toString('base64')}`;
+art.brandInk = `data:image/png;base64,${fs.readFileSync(path.join(root, 'public', 'chakar-experience-logo-ink.png')).toString('base64')}`;
 const fonts = {
-  regular: fs.readFileSync(path.join(root, 'public', 'fonts', 'RedHatDisplay-400.ttf')).toString('base64'),
-  bold: fs.readFileSync(path.join(root, 'public', 'fonts', 'RedHatDisplay-700.ttf')).toString('base64'),
+  regular: fs.readFileSync(path.join(root, 'public', 'fonts', 'Evolventa-Regular.ttf')).toString('base64'),
+  bold: fs.readFileSync(path.join(root, 'public', 'fonts', 'Evolventa-Bold.ttf')).toString('base64'),
+  cover: fs.readFileSync(path.join(root, 'public', 'fonts', 'RedHatDisplay-400.ttf')).toString('base64'),
 };
 const doc = buildClientPdf(art, plan, input, selections, costs, input.name, fonts);
 const target = path.join(os.tmpdir(), 'chakar-client-pdf-check.pdf');
