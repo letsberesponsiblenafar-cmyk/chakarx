@@ -33,3 +33,8 @@ create table if not exists hotel_master (
 );
 create index if not exists hotel_master_destination_idx on hotel_master(destination);
 create index if not exists hotel_master_category_idx on hotel_master(normalized_category);
+
+-- The browser never connects to this table directly. Server routes use the
+-- service-role key after validating the signed admin session.
+alter table hotel_master enable row level security;
+revoke all on table hotel_master from anon, authenticated;

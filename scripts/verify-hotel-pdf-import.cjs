@@ -1,0 +1,15 @@
+const fs=require('node:fs');
+const path=require('node:path');
+const Module=require('node:module');
+const ts=require('typescript');
+const {jsPDF}=require('jspdf');
+const {PDFParse}=require('pdf-parse');
+const root=path.resolve(__dirname,'..');
+const originalResolve=Module._resolveFilename;
+Module._resolveFilename=function(request,parent,isMain,options){return originalResolve.call(this,request.startsWith('@/')?path.join(root,request.slice(2)):request,parent,isMain,options);};
+for(const extension of ['.ts','.tsx'])require.extensions[extension]=function(module,filename){const output=ts.transpileModule(fs.readFileSync(filename,'utf8'),{fileName:filename,compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,esModuleInterop:true}}).outputText;module._compile(output,filename);};
+const {parseHotelPdfText}=require('../lib/hotel-pdf-import.ts');
+const pdf=new jsPDF();
+const lines=['CHAKAR HOTEL RECORD','ID: hotel-001','Destination: Srinagar','Hotel: City Grace','Category: Budget','MAP B2B: 2500','Extra Bed B2B: 800','CNB B2B: 600','END HOTEL','CHAKAR HOTEL RECORD','Destination: Gulmarg','Hotel: Alpine View','Category: 4 Star','MAP B2B: 6500','END HOTEL'];
+pdf.setFont('courier');pdf.setFontSize(10);pdf.text(lines,20,25);
+(async()=>{const external=process.argv[2];const parser=new PDFParse({data:external?new Uint8Array(fs.readFileSync(external)):new Uint8Array(pdf.output('arraybuffer'))});let text;try{text=(await parser.getText()).text;}finally{await parser.destroy();}const existing=external?[]:[{id:'hotel-001',destination:'Srinagar',name:'City Grace',normalizedCategory:'Budget',mapB2B:2000,extraBedB2B:null,cnbB2B:null,address:'Existing address',roomType:'',website:'',sourceCategory:'',starRating:null,sourceType:'',rateValidity:'',availabilityStatus:'',lastUpdated:'',sourceFiles:[],notes:''}];const rows=parseHotelPdfText(text,existing,external?path.basename(external):'test.pdf');if(external){if(rows.length!==166||rows[0].hotel.id!=='hotel-001'||new Set(rows.map(r=>r.hotel.id)).size!==166)throw new Error(`Master PDF mismatch: ${rows.length} records`);process.stdout.write(JSON.stringify({records:rows.length,first:rows[0].hotel.name,last:rows.at(-1).hotel.name})+'\n');}else{if(rows.length!==2||rows[0].action!=='update'||rows[0].hotel.mapB2B!==2500||rows[0].hotel.address!=='Existing address'||rows[1].action!=='create'||rows[1].hotel.name!=='Alpine View')throw new Error(`PDF import mismatch: ${JSON.stringify(rows)}`);process.stdout.write(JSON.stringify({records:rows.length,updated:rows[0].hotel.name,created:rows[1].hotel.name})+'\n');}})().catch(error=>{process.stderr.write(String(error)+'\n');process.exitCode=1;});
