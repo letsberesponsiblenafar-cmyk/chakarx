@@ -3,7 +3,9 @@
 Kashmir itinerary intelligence and B2B trip-package builder.
 
 ## Product flow
-Build Your Trip -> Day-wise Itinerary -> Hotels -> Costing -> Client PDF
+Build Your Trip -> Day-wise Itinerary -> Hotels -> Costing -> Client PDF -> Saved Itineraries
+
+`/saved-itineraries` is a private client library. A PDF download saves the editable trip to Supabase before offering the file. Open a saved client to change days, hotels or costing, use **Save changes** to keep edits, or download a revised PDF. **Build New** clears only the current planner draft and starts a separate trip; it does not delete prior clients. Existing PDF files created before this feature are not imported automatically.
 
 ## Destination library
 The planner ships with 44 Kashmir destination records. Each record is destination-first and carries:
@@ -39,6 +41,8 @@ The client PDF uses the supplied Chakar itinerary design at 540 x 780 pt. The co
 
 Trip-specific values fill the tour summary, compact day-wise pages (up to five days per page), package/investment table and hotel table. The latter includes each destination’s exact night numbers. The day text uses the master itinerary and route playbook to explain transfers, excursions and overnight stays. The package table shows the current final customer total, vehicle, meal plan and rooms. B2B room rates, B2B subtotal and operator margin are not printed.
 
+The site and PDF now use a transparent full-resolution copy of the original logo embedded in the supplied itinerary PDF, instead of an enlarged crop from a small screenshot. Regenerate its white and ink variants with `node scripts/make-transparent-logo.mjs`.
+
 ## Photos
 Destination profile photos are loaded on demand from Wikimedia Commons through `/api/photos`. The library still works when the photo service returns no results.
 
@@ -50,6 +54,8 @@ npm run dev
 
 ## Vercel
 Connect the repository and keep the root directory unchanged. Vercel should auto-detect Next.js. Set the admin and Supabase environment variables described in `DEPLOY_TO_VERCEL.md` before promoting this version.
+
+For an existing Supabase project, run `supabase/saved_itineraries.sql` once in the SQL editor. The table uses RLS with no browser policy; only the authenticated Chakar server can read and write client plans with its secret key.
 
 ## Production boundary
 The itinerary builder and hotel manager require an admin session. The current Git tree no longer contains the supplier-rate JSON; older commits in this public repository still contain that historical snapshot. New Supabase rows are protected by RLS, and the service-role key stays server-side. Import the supplied hotel master into Supabase from a text-based PDF once the project is connected.

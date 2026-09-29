@@ -1,13 +1,14 @@
 'use client';
 import Link from 'next/link';
 import { useState } from 'react';
-import { ChevronLeft, Download, FileText, Info } from 'lucide-react';
+import { ChevronLeft, Download, FileText, FolderOpen, Info } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import PlannerChrome from '@/components/PlannerChrome';
 import { usePlanner, type HotelSelection } from '@/components/PlannerProvider';
 import { calculateCosts } from '@/lib/costing';
 import { dayNarrative, dayTitle } from '@/lib/narrative';
 import type { DayPlan, Plan, TripInput } from '@/lib/itinerary';
+import { savePlannerItinerary } from '@/lib/save-itinerary';
 
 const PAGE_W = 540;
 const PAGE_H = 780;
@@ -66,7 +67,7 @@ function artworkPage(doc: jsPDF, data: PdfArt, key: ArtKey, first = false) {
   if (!logo) return;
   const left = key === 'cover' || key === 'letter';
   const x = left ? 18 : 413, y = left ? 8 : 6, width = left ? 134 : 119;
-  doc.addImage(logo, 'PNG', x, y, width, width * 61 / 168, undefined, 'FAST');
+  doc.addImage(logo, 'PNG', x, y, width, width * 223 / 593, undefined, 'NONE');
 }
 function addCover(doc: jsPDF, data: PdfArt, name: string) {
   artworkPage(doc, data, 'cover', true);
@@ -187,7 +188,8 @@ export function buildClientPdf(data: PdfArt, plan: Plan, input: TripInput, selec
 }
 
 export default function ClientPdf() {
-  const { plan, input, hotelSelections, costModel, hydrated } = usePlanner();
+  const planner = usePlanner();
+  const { plan, input, hotelSelections, costModel, hydrated, markSavedItinerary, reset } = planner;
   const [downloading,setDownloading] = useState(false);
   const costs = plan ? calculateCosts(plan,hotelSelections,costModel) : null;
   if (!hydrated) return <PlannerChrome title="Client-ready itinerary PDF" eyebrow="STEP 04 · CLIENT PDF"><div className="empty-panel"><FileText size={28}/><h2>Loading your itinerary PDF…</h2></div></PlannerChrome>;
@@ -202,11 +204,15 @@ export default function ClientPdf() {
     try {
       const entries=await Promise.all((Object.keys(ART) as ArtKey[]).map(async (key)=>[key,await imageData(ART[key])] as const));
       const data=Object.fromEntries(entries) as PdfArt;
-      [data.brandWhite,data.brandInk]=await Promise.all([imageData('/chakar-experience-logo-white.png'),imageData('/chakar-experience-logo-ink.png')]);
+      [data.brandWhite,data.brandInk]=await Promise.all([imageData('/chakar-logo-original-white.png'),imageData('/chakar-logo-original-ink.png')]);
       const [regular,bold,cover]=await Promise.all([imageData('/fonts/Evolventa-Regular.ttf'),imageData('/fonts/Evolventa-Bold.ttf'),imageData('/fonts/RedHatDisplay-400.ttf')]);
       const doc=buildClientPdf(data,currentPlan,currentInput,hotelSelections,currentCosts,customerName,{regular:regular.split(',')[1],bold:bold.split(',')[1],cover:cover.split(',')[1]});
       const blob=doc.output('blob');
       if (!blob || blob.size<1024) throw new Error('The PDF engine returned an empty document.');
+      // The saved record is committed before offering the file, so a successful
+      // download always has an editable copy in the admin workspace.
+      const id=await savePlannerItinerary(planner,true);
+      markSavedItinerary(id);
       const url=URL.createObjectURL(blob);
       const anchor=document.createElement('a');
       anchor.href=url; anchor.download=`Chakar-Experience-${customerName.replace(/[^a-z0-9]+/gi,'-')}-Kashmir-Itinerary.pdf`;
@@ -221,6 +227,6 @@ export default function ClientPdf() {
   return <PlannerChrome title="Client-ready itinerary PDF" eyebrow="STEP 04 · CLIENT PDF">
     <section className="pdf-hero"><div className="pdf-brand-lockup"><span className="original-logo" role="img" aria-label="Chakar Experience"/><span>DISCOVER KASHMIR · HEAVEN ON EARTH</span></div><h2>{customerName}&apos;s Kashmir journey</h2><p>The client document follows the supplied Chakar itinerary: cover and letter, tour summary, compact day-wise itinerary, package and hotel tables, then the fixed inclusions, exclusions, policies, testimonials and thank-you page.</p>{currentCosts.missingHotelRates.length>0&&<div className="pdf-block-warning"><Info size={15}/><span><b>Current total is provisional.</b> Add a room rate for {currentCosts.missingHotelRates.join(', ')} to complete the quote. The current calculated amount remains visible in the PDF.</span></div>}<button className="primary-cta inline" type="button" onClick={download} disabled={downloading}><Download size={17}/>{downloading?'Preparing PDF…':'Download client PDF'}</button></section>
     <section className="pdf-preview"><div className="section-head"><div><span className="eyebrow">DOCUMENT CONTENT</span><h2>Review this itinerary</h2><p>These values are pulled from the live planner. The fixed pages use the same artwork for every customer.</p></div></div><div className="pdf-review-grid"><div className="pdf-review-cover"><img src={ART.cover} alt="Discover Kashmir cover artwork"/><span className="pdf-preview-logo"><span className="original-logo" role="img" aria-label="Chakar Experience"/></span><span>Dear {customerName},</span></div><div className="pdf-review-details"><div><small>Tour summary</small><b>{currentPlan.nights} nights / {currentPlan.days} days</b><span>{date(input.arrival)} – {date(input.departure)}</span><span>{input.pickup} pick-up · {input.adults} adults · {input.youngAges.length} {input.youngAges.length===1?'child':'children'}</span></div><div><small>Package type</small><b>{input.hotelCategory} · {uiMoney(currentCosts.sellingTotal)}</b><span>{input.transport} · {input.mealPlan} · {roomSummary(hotels)}</span></div><div><small>Hotel type</small>{hotels.map((hotel)=><span key={hotel.location}>{hotel.location} {hotel.nights}N (nights {hotel.nightNumbers.join(', ')}) · {hotel.hotelName}</span>)}</div></div></div><div className="pdf-review-days"><h3>Day-wise itinerary</h3>{currentPlan.dayPlans.map((day)=><div key={day.day}><b>Day {day.day} · {date(day.date,true)} · {dayTitle(day,input.pickup)}</b><p>{dayNarrative(day,input.pickup)}</p></div>)}</div><div className="pdf-fixed-pages"><b>Fixed pages in every PDF</b><span>Cover letter</span><span>Inclusions</span><span>Exclusions</span><span>Policies</span><span>Testimonials</span><span>Thank you</span></div></section>
-    <div className="next-row"><Link className="secondary-link" href="/planner/costing"><ChevronLeft size={16}/> Back to costing</Link><Link className="primary-cta inline" href="/">Start another trip</Link></div>
+    <div className="next-row"><Link className="secondary-link" href="/planner/costing"><ChevronLeft size={16}/> Back to costing</Link><div className="pdf-next-actions"><Link className="secondary-link" href="/saved-itineraries"><FolderOpen size={16}/> Saved Itineraries</Link><button className="primary-cta inline" type="button" onClick={reset}>Build New</button></div></div>
   </PlannerChrome>;
 }

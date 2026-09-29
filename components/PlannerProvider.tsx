@@ -10,7 +10,11 @@ export type HotelSelection = {
 };
 export type CostModel = { transportDaily: number; mealPerPersonNight: number; activityBudget: number; contingencyPct: number; profitPct: number; otherAmount: number };
 export type HotelDefaults = { rooms: number; extraBeds: number; cnb: number; nightlyRate: number; extraBedRate: number; cnbRate: number };
-export type PlannerState = { input: TripInput; plan: Plan | null; routeVersion: string | null; hotelSelections: HotelSelection[]; hotelDatabase: Hotel[]; costModel: CostModel; hotelDefaults: HotelDefaults; generated: boolean };
+export type PlannerState = { input: TripInput; plan: Plan | null; routeVersion: string | null; hotelSelections: HotelSelection[]; hotelDatabase: Hotel[]; costModel: CostModel; hotelDefaults: HotelDefaults; generated: boolean; savedItineraryId: string | null };
+export type ItinerarySnapshot = Omit<PlannerState, 'hotelDatabase' | 'savedItineraryId'>;
+export function itinerarySnapshot(state: PlannerState): ItinerarySnapshot {
+  return { input: state.input, plan: state.plan, routeVersion: state.routeVersion, hotelSelections: state.hotelSelections, costModel: state.costModel, hotelDefaults: state.hotelDefaults, generated: state.generated };
+}
 
 type PlannerContextValue = PlannerState & {
   hydrated: boolean;
@@ -41,6 +45,8 @@ type PlannerContextValue = PlannerState & {
   addDayBlock: (day: number, block: Partial<Plan['dayPlans'][number]['blocks'][number]> & { name: string }) => void;
   removeDayBlock: (day: number, index: number) => void;
   reset: () => void;
+  loadSavedItinerary: (id: string, snapshot: ItinerarySnapshot) => void;
+  markSavedItinerary: (id: string) => void;
 };
 
 const defaultInput: TripInput = {
@@ -66,10 +72,11 @@ function readState(): PlannerState {
         costModel: { ...defaultCost, ...(x.costModel || {}) },
         input: { ...defaultInput, ...(x.input || {}), pickup: x.input?.pickup === 'Srinagar, Jammu' ? 'Srinagar' : (x.input?.pickup || defaultInput.pickup) },
         generated: Boolean(x.generated),
+        savedItineraryId: typeof x.savedItineraryId === 'string' ? x.savedItineraryId : null,
       } as PlannerState;
     }
   } catch { /* fall back to clean state */ }
-  return { input: { ...defaultInput, arrival: safeDatePlus(7), departure: safeDatePlus(14) }, plan: null, routeVersion: null, hotelSelections: [], hotelDatabase: importedHotels, costModel: { ...defaultCost }, hotelDefaults: { ...defaultHotelDefaults }, generated: false };
+  return { input: { ...defaultInput, arrival: safeDatePlus(7), departure: safeDatePlus(14) }, plan: null, routeVersion: null, hotelSelections: [], hotelDatabase: importedHotels, costModel: { ...defaultCost }, hotelDefaults: { ...defaultHotelDefaults }, generated: false, savedItineraryId: null };
 }
 
 function selectionFromHotel(location: string, hotel: Hotel, nights: number, input: TripInput): HotelSelection {
@@ -117,7 +124,7 @@ function shiftDate(date: string, delta: number) {
 
 const Ctx = createContext<PlannerContextValue | null>(null);
 export function PlannerProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<PlannerState>(() => ({ input: { ...defaultInput }, plan: null, routeVersion: null, hotelSelections: [], hotelDatabase: importedHotels, costModel: { ...defaultCost }, hotelDefaults: { ...defaultHotelDefaults }, generated: false }));
+  const [state, setState] = useState<PlannerState>(() => ({ input: { ...defaultInput }, plan: null, routeVersion: null, hotelSelections: [], hotelDatabase: importedHotels, costModel: { ...defaultCost }, hotelDefaults: { ...defaultHotelDefaults }, generated: false, savedItineraryId: null }));
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     const saved=readState();
@@ -306,6 +313,10 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       setState((s) => s.plan ? { ...s, plan: { ...s.plan, dayPlans: s.plan.dayPlans.map((d) => d.day === day ? { ...d, blocks: d.blocks.filter((_, i) => i !== index) } : d) } } : s);
     },
     reset() { try { localStorage.removeItem(STORAGE); } catch {} location.href = '/'; },
+    loadSavedItinerary(id, snapshot) {
+      setState((s) => ({ ...s, ...snapshot, hotelDatabase: s.hotelDatabase, savedItineraryId: id }));
+    },
+    markSavedItinerary(id) { setState((s) => ({ ...s, savedItineraryId: id })); },
   }), [state, mounted]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
