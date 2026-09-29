@@ -236,3 +236,4 @@ body{font-size:15px}.build-trip-page{max-width:1500px;margin:0 auto}.build-heade
 .pdf-review-cover>.pdf-preview-logo{position:absolute;left:1.7%;top:1%;width:33%;height:5.6%;display:flex;align-items:center;padding:2.2%;background:#2a1b11;border-radius:3px}
 .pdf-review-cover>.pdf-preview-logo img{display:block;width:100%;height:100%;object-fit:contain}
 .admin-file-upload{position:relative;overflow:hidden;cursor:pointer}.admin-file-upload-input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}.admin-file-upload:focus-within{outline:3px solid #c3a053;outline-offset:2px}
+.admin-paste textarea{display:block;width:100%;margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--white);color:var(--ink);font:12px/1.5 var(--sans);resize:vertical}.admin-paste textarea:focus{outline:2px solid #c3a053;outline-offset:2px}.admin-paste .primary-cta{margin-top:10px}
