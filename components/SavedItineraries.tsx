@@ -9,8 +9,11 @@ import type { SavedItinerarySummary } from '@/lib/itinerary-store';
 
 function date(value: string | null) {
   if (!value) return 'Date to confirm';
-  const parsed = new Date(`${value.slice(0, 10)}T12:00:00`);
-  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  const timestamp = value.includes('T');
+  const parsed = new Date(timestamp ? value : `${value.slice(0, 10)}T12:00:00`);
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString('en-IN', {
+    day: 'numeric', month: 'short', year: 'numeric', ...(timestamp ? { timeZone: 'Asia/Kolkata' } : {}),
+  });
 }
 export default function SavedItineraries() {
   const router = useRouter();
