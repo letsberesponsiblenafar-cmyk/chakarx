@@ -12,22 +12,23 @@ import type { DayPlan, Plan, TripInput } from '@/lib/itinerary';
 const PAGE_W = 540;
 const PAGE_H = 780;
 const ART = {
-  cover: '/pdf-assets/asna-cover-template.png',
-  letter: '/pdf-assets/standard-letter.jpg',
-  summary: '/pdf-assets/standard-summary.jpg',
+  cover: '/pdf-assets/branded-cover.png',
+  letter: '/pdf-assets/branded-letter.jpg',
+  summary: '/pdf-assets/branded-summary.jpg',
   daywise: '/pdf-assets/standard-daywise.jpg',
-  package: '/pdf-assets/standard-package.jpg',
-  hotels: '/pdf-assets/standard-hotels.jpg',
-  inclusions: '/pdf-assets/standard-inclusions.jpg',
-  exclusions: '/pdf-assets/standard-exclusions.jpg',
-  policies: '/pdf-assets/standard-policies.jpg',
-  testimonials: '/pdf-assets/standard-testimonials.jpg',
+  package: '/pdf-assets/branded-package.jpg',
+  hotels: '/pdf-assets/branded-hotels.jpg',
+  inclusions: '/pdf-assets/branded-inclusions.jpg',
+  exclusions: '/pdf-assets/branded-exclusions.jpg',
+  policies: '/pdf-assets/branded-policies.jpg',
+  testimonials: '/pdf-assets/branded-testimonials.jpg',
   thanks: '/pdf-assets/standard-thanks.jpg',
 } as const;
 type ArtKey = keyof typeof ART;
 type Costs = ReturnType<typeof calculateCosts>;
 type PdfHotel = HotelSelection & { nightNumbers: number[] };
-type PdfFonts = { regular: string; bold: string };
+type PdfFonts = { regular: string; bold: string; cover: string };
+type PdfArt = Record<ArtKey,string> & {brandWhite?:string; brandInk?:string};
 
 function printable(value: unknown) {
   return String(value ?? '').trim().replace(/[\u2018\u2019]/g,"'").replace(/[\u2013\u2014]/g,'-').replace(/→/g,'to').replace(/≤/g,'<=');
@@ -39,10 +40,10 @@ function date(value: string, short = false) {
 function money(value: number) { return `Rs. ${Math.round(value).toLocaleString('en-IN')}/-`; }
 function uiMoney(value: number) { return `₹${Math.round(value).toLocaleString('en-IN')}`; }
 function center(doc: jsPDF, value: string, x: number, y: number, size: number, color: [number,number,number] = [30,24,18], bold = false) {
-  doc.setFont('redhat', bold ? 'bold' : 'normal'); doc.setFontSize(size); doc.setTextColor(...color); doc.text(printable(value), x, y, { align: 'center' });
+  doc.setFont('evolventa', bold ? 'bold' : 'normal'); doc.setFontSize(size); doc.setTextColor(...color); doc.text(printable(value), x, y, { align: 'center' });
 }
 function textLines(doc: jsPDF, value: string, width: number, size: number, bold = false) {
-  doc.setFont('redhat', bold ? 'bold' : 'normal'); doc.setFontSize(size);
+  doc.setFont('evolventa', bold ? 'bold' : 'normal'); doc.setFontSize(size);
   return doc.splitTextToSize(printable(value), width) as string[];
 }
 async function imageData(path: string) {
@@ -56,26 +57,18 @@ async function imageData(path: string) {
     reader.readAsDataURL(blob);
   });
 }
-function artworkPage(doc: jsPDF, data: Record<ArtKey,string> & {brand?:string}, key: ArtKey, first = false) {
+function artworkPage(doc: jsPDF, data: PdfArt, key: ArtKey, first = false) {
   if (!first) doc.addPage();
   doc.addImage(data[key], key === 'cover' ? 'PNG' : 'JPEG', 0, 0, PAGE_W, PAGE_H, undefined, 'FAST');
-  if (key !== 'daywise' && key !== 'thanks') {
-    const left = key === 'cover' || key === 'letter';
-    const x = left ? 9 : 413;
-    const y = left ? 7 : 6;
-    const w = left ? 178 : 120;
-    const h = left ? 43 : 42;
-    doc.setFillColor(42, 27, 17);
-    doc.roundedRect(x, y, w, h, 5, 5, 'F');
-    if(data.brand){
-      doc.saveGraphicsState();doc.rect(x,y,w,h,null);doc.clip();doc.discardPath();
-      const logoWidth=left?155:116;
-      doc.addImage(data.brand,'PNG',x+(w-logoWidth)/2,y-6,logoWidth,logoWidth*135/250,undefined,'FAST');
-      doc.restoreGraphicsState();
-    }
-  }
+  if (key === 'thanks') return;
+  const lightArt = key === 'cover' || key === 'letter' || key === 'inclusions' || key === 'exclusions' || key === 'policies' || key === 'testimonials';
+  const logo = lightArt ? data.brandWhite : data.brandInk;
+  if (!logo) return;
+  const left = key === 'cover' || key === 'letter';
+  const x = left ? 18 : 413, y = left ? 8 : 6, width = left ? 134 : 119;
+  doc.addImage(logo, 'PNG', x, y, width, width * 61 / 168, undefined, 'FAST');
 }
-function addCover(doc: jsPDF, data: Record<ArtKey,string>, name: string) {
+function addCover(doc: jsPDF, data: PdfArt, name: string) {
   artworkPage(doc, data, 'cover', true);
   doc.setFont('redhat','normal'); doc.setFontSize(11); doc.setTextColor(255,255,255);
   doc.text(`Dear ${printable(name)},`, 28.44, 529.4);
@@ -87,35 +80,35 @@ function addSummary(doc: jsPDF, data: Record<ArtKey,string>, plan: Plan, input: 
   center(doc, date(input.departure), 174, 423, 12.5, [30,24,18], true);
   center(doc, input.pickup || 'Pick-up to confirm', 352, 530, 12.5, [30,24,18], true);
   const persons = `${input.adults} adult${input.adults === 1 ? '' : 's'}${input.youngAges.length ? ` plus ${input.youngAges.length} child${input.youngAges.length === 1 ? '' : 'ren'} (${input.youngAges.join(', ')} yrs)` : ''}`;
-  doc.setFont('redhat','normal'); doc.setFontSize(10); doc.setTextColor(30,24,18); doc.text('Number of persons',80,646);
+  doc.setFont('evolventa','normal'); doc.setFontSize(10); doc.setTextColor(30,24,18); doc.text('Number of persons',80,646);
   const lines = textLines(doc, persons, 250, 11);
   doc.setTextColor(30,24,18); doc.text(lines.slice(0,2), 82, 667, { lineHeightFactor: 1.13 });
 }
 function dayLayout(doc: jsPDF, day: DayPlan, pickup: string) {
   const title = `${date(day.date, true)} - ${dayTitle(day,pickup)}`;
-  const titleLines = textLines(doc, title, 346, 9.2, true);
-  const storyLines = textLines(doc, dayNarrative(day,pickup), 350, 8.3);
-  return { titleLines, storyLines, height: titleLines.length * 11.2 + 12 + storyLines.length * 10.2 + 14 };
+  const titleLines = textLines(doc, title, 346, 10, true);
+  const storyLines = textLines(doc, dayNarrative(day,pickup), 350, 8.9);
+  return { titleLines, storyLines, height: titleLines.length * 12 + 12 + storyLines.length * 11 + 14 };
 }
 function addDaywise(doc: jsPDF, data: Record<ArtKey,string>, plan: Plan, pickup: string) {
   let index = 0;
   while (index < plan.dayPlans.length) {
     artworkPage(doc, data, 'daywise');
-    doc.setFont('redhat','normal'); doc.setFontSize(9.5); doc.setTextColor(40,29,14);
+    doc.setFont('evolventa','normal'); doc.setFontSize(9.5); doc.setTextColor(40,29,14);
     doc.text(`${plan.nights} Nights / ${plan.days} Days`, 32, 83);
     let y = 150; let onPage = 0;
     while (index < plan.dayPlans.length && onPage < 5) {
       const day = plan.dayPlans[index];
       const layout = dayLayout(doc,day,pickup);
       if (onPage > 0 && y + layout.height > 602) break;
-      doc.setFont('redhat','bold'); doc.setFontSize(10.5); doc.setTextColor(58,40,13);
+      doc.setFont('evolventa','bold'); doc.setFontSize(10.5); doc.setTextColor(58,40,13);
       doc.text(`Day ${day.day}-`, 30, y + 2);
-      doc.setFont('redhat','bold'); doc.setFontSize(9.2); doc.setTextColor(31,25,19);
+      doc.setFont('evolventa','bold'); doc.setFontSize(10); doc.setTextColor(31,25,19);
       doc.text(layout.titleLines, 84, y, { lineHeightFactor: 1.2 });
-      let bodyY = y + layout.titleLines.length * 11.2;
-      doc.setFont('redhat','bold'); doc.setFontSize(8.3); doc.text(day.label === 'Departure day' ? `Departure: ${printable(day.to)} (previous night: ${printable(day.stay)})` : `Overnight: ${printable(day.stay)}`, 84, bodyY + 2);
+      let bodyY = y + layout.titleLines.length * 12;
+      doc.setFont('evolventa','bold'); doc.setFontSize(8.9); doc.text(day.label === 'Departure day' ? `Departure: ${printable(day.to)} (previous night: ${printable(day.stay)})` : `Overnight: ${printable(day.stay)}`, 84, bodyY + 2);
       bodyY += 12;
-      doc.setFont('redhat','normal'); doc.setFontSize(8.3); doc.setTextColor(38,33,29);
+      doc.setFont('evolventa','normal'); doc.setFontSize(8.9); doc.setTextColor(38,33,29);
       doc.text(layout.storyLines, 84, bodyY + 2, { lineHeightFactor: 1.22 });
       y += layout.height; onPage++; index++;
     }
@@ -144,7 +137,7 @@ function addPackage(doc: jsPDF, data: Record<ArtKey,string>, plan: Plan, input: 
   const roomLines = textLines(doc,roomSummary(hotels),103,8.2);
   doc.text(roomLines,cellCenters[3],roomLines.length>1?540:547,{align:'center',lineHeightFactor:1.15});
   if (costs.missingHotelRates.length) {
-    doc.setFont('redhat','bold'); doc.setFontSize(8); doc.setTextColor(112,67,24);
+    doc.setFont('evolventa','bold'); doc.setFontSize(8); doc.setTextColor(112,67,24);
     doc.text('PROVISIONAL - HOTEL RATE(S) TO CONFIRM', 270, 697, {align:'center'});
   }
 }
@@ -174,12 +167,14 @@ function pdfHotels(plan: Plan, selections: HotelSelection[], input: TripInput): 
   });
 }
 
-export function buildClientPdf(data: Record<ArtKey,string>, plan: Plan, input: TripInput, selections: HotelSelection[], costs: Costs, customerName: string, fonts: PdfFonts) {
+export function buildClientPdf(data: PdfArt, plan: Plan, input: TripInput, selections: HotelSelection[], costs: Costs, customerName: string, fonts: PdfFonts) {
   const doc=new jsPDF({unit:'pt',format:[PAGE_W,PAGE_H],orientation:'portrait',compress:true});
-  doc.addFileToVFS('RedHatDisplay-400.ttf', fonts.regular);
-  doc.addFileToVFS('RedHatDisplay-700.ttf', fonts.bold);
+  doc.addFileToVFS('Evolventa-Regular.ttf', fonts.regular);
+  doc.addFileToVFS('Evolventa-Bold.ttf', fonts.bold);
+  doc.addFileToVFS('RedHatDisplay-400.ttf', fonts.cover);
+  doc.addFont('Evolventa-Regular.ttf', 'evolventa', 'normal');
+  doc.addFont('Evolventa-Bold.ttf', 'evolventa', 'bold');
   doc.addFont('RedHatDisplay-400.ttf', 'redhat', 'normal');
-  doc.addFont('RedHatDisplay-700.ttf', 'redhat', 'bold');
   const hotels=pdfHotels(plan,selections,input);
   addCover(doc,data,customerName);
   artworkPage(doc,data,'letter');
@@ -206,10 +201,10 @@ export default function ClientPdf() {
     setDownloading(true);
     try {
       const entries=await Promise.all((Object.keys(ART) as ArtKey[]).map(async (key)=>[key,await imageData(ART[key])] as const));
-      const data=Object.fromEntries(entries) as Record<ArtKey,string> & {brand?:string};
-      data.brand=await imageData('/chakar-experience-logo.png');
-      const [regular,bold]=await Promise.all([imageData('/fonts/RedHatDisplay-400.ttf'),imageData('/fonts/RedHatDisplay-700.ttf')]);
-      const doc=buildClientPdf(data,currentPlan,currentInput,hotelSelections,currentCosts,customerName,{regular:regular.split(',')[1],bold:bold.split(',')[1]});
+      const data=Object.fromEntries(entries) as PdfArt;
+      [data.brandWhite,data.brandInk]=await Promise.all([imageData('/chakar-experience-logo-white.png'),imageData('/chakar-experience-logo-ink.png')]);
+      const [regular,bold,cover]=await Promise.all([imageData('/fonts/Evolventa-Regular.ttf'),imageData('/fonts/Evolventa-Bold.ttf'),imageData('/fonts/RedHatDisplay-400.ttf')]);
+      const doc=buildClientPdf(data,currentPlan,currentInput,hotelSelections,currentCosts,customerName,{regular:regular.split(',')[1],bold:bold.split(',')[1],cover:cover.split(',')[1]});
       const blob=doc.output('blob');
       if (!blob || blob.size<1024) throw new Error('The PDF engine returned an empty document.');
       const url=URL.createObjectURL(blob);

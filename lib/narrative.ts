@@ -14,6 +14,8 @@ const corridors: Record<string,string> = {
   'Gurez|Srinagar': 'over Razdan Pass and through Bandipora',
   'Srinagar|Doodhpathri': 'through the Budgam countryside towards the Shaliganga River meadows',
   'Doodhpathri|Srinagar': 'through the Budgam countryside',
+  'Srinagar|Naranag': 'through the Sindh Valley towards the Wangath and Naranag heritage area',
+  'Naranag|Srinagar': 'back through the Sindh Valley',
 };
 const destinationStory: Record<string,string> = {
   Srinagar: 'Spend time around Dal Lake, the Boulevard, Mughal gardens and the Zabarwan foothills at a comfortable pace.',
@@ -21,19 +23,22 @@ const destinationStory: Record<string,string> = {
   Pahalgam: 'Follow the Lidder River setting and pine-lined valley. Aru, Betaab Valley and Chandanwari depend on the available local transport and conditions.',
   Sonamarg: 'Enjoy the Sindh River and mountain scenery around Sonamarg. Thajiwas and higher viewpoints depend on weather and local vehicle access.',
   Doodhpathri: 'Explore the meadows and Shaliganga River area without rushing the day.',
+  Naranag: 'Visit the ancient Naranag temple remains and the Wangath valley scenery. A longer trek is a separate outing and needs a local access check.',
   Gurez: 'Explore Dawar, the Kishanganga River and the wooden-village landscape. Razdan Pass and onward routes need a live road check.',
 };
 
 export function dayTitle(day: DayPlan, pickup: string) {
   if (day.customTitle?.trim()) return day.customTitle.trim();
-  if (day.day === 1) return day.stay.toLowerCase() === pickup.toLowerCase()
-    ? `Arrival in ${day.stay} & local sightseeing`
+  if (day.day === 1) return day.dayTripDestination
+    ? `Arrival in ${pickup} & ${day.dayTripDestination} day visit`
+    : day.stay.toLowerCase() === pickup.toLowerCase()
+    ? `Arrival in ${day.stay} & ${day.stay === 'Srinagar' ? 'local sightseeing' : 'sightseeing'}`
     : `Arrival in ${pickup} & transfer to ${day.stay}`;
   if (day.label === 'Departure day') return `Departure from ${day.to}`;
   if (day.dayTripDestination) return `${day.dayTripDestination} day visit · overnight in ${day.stay}`;
   if (day.transfer) return `${day.from} to ${day.stay}`;
   const excursion = day.blocks.find((block) => block.name.toLowerCase().includes('day trip'));
-  return excursion ? `${excursion.name} from ${day.stay}` : `${day.stay} local sightseeing`;
+  return excursion ? `${excursion.name} from ${day.stay}` : `${day.stay}${day.stay === 'Srinagar' ? ' local' : ''} sightseeing`;
 }
 
 export function dayNarrative(day: DayPlan, pickup: string) {
@@ -49,7 +54,8 @@ export function dayNarrative(day: DayPlan, pickup: string) {
   const story = destinationStory[destination] || destinationByName(destination)?.description || `Enjoy ${destination} at a relaxed pace.`;
   const route = corridors[`${day.from}|${day.stay}`] || (day.drive.via?.length ? `via ${day.drive.via.join(' and ')}` : 'along the planned Kashmir route');
   let opening: string;
-  if (day.day === 1) opening = day.stay.toLowerCase() === pickup.toLowerCase()
+  if (day.day === 1 && excursion) opening = `If your arrival is early enough, meet your driver at ${pickup} and visit ${destination} before returning to your ${day.stay} hotel for the night. If the arrival is later, this outing needs an added day or a manual change to the plan. `;
+  else if (day.day === 1) opening = day.stay.toLowerCase() === pickup.toLowerCase()
     ? `Arrive at ${pickup}, meet your driver and transfer to the hotel for check-in. Settle in before heading out. `
     : `Arrive at ${pickup}, meet your driver and travel to ${day.stay} ${route}. Check in on arrival. `;
   else if (excursion && day.transfer) opening = `After breakfast, check out from ${day.from}, visit ${destination} during the day, then continue to ${day.stay} for check-in and overnight. Confirm the travel time against the arrival and sightseeing schedule. `;
@@ -57,8 +63,8 @@ export function dayNarrative(day: DayPlan, pickup: string) {
   else if (day.transfer) opening = `After breakfast, check out from ${day.from} and drive to ${day.stay} ${route}. Check in before exploring the local area. `;
   else opening = `After breakfast, enjoy a full day around ${day.stay} without changing hotels. `;
 
-  const stops = day.blocks.filter((block) => block.kind !== 'arrival' && block.kind !== 'departure' && block !== excursion && !['EXTRA','EXCLUDED','OPTIONAL'].includes(block.intelligence?.status || '')).slice(0,2).map((block) => block.name);
-  const stopText = stops.length ? ` Planned stops include ${stops.join(' and ')}.` : '';
+  const stops = excursion ? destinationByName(destination)?.highlights.slice(0,2) || [] : day.blocks.filter((block) => block.kind !== 'arrival' && block.kind !== 'departure' && !['EXTRA','EXCLUDED','OPTIONAL'].includes(block.intelligence?.status || '')).slice(0,2).map((block) => block.name);
+  const stopText = stops.length ? excursion ? ` Possible highlights include ${stops.join(' and ')}; confirm local access and any activity charges.` : ` Planned stops include ${stops.join(' and ')}.` : '';
   const conditional = day.drive.live_required || day.blocks.some((block) => ['CONDITIONAL','LIVE_CHECK','SEASONAL'].includes(block.intelligence?.status || ''))
     ? ' Confirm road access, weather and locally operated activities before travel.' : '';
   return `${opening}${story}${stopText}${conditional} Overnight in ${day.stay}.`;

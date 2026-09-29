@@ -204,7 +204,7 @@ function siteBlocks(d: Destination, count: number, used: Set<string>, date: stri
     out.push({
       name: s.name,
       description: s.description,
-      reason: rule.notes || `Local sightseeing selected from the ${d.name} destination library for this day.`,
+      reason: rule.notes || `${d.name === 'Srinagar' ? 'Local sightseeing' : 'Sightseeing'} selected from the ${d.name} destination library for this day.`,
       tags: s.tags,
       source: d.source,
       conditional,
@@ -237,11 +237,31 @@ function dayTripBlock(base: Destination, target: Destination, date: string, inpu
   };
 }
 
-function chooseDayTrip(base: Destination, nightSequence: string[], date: string, input: TripInput) {
+const essentialVisits = ['Gulmarg', 'Pahalgam', 'Sonamarg', 'Doodhpathri', 'Naranag'];
+
+function chooseDayTrip(base: Destination, visited: Set<string>, date: string, input: TripInput) {
   if (base.name !== 'Srinagar') return null;
-  const candidates = destinations.filter((d) => d.name !== 'Srinagar' && !nightSequence.includes(d.name) && d.base && (routeByName('Srinagar', d.name)?.hours || 99) <= 3.5);
+  const candidates = destinations.filter((d) => d.name !== 'Srinagar' && !visited.has(d.name) && d.base && (routeByName('Srinagar', d.name)?.hours || 99) <= 3.5);
   const allowed = candidates.filter((d) => seasonFit(d, date) >= 0.45 && (d.name !== 'Gurez' || isGurezAllowed(date)));
-  return allowed.sort((a, b) => scoredDestination(b, input, date) - scoredDestination(a, input, date))[0] || null;
+  return allowed.sort((a, b) => {
+    const aRank = essentialVisits.indexOf(a.name), bRank = essentialVisits.indexOf(b.name);
+    if (aRank !== bRank) return (aRank < 0 ? 99 : aRank) - (bRank < 0 ? 99 : bRank);
+    return scoredDestination(b, input, date) - scoredDestination(a, input, date);
+  })[0] || null;
+}
+
+// Preserve a Srinagar hub for short trips so all three headline excursions can
+// be visited without buying three separate hotel stays. Add destination nights
+// only when the trip has enough days to leave room for the remaining day visits.
+function recommendedNightSequence(nights: number) {
+  const sequence = ['Srinagar'];
+  const overnightStops = nights >= 12 ? ['Gulmarg', 'Sonamarg', 'Pahalgam', 'Doodhpathri']
+    : nights >= 10 ? ['Gulmarg', 'Sonamarg', 'Pahalgam']
+      : nights >= 9 ? ['Gulmarg', 'Pahalgam']
+        : nights >= 6 ? ['Pahalgam'] : [];
+  for (const name of overnightStops) sequence.push(name, 'Srinagar');
+  while (sequence.length < nights) sequence.push('Srinagar');
+  return sequence.slice(0, nights);
 }
 
 function buildNightSequence(ordered: { destination: Destination; nights: number }[], nights: number) {
@@ -265,11 +285,12 @@ function arrivalBlock(input: TripInput, stay: string, date: string): DayBlock {
   const pickup = input.pickup?.trim() || 'the selected pick-up point';
   const arrivalPlace = pickup.toLowerCase().includes('other') ? pickup : pickup;
   const routed = arrivalPlace.toLowerCase() !== stay.toLowerCase();
+  const sightseeing = stay === 'Srinagar' ? 'local sightseeing' : `${stay} sightseeing`;
   return {
     name: routed ? `Arrival in ${arrivalPlace} · onward to ${stay}` : `Arrival in ${stay}`,
     description: routed
-      ? `The day begins with the client's arrival at ${arrivalPlace}, followed by the planned transfer towards ${stay}. Time is kept flexible for check-in, settling in and local sightseeing around ${stay}.`
-      : `The client arrives in ${stay}. After arrival and check-in, the remaining time is reserved for a relaxed introduction to ${stay} and local sightseeing.` ,
+      ? `The day begins with the client's arrival at ${arrivalPlace}, followed by the planned transfer towards ${stay}. Time is kept flexible for check-in, settling in and ${sightseeing}.`
+      : `The client arrives in ${stay}. After arrival and check-in, the remaining time is reserved for a relaxed introduction to ${stay} and ${sightseeing}.` ,
     reason: `Arrival flow is derived from the traveller's selected pick-up point (${pickup}) and the first overnight destination (${stay}).`,
     tags: ['arrival', 'local-sightseeing'],
     kind: 'arrival',
@@ -280,6 +301,7 @@ function arrivalBlock(input: TripInput, stay: string, date: string): DayBlock {
 
 function buildDays(input: TripInput, nightSequence: string[], departurePoint = 'Srinagar', dayTrips: Record<number, string | null> = {}) {
   const nights = nightSequence.length; const used = new Set<string>(); const days: DayPlan[] = [];
+  const visited = new Set(nightSequence);
   for (let index = 0; index <= nights; index++) {
     const date = dateAt(input.arrival, index);
     if (index === nights) {
@@ -294,22 +316,27 @@ function buildDays(input: TripInput, nightSequence: string[], departurePoint = '
     let drive = routeLeg(previous.toLowerCase().includes('jammu') && !previous.toLowerCase().includes('srinagar') ? 'Srinagar' : previous, stay);
     const arrival = index === 0 ? [arrivalBlock(input, stay, date)] : [];
     const override = dayTrips[index + 1];
-    const excursion = index === 0 || override === null ? null : override ? destinationByName(override) : (!transfer ? chooseDayTrip(base, nightSequence, date, input) : null);
+    // A four-day trip has only two full sightseeing days. Show the third core
+    // visit on arrival with an explicit early-arrival condition, never as an
+    // unconditional promise about an unknown flight or train time.
+    const arrivalVisit = index === 0 && nights === 3 && stay === 'Srinagar' ? destinationByName('Gulmarg') : null;
+    const excursion = override === null ? null : override ? destinationByName(override)
+      : arrivalVisit || (!transfer ? chooseDayTrip(base, visited, date, input) : null);
     const localLimit = excursion ? (transfer ? 0 : 1) : siteLimit(input.style, transfer, false);
     const sightseeing = siteBlocks(base, localLimit, used, date, input, transfer ? 'transfer' : 'sightseeing');
     const blocks = [...arrival, ...sightseeing];
     let dayTripDestination: string | null | undefined;
-    if (index > 0) {
-      dayTripDestination = excursion?.name ?? (override === null ? null : undefined);
-      if (excursion && excursion.name !== stay) {
+    dayTripDestination = excursion?.name ?? (override === null ? null : undefined);
+    if (excursion && excursion.name !== stay) {
+        visited.add(excursion.name);
         blocks.unshift(dayTripBlock(base, excursion, date, input));
         const outward = routeLeg(previous, excursion.name);
         const onward = routeLeg(excursion.name, base.name);
         drive = { ...drive, km: outward.km + onward.km, hours: outward.hours + onward.hours, source: `Day visit: ${previous} → ${excursion.name} → ${base.name}`, live_required: outward.live_required || onward.live_required, known: outward.known && onward.known, preference: outward.preference === 'AVOID' || onward.preference === 'AVOID' ? 'AVOID' : outward.preference, vehicleDaysCharged: Math.max(1, outward.vehicleDaysCharged, onward.vehicleDaysCharged), rationale: `Day visit only. Overnight remains ${base.name}; next-day origin remains ${base.name}. Confirm that the sightseeing and transfer fit the available time.` };
-      }
     }
     const accessFlags = destinationAccessFlags(stay);
-    const notes = transfer ? ['Road movement and local sightseeing are combined; verify live road conditions before confirmation.'] : [];
+    const notes = transfer ? ['Road movement and sightseeing are combined; verify live road conditions before confirmation.'] : [];
+    if (index === 0 && excursion) notes.push(`${excursion.name} on arrival day requires an early arrival and a live travel-time check. Move this visit to an added day if the arrival is later.`);
     if (drive.preference === 'AVOID') notes.push(drive.rationale);
     if (accessFlags.includes('LIVE_CHECK')) notes.push(`${stay} requires a live/manual access check before confirmation.`);
     if (stay === 'Gurez' && !isGurezAllowed(date)) notes.push('Gurez is blocked outside the May-October planning window.');
@@ -369,8 +396,7 @@ export function createPlan(input: TripInput): Plan {
   const nights = tripNights(input);
   const normalizedMix = normalizeChildrenAndAdults(input.adults, input.youngAges);
   const normalized = { ...input, youngAges: normalizedMix.children, adults: normalizedMix.adults, budget: Math.max(0, input.budget) };
-  const chosen = chooseBases(normalized, nights); const allocated = allocateNights(chosen, nights, normalized); const ordered = orderBases(allocated, normalized);
-  const nightSequence = buildNightSequence(ordered, nights);
+  const nightSequence = recommendedNightSequence(nights);
   const dayPlans = buildDays(normalized, nightSequence);
   const staySegments = groupedStays(nightSequence);
   const hotelPlans = makeHotelPlans(nightSequence, normalized.hotelCategory);
@@ -469,7 +495,7 @@ export function retargetDay(plan: Plan, dayNumber: number, destinationName: stri
 }
 
 export function setPlanDayTrip(plan: Plan, dayNumber: number, destinationName: string | null): Plan {
-  if (dayNumber <= 1 || dayNumber > plan.nights) throw new Error('Choose a sightseeing day before departure.');
+  if (dayNumber < 1 || dayNumber > plan.nights) throw new Error('Choose a sightseeing day before departure.');
   const oldDay = plan.dayPlans[dayNumber - 1];
   if (destinationName && !destinationByName(destinationName)) throw new Error('Day-trip destination not found.');
   if (destinationName === oldDay.stay) destinationName = null;
