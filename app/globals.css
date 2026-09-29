@@ -235,3 +235,4 @@ body{font-size:15px}.build-trip-page{max-width:1500px;margin:0 auto}.build-heade
 @media(max-width:760px){.hotel-policy-refresh .hotel-policy-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.refined-hotel-list .hotel-card.refined{padding:17px}.refined-hotel-list .hotel-card-head h2{font-size:29px}.day-visit-control{align-items:stretch;flex-direction:column}.day-visit-control select{width:100%}}
 .pdf-review-cover>.pdf-preview-logo{position:absolute;left:1.7%;top:1%;width:33%;height:5.6%;display:flex;align-items:center;padding:2.2%;background:#2a1b11;border-radius:3px}
 .pdf-review-cover>.pdf-preview-logo img{display:block;width:100%;height:100%;object-fit:contain}
+.admin-file-upload{position:relative;overflow:hidden;cursor:pointer}.admin-file-upload-input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}.admin-file-upload:focus-within{outline:3px solid #c3a053;outline-offset:2px}
