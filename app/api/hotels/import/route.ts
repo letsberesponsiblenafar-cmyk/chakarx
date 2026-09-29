@@ -12,13 +12,21 @@ export async function POST(request:Request){
   if(!await isAdmin())return NextResponse.json({error:'Admin sign-in required.'},{status:401});
   if(!sameOrigin(request))return NextResponse.json({error:'Invalid request origin.'},{status:403});
   try{
-    const form=await request.formData();const file=form.get('file');
-    if(!(file instanceof File)||file.size>10*1024*1024||file.size<20||!file.name.toLowerCase().endsWith('.pdf'))throw new Error('Choose a PDF smaller than 10 MB.');
-    const buffer=new Uint8Array(await file.arrayBuffer());
-    if(String.fromCharCode(...buffer.slice(0,5))!=='%PDF-')throw new Error('The uploaded file is not a PDF.');
-    const parser=new PDFParse({data:buffer});
-    let text='';try{text=(await parser.getText()).text;}finally{await parser.destroy();}
-    const parsed=parseHotelPdfText(text,await listHotels(),file.name);
+    let text='';let sourceName='Pasted hotel master text';
+    if(request.headers.get('content-type')?.includes('application/json')){
+      const body=await request.json();
+      if(typeof body.text!=='string'||body.text.length<20||body.text.length>500_000)throw new Error('Paste hotel record text under 500 KB.');
+      text=body.text;
+    }else{
+      const form=await request.formData();const file=form.get('file');
+      if(!(file instanceof File)||file.size>10*1024*1024||file.size<20||!file.name.toLowerCase().endsWith('.pdf'))throw new Error('Choose a PDF smaller than 10 MB.');
+      const buffer=new Uint8Array(await file.arrayBuffer());
+      if(String.fromCharCode(...buffer.slice(0,5))!=='%PDF-')throw new Error('The uploaded file is not a PDF.');
+      const parser=new PDFParse({data:buffer});
+      try{text=(await parser.getText()).text;}finally{await parser.destroy();}
+      sourceName=file.name;
+    }
+    const parsed=parseHotelPdfText(text,await listHotels(),sourceName);
     return NextResponse.json({records:parsed,count:parsed.length,creates:parsed.filter(x=>x.action==='create').length,updates:parsed.filter(x=>x.action==='update').length});
   }catch(error){return NextResponse.json({error:error instanceof Error?error.message:'Could not read PDF.'},{status:400});}
 }
