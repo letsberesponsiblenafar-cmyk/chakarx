@@ -34,5 +34,16 @@ const { listSavedItineraries } = require(path.resolve(__dirname, '../lib/itinera
     assert.ok(calls.every((call) => call.options.cache === 'no-store'));
     assert.ok(calls.every((call) => !('Authorization' in call.options.headers)), 'Secret API keys must not be sent as JWT bearer tokens');
   }
-  console.log('Hotel and saved-itinerary stores recover from transient database failures.');
+  const listCalls = [];
+  global.fetch = async (url) => {
+    listCalls.push(url);
+    return Response.json(listCalls.length === 1
+      ? Array.from({ length: 500 }, (_, index) => ({ id: `saved-${index}` }))
+      : [{ id: 'saved-500' }]);
+  };
+  const allSaved = await listSavedItineraries();
+  assert.equal(allSaved.length, 501, 'Saved itineraries must not stop at the first 500 records');
+  assert.match(listCalls[0], /order=created_at\.desc,id\.desc.*offset=0/);
+  assert.match(listCalls[1], /offset=500/);
+  console.log('Database retries and complete, creation-date-ordered saved itinerary pagination passed.');
 })().catch((error) => { console.error(error); process.exitCode = 1; });

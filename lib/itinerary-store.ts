@@ -47,7 +47,14 @@ async function call(path: string, init: RequestInit = {}) {
 
 const summaryColumns = 'id,client_name,arrival,departure,days,nights,package_total,created_at,updated_at,last_downloaded_at,download_count';
 export async function listSavedItineraries(): Promise<SavedItinerarySummary[]> {
-  return await call(`?select=${summaryColumns}&order=updated_at.desc&limit=500`) as SavedItinerarySummary[];
+  const pageSize = 500;
+  const items: SavedItinerarySummary[] = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const page = await call(`?select=${summaryColumns}&order=created_at.desc,id.desc&limit=${pageSize}&offset=${offset}`) as SavedItinerarySummary[];
+    if (!Array.isArray(page)) throw new Error('The saved itinerary database returned an invalid list.');
+    items.push(...page);
+    if (page.length < pageSize) return items;
+  }
 }
 export async function getSavedItinerary(id: string): Promise<SavedItinerary | null> {
   const rows = await call(`?select=*&id=eq.${encodeURIComponent(id)}&limit=1`) as SavedItinerary[];

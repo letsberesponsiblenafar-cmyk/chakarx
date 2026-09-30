@@ -267,3 +267,17 @@ body{font-size:15px}.build-trip-page{max-width:1500px;margin:0 auto}.build-heade
 .route-update-banner p{font-size:12px;line-height:1.5;margin:0;color:#634d31}
 .route-update-banner button{white-space:nowrap}
 @media(max-width:760px){.route-update-banner{align-items:stretch;flex-direction:column}.route-update-banner button{justify-content:center;width:100%}}
+
+.pdf-save-state{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0;padding:11px 13px;border-radius:11px;font-size:11px;font-weight:700;line-height:1.45;background:#eaf2e8;color:#385b3f;border:1px solid #c8dfc5}
+.pdf-save-state.saving{background:#f4eddf;color:#765c31;border-color:#e8d9bc}
+.pdf-save-state.error{background:#f8e7e4;color:#813e37;border-color:#edcbc5}
+.pdf-save-state button{border:1px solid currentColor;border-radius:8px;background:transparent;color:inherit;padding:6px 9px;font-size:10px;font-weight:800}
+.saved-date-group{margin:22px 0 30px}
+.saved-date-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:0 0 12px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.saved-date-heading h2{font-family:var(--serif);font-size:27px;font-weight:600;margin:3px 0 0}
+.saved-date-heading>span{font-size:10px;font-weight:700;color:var(--muted)}
+.saved-card-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.saved-card-footer{align-items:flex-end}
+.saved-card-footer .saved-pdf-button{background:#efe5d3;color:var(--brown)}
+.saved-card-footer .saved-pdf-button:hover{background:#e5d5ba}
+@media(max-width:760px){.saved-card-footer{align-items:flex-start;flex-direction:column}.saved-card-actions{justify-content:flex-start}}
