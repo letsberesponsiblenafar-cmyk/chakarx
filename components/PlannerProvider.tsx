@@ -1,8 +1,8 @@
 'use client';
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPlan, retargetDay, rebuildPlanFromNightSequence, setPlanDayTrip, setPlanDeparturePoint, ROUTE_VERSION, type Plan, type TripInput } from '@/lib/itinerary';
 import { hotelDatabase as importedHotels, hotelCategories, mealOptions, transportOptions, travelStyles, interests, destinationByName, type Hotel } from '@/lib/data';
-import { firstHotelCandidate, roomsRequired, cnbChildren, extraBedsRequired, sameHotelDestination, matchesPackageCategory } from '@/lib/hotels';
+import { firstHotelCandidate, roomsRequired, cnbChildren, extraBedsRequired, matchesPackageCategory, suggestedHotel } from '@/lib/hotels';
 
 export type HotelSelection = {
   location: string; hotelId: string; hotelName: string; category: string; starRating: number | null; address: string; roomType: string; website: string;
@@ -18,6 +18,9 @@ export function itinerarySnapshot(state: PlannerState): ItinerarySnapshot {
 
 type PlannerContextValue = PlannerState & {
   hydrated: boolean;
+  hotelConnection: 'loading' | 'ready' | 'error' | 'signed-out';
+  hotelConnectionError: string;
+  refreshHotels: () => Promise<void>;
   setInputField: <K extends keyof TripInput>(key: K, value: TripInput[K]) => void;
   setYoungAges: (ages: number[]) => void;
   setInterests: (interests: string[]) => void;
@@ -85,12 +88,14 @@ function selectionFromHotel(location: string, hotel: Hotel, nights: number, inpu
     location, hotelId: hotel.id, hotelName: hotel.name, category: hotel.normalizedCategory, starRating: hotel.starRating,
     address: hotel.address, roomType: hotel.roomType, website: hotel.website, nights, rooms, extraBeds, cnb,
     nightlyRate: hotel.mapB2B ?? 0, extraBedRate: hotel.extraBedB2B ?? 0, cnbRate: hotel.cnbB2B ?? 0,
-    source: hotel.sourceType, status: hotel.mapB2B ? hotel.availabilityStatus : 'Hotel attached; B2B room rate is missing in supplied data',
+    source: hotel.sourceType, status: !matchesPackageCategory(hotel,input.hotelCategory)
+      ? `${hotel.normalizedCategory} alternative; confirm category${hotel.mapB2B ? '' : ' and rate'} before sharing`
+      : hotel.mapB2B ? hotel.availabilityStatus : 'Hotel attached; B2B room rate is missing in supplied data',
   };
 }
 
 function selectionFallback(location: string, nights: number, input: TripInput, db: Hotel[]): HotelSelection {
-  const candidate = db.find((h) => sameHotelDestination(h.destination, location) && matchesPackageCategory(h, input.hotelCategory));
+  const candidate = suggestedHotel(location, input.hotelCategory, db);
   if (candidate) return selectionFromHotel(location, candidate, nights, input);
   return {
     location, hotelId: '', hotelName: 'Hotel to be added', category: input.hotelCategory, starRating: null, address: '', roomType: '', website: '',
@@ -99,12 +104,7 @@ function selectionFallback(location: string, nights: number, input: TripInput, d
   };
 }
 
-function candidateFor(location: string, category: string, db: Hotel[]) {
-  return db.filter((h) => sameHotelDestination(h.destination, location) && matchesPackageCategory(h, category))
-    .sort((a, b) => (a.mapB2B ?? Number.POSITIVE_INFINITY) - (b.mapB2B ?? Number.POSITIVE_INFINITY) || a.name.localeCompare(b.name))[0]
-    ?? null;
-}
-function syncHotelSelections(plan: Plan, current: HotelSelection[], db: Hotel[], input: TripInput) {
+export function syncHotelSelections(plan: Plan, current: HotelSelection[], db: Hotel[], input: TripInput) {
   return plan.hotelPlans.map((row) => {
     const existing = current.find((h) => h.location === row.location);
     const existingRecord = existing?.hotelId ? db.find((h) => h.id === existing.hotelId) : null;
@@ -112,8 +112,9 @@ function syncHotelSelections(plan: Plan, current: HotelSelection[], db: Hotel[],
       const refreshed=selectionFromHotel(row.location,existingRecord,row.nights,input);
       return existing.status==='user-edited'?{...refreshed,nightlyRate:existing.nightlyRate,extraBedRate:existing.extraBedRate,cnbRate:existing.cnbRate,status:existing.status}:refreshed;
     }
-    if (existing && !existing.hotelId) return { ...existing, nights: row.nights };
-    const candidate = candidateFor(row.location, input.hotelCategory, db);
+    if (existing?.hotelId) return { ...existing, nights: row.nights, status: 'Selected hotel is not in the current database; verify this stay' };
+    if (existing && existing.hotelName && existing.hotelName !== 'Hotel to be added' && existing.hotelName !== 'Hotel to be confirmed') return { ...existing, nights: row.nights };
+    const candidate = suggestedHotel(row.location, input.hotelCategory, db);
     return candidate ? selectionFromHotel(row.location, candidate, row.nights, input) : selectionFallback(row.location, row.nights, input, db);
   });
 }
@@ -126,20 +127,43 @@ const Ctx = createContext<PlannerContextValue | null>(null);
 export function PlannerProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<PlannerState>(() => ({ input: { ...defaultInput }, plan: null, routeVersion: null, hotelSelections: [], hotelDatabase: importedHotels, costModel: { ...defaultCost }, hotelDefaults: { ...defaultHotelDefaults }, generated: false, savedItineraryId: null }));
   const [mounted, setMounted] = useState(false);
+  const [hotelConnection,setHotelConnection]=useState<'loading'|'ready'|'error'|'signed-out'>('loading');
+  const [hotelConnectionError,setHotelConnectionError]=useState('');
+  const hotelRequest=useRef(0);
+  async function refreshHotels(){
+    const request=++hotelRequest.current;
+    setHotelConnection('loading'); setHotelConnectionError('');
+    try {
+      const response=await fetch('/api/hotels',{cache:'no-store',signal:AbortSignal.timeout(15000)});
+      const payload=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(response.status===401?'Admin session expired. Sign in to load hotel suggestions.':payload.error||`Hotel database request failed (${response.status}).`);
+      if(!payload.configured)throw new Error('Hotel database is not configured on this deployment.');
+      if(!Array.isArray(payload.hotels))throw new Error('Hotel database returned an invalid response.');
+      const db=payload.hotels as Hotel[];
+      if(!db.length)throw new Error('The hotel master is empty. Import hotel records in the admin dashboard.');
+      if(request!==hotelRequest.current)return;
+      setState((s)=>({...s,hotelDatabase:db,hotelSelections:s.plan?syncHotelSelections(s.plan,s.hotelSelections,db,s.input):s.hotelSelections}));
+      setHotelConnection('ready');
+    } catch(error){
+      if(request!==hotelRequest.current)return;
+      const message=error instanceof Error?error.message:'Could not load hotel database.';
+      setHotelConnection(message.includes('session expired')?'signed-out':'error');
+      setHotelConnectionError(message);
+    }
+  }
   useEffect(() => {
-    const saved=readState();
-    fetch('/api/hotels',{cache:'no-store'}).then(async(response)=>{
-      if(!response.ok)throw new Error('Could not load hotels.');
-      const payload=await response.json();
-      const db=Array.isArray(payload.hotels)?payload.hotels as Hotel[]:[];
-      setState({...saved,hotelDatabase:db,hotelSelections:saved.plan?syncHotelSelections(saved.plan,saved.hotelSelections,db,saved.input):saved.hotelSelections});
-    }).catch(()=>setState(saved)).finally(()=>setMounted(true));
+    setState(readState());
+    setMounted(true);
+    void refreshHotels();
   }, []);
   useEffect(() => { if (mounted) { try { const {hotelDatabase: _privateRates, ...saved}=state; localStorage.setItem(STORAGE, JSON.stringify(saved)); } catch { /* ignore storage errors */ } } }, [state, mounted]);
 
   const value = useMemo<PlannerContextValue>(() => ({
     ...state,
     hydrated: mounted,
+    hotelConnection,
+    hotelConnectionError,
+    refreshHotels,
     setInputField(key, value) { setState((s) => ({ ...s, input: { ...s.input, [key]: value } })); },
     setYoungAges(ages) { setState((s) => ({ ...s, input: { ...s.input, youngAges: ages } })); },
     setInterests(xs) { setState((s) => ({ ...s, input: { ...s.input, interests: xs } })); },
@@ -317,7 +341,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       setState((s) => ({ ...s, ...snapshot, hotelDatabase: s.hotelDatabase, savedItineraryId: id }));
     },
     markSavedItinerary(id) { setState((s) => ({ ...s, savedItineraryId: id })); },
-  }), [state, mounted]);
+  }), [state, mounted, hotelConnection, hotelConnectionError]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

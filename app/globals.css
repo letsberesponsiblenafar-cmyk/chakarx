@@ -230,6 +230,10 @@ body{font-size:15px}.build-trip-page{max-width:1500px;margin:0 auto}.build-heade
 .refined-hotel-list .hotel-mode-tabs button,.refined-hotel-list .edit-small{font-size:11px}
 .refined-hotel-list .room-setup-rows label,.refined-hotel-list .rate-rows label,.refined-hotel-list .stay-cost-breakdown span{font-size:11px}
 .refined-hotel-list .rate-rows input,.refined-hotel-list .room-stepper strong{font-size:13px}
+.hotel-connection{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:14px 0 18px;padding:14px 18px;border-radius:13px;background:#f0f5ef;border:1px solid #d5e4d2;color:#2e5035}
+.hotel-connection>div{display:grid;gap:4px}.hotel-connection b{font-size:13px}.hotel-connection span{font-size:11px;line-height:1.5}
+.hotel-connection.loading{background:#f7f2e9;border-color:#e8d9bd;color:#725329}.hotel-connection.error,.hotel-connection.signed-out{background:#fff4ed;border-color:#efd4bd;color:#774225}
+.hotel-connection .secondary-link{flex:none;font-size:11px;min-height:36px}.hotel-category-note{margin:7px 0 0;color:#805229;font-size:11px;line-height:1.45}
 .night-edit-toolbar{margin:18px 0 22px;padding:18px 20px;border:0;background:#ecdfc6}
 .night-edit-toolbar b{font-size:15px}.night-edit-toolbar span{font-size:12px}
 .day-visit-control{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:10px 0;padding:13px 16px;background:#f5f0e7;border-radius:12px}

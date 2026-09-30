@@ -5,7 +5,7 @@ import {validateHotel} from '@/lib/hotel-validation';
 export const runtime='nodejs';
 export async function GET(){
   if(!await isAdmin())return NextResponse.json({error:'Admin sign-in required.'},{status:401});
-  try{const hotels=hotelStoreConfigured()?await listHotels():[];return NextResponse.json({hotels,count:hotels.length,configured:hotelStoreConfigured()},{headers:{'Cache-Control':'no-store'}});}
+  try{if(!hotelStoreConfigured())throw new Error('Hotel database is not configured on this deployment.');const hotels=await listHotels();return NextResponse.json({hotels,count:hotels.length,configured:true},{headers:{'Cache-Control':'no-store'}});}
   catch(error){return NextResponse.json({error:error instanceof Error?error.message:'Database error.'},{status:503});}
 }
 export async function POST(request:Request){

@@ -12,7 +12,6 @@ for(const x of d){
   assert.ok(x.min_days<=x.ideal_days&&x.ideal_days<=x.max_days,`${x.name} invalid day window`);
   if(x.overnight_allowed) assert.ok(x.min_nights<=x.ideal_nights&&x.ideal_nights<=x.max_nights,`${x.name} invalid night window`);
 }
-const hotels=JSON.parse(fs.readFileSync(new URL('../data/hotel-master.json', import.meta.url)));
-assert.equal(hotels.length,166,'Hotel master must contain 166 supplied unique records');
-const counts=hotels.reduce((m,h)=>(m[h.destination]=(m[h.destination]||0)+1,m),{});
-console.log(JSON.stringify({ok:true,destinations:d.length,localSightseeing:d.reduce((n,x)=>n+x.local_sightseeing.length,0),hotelRecords:hotels.length,hotelDestinations:counts},null,2));
+// The private hotel master moved to Supabase. Its live count is checked in the
+// admin dashboard; there must not be a second, stale copy in the repository.
+console.log(JSON.stringify({ok:true,destinations:d.length,localSightseeing:d.reduce((n,x)=>n+x.local_sightseeing.length,0),hotelMaster:'Supabase'},null,2));

@@ -9,6 +9,7 @@ import { calculateCosts } from '@/lib/costing';
 import { dayNarrative, dayTitle } from '@/lib/narrative';
 import type { DayPlan, Plan, TripInput } from '@/lib/itinerary';
 import { savePlannerItinerary } from '@/lib/save-itinerary';
+import { matchesPackageCategory } from '@/lib/hotels';
 
 const PAGE_W = 540;
 const PAGE_H = 780;
@@ -81,9 +82,9 @@ function addSummary(doc: jsPDF, data: Record<ArtKey,string>, plan: Plan, input: 
   center(doc, date(input.departure), 174, 423, 12.5, [30,24,18], true);
   center(doc, input.pickup || 'Pick-up to confirm', 352, 530, 12.5, [30,24,18], true);
   const persons = `${input.adults} adult${input.adults === 1 ? '' : 's'}${input.youngAges.length ? ` plus ${input.youngAges.length} child${input.youngAges.length === 1 ? '' : 'ren'} (${input.youngAges.join(', ')} yrs)` : ''}`;
-  doc.setFont('evolventa','normal'); doc.setFontSize(10); doc.setTextColor(30,24,18); doc.text('Number of persons',80,646);
   const lines = textLines(doc, persons, 250, 11);
-  doc.setTextColor(30,24,18); doc.text(lines.slice(0,2), 82, 667, { lineHeightFactor: 1.13 });
+  doc.setTextColor(30,24,18); doc.text(lines.slice(0,2), 80, 646, { lineHeightFactor: 1.13 });
+  doc.setFont('evolventa','normal'); doc.setFontSize(10); doc.text('Number of persons',80,lines.length>1?681:668);
 }
 function dayLayout(doc: jsPDF, day: DayPlan, pickup: string) {
   const title = `${date(day.date, true)} - ${dayTitle(day,pickup)}`;
@@ -137,9 +138,10 @@ function addPackage(doc: jsPDF, data: Record<ArtKey,string>, plan: Plan, input: 
   doc.text(mealLines,cellCenters[2],mealLines.length>1?541:547,{align:'center',lineHeightFactor:1.1});
   const roomLines = textLines(doc,roomSummary(hotels),103,8.2);
   doc.text(roomLines,cellCenters[3],roomLines.length>1?540:547,{align:'center',lineHeightFactor:1.15});
-  if (costs.missingHotelRates.length) {
+  const categoryAlternatives=hotels.some((hotel)=>hotel.hotelId&&!matchesPackageCategory({normalizedCategory:hotel.category},input.hotelCategory));
+  if (costs.missingHotelRates.length||categoryAlternatives) {
     doc.setFont('evolventa','bold'); doc.setFontSize(8); doc.setTextColor(112,67,24);
-    doc.text('PROVISIONAL - HOTEL RATE(S) TO CONFIRM', 270, 697, {align:'center'});
+    doc.text(categoryAlternatives?'PROVISIONAL - HOTEL CATEGORY TO CONFIRM':'PROVISIONAL - HOTEL RATE(S) TO CONFIRM', 270, 697, {align:'center'});
   }
 }
 function addHotelPages(doc: jsPDF, data: Record<ArtKey,string>, hotels: PdfHotel[], category: string) {

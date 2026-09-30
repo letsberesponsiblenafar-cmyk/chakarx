@@ -11,7 +11,15 @@ const packageCategoryMap:Record<PackageHotelBand,string[]>= {
   'Signature Premium':['4 Star','4 Star Deluxe','4 Star Premium'],
   Elite:['5 Star Basic','5 Star Premium','5 Star','Luxury'],
 };
-export function matchesPackageCategory(hotel:Hotel,category:string){const allowed=packageCategoryMap[category as PackageHotelBand];return allowed?allowed.includes(hotel.normalizedCategory):true;}
+export function matchesPackageCategory(hotel:Pick<Hotel,'normalizedCategory'>,category:string){const allowed=packageCategoryMap[category as PackageHotelBand];return allowed?allowed.includes(hotel.normalizedCategory):true;}
+export function suggestedHotel(destination:string,category:string,hotels:Hotel[]){
+  const nearby=hotels.filter((hotel)=>sameHotelDestination(hotel.destination,destination));
+  const exact=nearby.filter((hotel)=>matchesPackageCategory(hotel,category));
+  const candidates=exact.length?exact:nearby;
+  return [...candidates].sort((a,b)=>
+    (a.mapB2B??Number.POSITIVE_INFINITY)-(b.mapB2B??Number.POSITIVE_INFINITY)||a.name.localeCompare(b.name)
+  )[0]??null;
+}
 export function hotelCandidates(destination:string,category:string){return hotelDatabase.filter((hotel)=>sameHotelDestination(hotel.destination,destination)&&matchesPackageCategory(hotel,category)).sort((a,b)=>(a.mapB2B??Number.POSITIVE_INFINITY)-(b.mapB2B??Number.POSITIVE_INFINITY)||a.name.localeCompare(b.name));}
 export function firstHotelCandidate(destination:string,category:string){return hotelCandidates(destination,category)[0]??null;}
 export function roomsRequired(adults:number){return Math.max(1,Math.ceil(Math.max(1,adults)/2));}

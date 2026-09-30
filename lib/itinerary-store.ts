@@ -22,15 +22,27 @@ export function itineraryStoreConfigured() { return Boolean(url && key); }
 
 async function call(path: string, init: RequestInit = {}) {
   if (!url || !key) throw new Error('The saved itinerary database is not connected. Set SUPABASE_URL and SUPABASE_SECRET_KEY.');
+  try { const parsed = new URL(url); if (parsed.protocol !== 'https:') throw new Error(); }
+  catch { throw new Error('SUPABASE_URL must be the project URL, for example https://project.supabase.co.'); }
   const headers: Record<string, string> = { apikey: key, 'Content-Type': 'application/json' };
   if (!key.startsWith('sb_secret_')) headers.Authorization = `Bearer ${key}`;
-  const response = await fetch(`${url}/rest/v1/saved_itineraries${path}`, { ...init, headers: { ...headers, ...init.headers }, cache: 'no-store' });
-  if (!response.ok) {
-    const detail = (await response.text()).slice(0, 240);
-    throw new Error(`Saved itineraries request failed (${response.status}): ${detail}`);
+  const read = !(init.method && init.method !== 'GET');
+  for (let attempt = 0; attempt < (read ? 2 : 1); attempt++) {
+    try {
+      const response = await fetch(`${url}/rest/v1/saved_itineraries${path}`, { ...init, headers: { ...headers, ...init.headers }, cache: 'no-store', signal: AbortSignal.timeout(6000) });
+      if (!response.ok) {
+        if (read && attempt === 0 && [429, 502, 503, 504].includes(response.status)) { await new Promise((resolve) => setTimeout(resolve, 350)); continue; }
+        const detail = (await response.text()).slice(0, 240);
+        throw new Error(`Saved itineraries request failed (${response.status}): ${detail}`);
+      }
+      const body = await response.text();
+      return body ? JSON.parse(body) : null;
+    } catch (error) {
+      if (!read || attempt > 0 || error instanceof Error && error.message.startsWith('Saved itineraries request failed')) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 350));
+    }
   }
-  const body = await response.text();
-  return body ? JSON.parse(body) : null;
+  throw new Error('Saved itineraries database did not respond.');
 }
 
 const summaryColumns = 'id,client_name,arrival,departure,days,nights,package_total,created_at,updated_at,last_downloaded_at,download_count';
