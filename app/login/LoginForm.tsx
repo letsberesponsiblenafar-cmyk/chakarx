@@ -1,9 +1,13 @@
 'use client';
 import {useState,type FormEvent} from 'react';
-import {useRouter} from 'next/navigation';
 import {LockKeyhole} from 'lucide-react';
 export default function LoginForm({configured,next}:{configured:boolean;next?:string}){
-  const router=useRouter();const [username,setUsername]=useState('');const [password,setPassword]=useState('');const [error,setError]=useState('');const [busy,setBusy]=useState(false);
-  async function submit(event:FormEvent){event.preventDefault();setBusy(true);setError('');try{const response=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not sign in.');router.replace(next?.startsWith('/')&&!next.startsWith('//')?next:'/hotels');router.refresh();}catch(e){setError(e instanceof Error?e.message:'Could not sign in.')}finally{setBusy(false)}}
+  const [username,setUsername]=useState('');const [password,setPassword]=useState('');const [error,setError]=useState('');const [busy,setBusy]=useState(false);
+  async function submit(event:FormEvent){event.preventDefault();setBusy(true);setError('');try{const response=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not sign in.');
+    // The planner provider is in the root layout. A client-side route change
+    // would keep its pre-login, empty hotel database state alive.
+    const destination=next?.startsWith('/')&&!next.startsWith('//')&&!next.includes('\\')?next:'/hotels';
+    window.location.replace(destination);
+  }catch(e){setError(e instanceof Error?e.message:'Could not sign in.')}finally{setBusy(false)}}
   return <main className="admin-login"><section className="admin-login-card"><div className="original-logo" role="img" aria-label="Chakar Experience"/><div className="admin-login-icon"><LockKeyhole size={23}/></div><span className="eyebrow">PRIVATE WORKSPACE</span><h1>Admin sign in</h1><p>Access the hotel database, pricing and itinerary builder.</p>{!configured&&<div className="admin-alert">Admin access is awaiting secure setup. Configure the admin credentials in Vercel to enable sign in.</div>}<form onSubmit={submit}><label>Username<input autoComplete="username" value={username} onChange={e=>setUsername(e.target.value)} required/></label><label>Password<input type="password" autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)} required/></label>{error&&<div className="admin-alert">{error}</div>}<button className="primary-cta" disabled={busy||!configured}>{busy?'Signing in…':'Sign in securely'}</button></form></section></main>;
 }

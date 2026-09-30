@@ -136,7 +136,13 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     try {
       const response=await fetch('/api/hotels',{cache:'no-store',signal:AbortSignal.timeout(15000)});
       const payload=await response.json().catch(()=>({}));
-      if(!response.ok)throw new Error(response.status===401?'Admin session expired. Sign in to load hotel suggestions.':payload.error||`Hotel database request failed (${response.status}).`);
+      if(response.status===401){
+        const login=new URL('/login',window.location.origin);
+        login.searchParams.set('next',window.location.pathname+window.location.search);
+        window.location.replace(login.toString());
+        throw new Error('Admin session expired. Sign in to load hotel suggestions.');
+      }
+      if(!response.ok)throw new Error(payload.error||`Hotel database request failed (${response.status}).`);
       if(!payload.configured)throw new Error('Hotel database is not configured on this deployment.');
       if(!Array.isArray(payload.hotels))throw new Error('Hotel database returned an invalid response.');
       const db=payload.hotels as Hotel[];
@@ -154,7 +160,9 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setState(readState());
     setMounted(true);
-    void refreshHotels();
+    // Login is public and has no session yet. The full navigation after sign-in
+    // remounts this provider and loads the hotel master with the new cookie.
+    if(window.location.pathname!=='/login')void refreshHotels();
   }, []);
   useEffect(() => { if (mounted) { try { const {hotelDatabase: _privateRates, ...saved}=state; localStorage.setItem(STORAGE, JSON.stringify(saved)); } catch { /* ignore storage errors */ } } }, [state, mounted]);
 
