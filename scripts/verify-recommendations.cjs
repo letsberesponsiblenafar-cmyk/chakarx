@@ -18,6 +18,8 @@ for (const ext of ['.ts', '.tsx']) require.extensions[ext] = function (module, f
 };
 
 const { createPlan } = require('../lib/itinerary.ts');
+const { calculateCosts } = require('../lib/costing.ts');
+const { itinerarySnapshot } = require('../components/PlannerProvider.tsx');
 const { dayTitle } = require('../lib/narrative.ts');
 const input = (days) => ({
   name: 'Route QA', arrival: '2026-10-03', departure: `2026-10-${String(days + 2).padStart(2,'0')}`,
@@ -45,4 +47,12 @@ assert.equal(long.dayPlans.at(-1).to, 'Srinagar');
 const extended = createPlan(input(16));
 for (const name of core) assert.ok(visits(extended).has(name), `Sixteen-day trip missed ${name}`);
 assert.ok(visits(extended).size >= 6, 'Sixteen-day trip needs a varied destination circuit');
+const customVehicle = 'Luxury minibus';
+const customPlan = createPlan({ ...input(4), transport: customVehicle });
+const customCost = { transportDaily: 6100, transportIsCustom: true, activityCosts: {}, otherAmount: 0, profitPct: 10 };
+const customQuote = calculateCosts(customPlan, [], customCost);
+assert.equal(customQuote.transport, customPlan.dayPlans.length * 6100, 'Custom daily vehicle rate must reach the quote');
+const saved = JSON.parse(JSON.stringify(itinerarySnapshot({ input: customPlan.input, plan: customPlan, routeVersion: null, hotelSelections: [], hotelDatabase: [], costModel: customCost, hotelDefaults: {}, generated: true, savedItineraryId: null })));
+assert.equal(saved.input.transport, customVehicle, 'Saved itinerary must retain the custom vehicle name');
+assert.equal(saved.costModel.transportDaily, 6100, 'Saved itinerary must retain the custom vehicle rate');
 console.log('PASS core visits on 4/8/11/16-day trips, Srinagar day-trip hub, longer overnight circuit and sightseeing wording');

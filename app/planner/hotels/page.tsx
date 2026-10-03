@@ -5,7 +5,6 @@ import { ChevronLeft, ChevronRight, Hotel as HotelIcon, Info, Minus, Plus, UserR
 import AppShell from '@/components/AppShell';
 import PlannerChrome from '@/components/PlannerChrome';
 import { usePlanner } from '@/components/PlannerProvider';
-import { transportOptions } from '@/lib/data';
 import { roomsRequired, cnbChildren, extraBedsRequired, sameHotelDestination, matchesPackageCategory } from '@/lib/hotels';
 
 function money(v: number) { return `₹${Math.round(v).toLocaleString('en-IN')}`; }
@@ -14,7 +13,7 @@ function Stepper({ value, min, onChange }: { value: number; min: number; onChang
 }
 
 export default function HotelsPage() {
-  const { plan, input, hotelSelections, replaceHotel, setHotelRate, setHotelMeta, hotelDatabase: db, hotelConnection, hotelConnectionError, refreshHotels, hotelDefaults, setHotelDefaults, applyHotelDefaults, setNightSequence, setTransport, costModel, setCostModel, hydrated } = usePlanner();
+  const { plan, input, hotelSelections, replaceHotel, setHotelRate, setHotelMeta, hotelDatabase: db, hotelConnection, hotelConnectionError, refreshHotels, hotelDefaults, setHotelDefaults, applyHotelDefaults, setNightSequence, hydrated } = usePlanner();
   const rows = useMemo(() => plan?.hotelPlans || [], [plan]);
   const [hotelSearch, setHotelSearch] = useState<Record<string,string>>({});
   const [hotelMode, setHotelMode] = useState<Record<string,'search'|'custom'>>({});
@@ -44,7 +43,6 @@ export default function HotelsPage() {
   const sequence = Array.from({length: plan.nights}, (_, i) => nightAssignments[i+1] || '');
   const sequenceChanged = sequence.join('|') !== plan.dayPlans.slice(0,plan.nights).map((d)=>d.stay).join('|');
   const attachedCount = rows.filter((row) => {const hotel=hotelSelections.find((x)=>x.location===row.location);return Boolean(hotel?.hotelId||(hotel?.hotelName&&hotel.hotelName!=='Hotel to be added'&&hotel.hotelName!=='Hotel to be confirmed'));}).length;
-  const chargedDays = plan.dayPlans.length;
 
   function toggleNight(destination: string, night: number) {
     setNightAssignments((prev) => {
@@ -96,8 +94,6 @@ export default function HotelsPage() {
 
     <div className="night-edit-toolbar"><div><b>{Object.keys(nightAssignments).length}/{plan.nights} nights assigned</b><span>{sequenceChanged?'Apply the distribution to update the itinerary, hotels and quote.':'Open any hotel’s night count to see and change the full calendar.'}</span></div><div className="night-toolbar-actions"><button type="button" className="secondary-link" onClick={()=>{setNightAssignments({});setOpenNightDestination(rows[0]?.location||null)}}>Start with blank dates</button><button type="button" className="primary-cta inline" disabled={!totalAssigned||!sequenceChanged} onClick={()=>setNightSequence(sequence)}>Apply night distribution</button></div></div>
 
-    <section className="transport-setup-card"><div><span className="overline">AFTER HOTELS · TRANSPORT</span><h2>Choose the vehicle and daily cost</h2><p>The selected vehicle appears in the client package. Its rate is charged for {chargedDays} service days and flows into Costing.</p></div><div className="transport-setup-fields"><label>Vehicle<select value={input.transport} onChange={(e)=>setTransport(e.target.value)}>{transportOptions.map((vehicle)=><option key={vehicle} value={vehicle}>{vehicle}</option>)}</select></label><label>Cost per day<div className="transport-money-input"><span>₹</span><input type="number" min="0" value={costModel.transportDaily} onChange={(e)=>setCostModel({transportDaily:Math.max(0,Number(e.target.value)||0)})}/></div></label><div className="transport-setup-total"><span>Transport estimate</span><b>{money(chargedDays*costModel.transportDaily)}</b><small>{chargedDays} days × {money(costModel.transportDaily)}</small></div></div><p className="transport-suggestion">{adults+young>6?'For this group size, a Tempo Traveller may provide a more comfortable fit.':adults+young>3?'For this group size, Ertiga or Innova may provide a more comfortable fit.':'A Sedan may be sufficient for this group size; choose based on luggage and comfort.'}</p></section>
-
-    <div className="next-row"><Link className="secondary-link" href="/planner/itinerary"><ChevronLeft size={16}/> Back to itinerary</Link><div><b>Hotel layer complete?</b><span>Next, set markup and calculate the customer price.</span></div><Link className="primary-cta inline" href="/planner/costing">Next: Costing <ChevronRight size={16}/></Link></div>
+    <div className="next-row"><Link className="secondary-link" href="/planner/itinerary"><ChevronLeft size={16}/> Back to itinerary</Link><div><b>Hotel layer complete?</b><span>Choose transport and activity costs next.</span></div><Link className="primary-cta inline" href="/planner/activities-transport">Next: Activities &amp; Transport <ChevronRight size={16}/></Link></div>
   </PlannerChrome></AppShell>;
 }

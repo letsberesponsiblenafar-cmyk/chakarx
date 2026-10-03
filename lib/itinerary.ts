@@ -456,7 +456,7 @@ function validateInput(input: TripInput) {
   if (!Array.isArray(input.interests)) throw new Error('Interests must be supplied as a list.');
   if (!travelStyles.includes(input.style)) throw new Error('Invalid itinerary configuration.');
   if (!hotelCategories.includes(input.hotelCategory)) throw new Error('Invalid itinerary category.');
-  if (!transportOptions.includes(input.transport)) throw new Error('Invalid transport option.');
+  if (typeof input.transport !== 'string' || !input.transport.trim() || input.transport.length > 80) throw new Error('Enter a valid vehicle name.');
   if (!mealOptions.includes(input.mealPlan)) throw new Error('Invalid meal plan.');
   if (!Number.isFinite(input.budget) || input.budget < 0) throw new Error('Budget must be a valid non-negative amount.');
 }
