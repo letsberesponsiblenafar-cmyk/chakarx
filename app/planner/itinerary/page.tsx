@@ -5,7 +5,7 @@ import Link from 'next/link';
 import AppShell from '@/components/AppShell';
 import PlannerChrome from '@/components/PlannerChrome';
 import { usePlanner } from '@/components/PlannerProvider';
-import { destinations, routeByName, type Destination } from '@/lib/data';
+import { routeByName, type Destination } from '@/lib/data';
 import { destinationPriority } from '@/lib/intelligence';
 import { dayNarrative, dayTitle } from '@/lib/narrative';
 import { sameHotelDestination } from '@/lib/hotels';
@@ -20,7 +20,7 @@ function routeHours(from: string, to: string) {
   const viaB = routeByName('Srinagar',to);
   return viaA && viaB ? viaA.hours + viaB.hours : 99;
 }
-function suggestedDestinations(current: string, hotelDatabase: { destination: string; mapB2B: number | null }[]) {
+function suggestedDestinations(current: string, hotelDatabase: { destination: string; mapB2B: number | null }[], destinations: Destination[]) {
   const priorityRank: Record<string, number> = { CORE: 4, SECONDARY: 3, OFFBEAT: 2, LOW_PRIORITY: 1, TREK_ONLY: 0 };
   const popularOrder = ['Srinagar', 'Gulmarg', 'Pahalgam', 'Sonamarg', 'Doodhpathri', 'Gurez', 'Yusmarg', 'Achabal', 'Kokernag', 'Verinag', 'Manasbal', 'Naranag', 'Daksum'];
   return destinations.filter((d) => d.overnight_allowed).sort((a, b) => {
@@ -34,7 +34,7 @@ function suggestedDestinations(current: string, hotelDatabase: { destination: st
 }
 
 export default function ItineraryPage() {
-  const { input, plan, routeVersion, hotelSelections, hotelDatabase, generate, setDayDestination, setDayTrip, setDeparturePoint, setDayContent, addDay, removeDay } = usePlanner();
+  const { input, plan, routeVersion, hotelSelections, hotelDatabase, destinationCatalog: destinations, generate, setDayDestination, setDayTrip, setDeparturePoint, setDayContent, addDay, removeDay } = usePlanner();
   const [editDay, setEditDay] = useState<number | null>(null);
   const [destinationSearch, setDestinationSearch] = useState('');
   const [destinationOpen, setDestinationOpen] = useState(false);
@@ -53,7 +53,7 @@ export default function ItineraryPage() {
         const isEditing=editDay===d.day;
         const title=dayTitle(d, input.pickup || 'Srinagar');
         const about=dayNarrative(d, input.pickup || 'Srinagar');
-        const choices=suggestedDestinations(d.stay,hotelDatabase).filter((x)=>!destinationSearch||x.name.toLowerCase().includes(destinationSearch.toLowerCase()));
+        const choices=suggestedDestinations(d.stay,hotelDatabase,destinations).filter((x)=>!destinationSearch||x.name.toLowerCase().includes(destinationSearch.toLowerCase()));
         return <article className={`itinerary-card redesigned-day ${isEditing?'editing':''}`} key={d.day}>
           <div className="day-title redesigned">
             <div className="day-heading-editable">

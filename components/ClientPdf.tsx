@@ -9,7 +9,6 @@ import { calculateCosts } from '@/lib/costing';
 import { dayNarrative, dayTitle } from '@/lib/narrative';
 import type { DayPlan, Plan, TripInput } from '@/lib/itinerary';
 import { savePlannerItinerary } from '@/lib/save-itinerary';
-import { matchesPackageCategory } from '@/lib/hotels';
 
 const PAGE_W = 540;
 const PAGE_H = 780;
@@ -58,6 +57,21 @@ async function imageData(path: string) {
     reader.onerror = () => reject(new Error(`Could not read artwork: ${path}`));
     reader.readAsDataURL(blob);
   });
+}
+async function packageArtworkWithoutRateDisclaimer(source: string) {
+  const image = new Image();
+  image.src = source;
+  await image.decode();
+  const canvas = document.createElement('canvas');
+  canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Could not prepare package artwork.');
+  context.drawImage(image, 0, 0);
+  // The supplied artwork has an old 24-hour rate disclaimer baked into its
+  // bottom margin. Replace that margin with the same blank paper texture.
+  const start = Math.floor(canvas.height * .89);
+  context.drawImage(image, 0, Math.floor(canvas.height * .78), canvas.width, canvas.height - start, 0, start, canvas.width, canvas.height - start);
+  return canvas.toDataURL('image/jpeg', .96);
 }
 function artworkPage(doc: jsPDF, data: PdfArt, key: ArtKey, first = false) {
   if (!first) doc.addPage();
@@ -138,11 +152,6 @@ function addPackage(doc: jsPDF, data: Record<ArtKey,string>, plan: Plan, input: 
   doc.text(mealLines,cellCenters[2],mealLines.length>1?541:547,{align:'center',lineHeightFactor:1.1});
   const roomLines = textLines(doc,roomSummary(hotels),103,8.2);
   doc.text(roomLines,cellCenters[3],roomLines.length>1?540:547,{align:'center',lineHeightFactor:1.15});
-  const categoryAlternatives=hotels.some((hotel)=>hotel.hotelId&&!matchesPackageCategory({normalizedCategory:hotel.category},input.hotelCategory));
-  if (costs.missingHotelRates.length||categoryAlternatives) {
-    doc.setFont('evolventa','bold'); doc.setFontSize(8); doc.setTextColor(112,67,24);
-    doc.text(categoryAlternatives?'PROVISIONAL - HOTEL CATEGORY TO CONFIRM':'PROVISIONAL - HOTEL RATE(S) TO CONFIRM', 270, 697, {align:'center'});
-  }
 }
 function addHotelPages(doc: jsPDF, data: Record<ArtKey,string>, hotels: PdfHotel[], category: string) {
   const rows = hotels.length ? hotels : [];
@@ -228,6 +237,7 @@ export default function ClientPdf() {
     try {
       const entries=await Promise.all((Object.keys(ART) as ArtKey[]).map(async (key)=>[key,await imageData(ART[key])] as const));
       const data=Object.fromEntries(entries) as PdfArt;
+      data.package=await packageArtworkWithoutRateDisclaimer(data.package);
       [data.brandWhite,data.brandInk]=await Promise.all([imageData('/chakar-logo-original-white.png'),imageData('/chakar-logo-original-ink.png')]);
       const [regular,bold,cover]=await Promise.all([imageData('/fonts/Evolventa-Regular.ttf'),imageData('/fonts/Evolventa-Bold.ttf'),imageData('/fonts/RedHatDisplay-400.ttf')]);
       const doc=buildClientPdf(data,currentPlan,currentInput,hotelSelections,currentCosts,customerName,{regular:regular.split(',')[1],bold:bold.split(',')[1],cover:cover.split(',')[1]});

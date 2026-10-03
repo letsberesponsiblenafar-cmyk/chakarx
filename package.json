@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "test:routes": "node tests/route-rules.mjs",
+    "test:destinations": "node tests/destination-library.cjs",
     "test:hotels": "node tests/hotel-suggestions.cjs",
     "test:store": "node tests/database-retry.cjs",
     "test:model": "node scripts/verify-model.mjs && node scripts/verify-recommendations.cjs"

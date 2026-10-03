@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPlan, retargetDay, rebuildPlanFromNightSequence, setPlanDayTrip, setPlanDeparturePoint, ROUTE_VERSION, type Plan, type TripInput } from '@/lib/itinerary';
-import { hotelDatabase as importedHotels, hotelCategories, mealOptions, transportOptions, travelStyles, interests, destinationByName, type Hotel } from '@/lib/data';
+import { hotelDatabase as importedHotels, hotelCategories, mealOptions, transportOptions, travelStyles, interests, destinations, destinationByName, replaceDestinationCatalog, type Destination, type Hotel } from '@/lib/data';
 import { firstHotelCandidate, roomsRequired, cnbChildren, extraBedsRequired, matchesPackageCategory, suggestedHotel } from '@/lib/hotels';
 
 export type HotelSelection = {
@@ -18,6 +18,10 @@ export function itinerarySnapshot(state: PlannerState): ItinerarySnapshot {
 
 type PlannerContextValue = PlannerState & {
   hydrated: boolean;
+  destinationCatalog: Destination[];
+  destinationConnection: 'loading' | 'ready' | 'error';
+  destinationConnectionError: string;
+  refreshDestinations: () => Promise<void>;
   hotelConnection: 'loading' | 'ready' | 'error' | 'signed-out';
   hotelConnectionError: string;
   refreshHotels: () => Promise<void>;
@@ -127,9 +131,28 @@ const Ctx = createContext<PlannerContextValue | null>(null);
 export function PlannerProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<PlannerState>(() => ({ input: { ...defaultInput }, plan: null, routeVersion: null, hotelSelections: [], hotelDatabase: importedHotels, costModel: { ...defaultCost }, hotelDefaults: { ...defaultHotelDefaults }, generated: false, savedItineraryId: null }));
   const [mounted, setMounted] = useState(false);
+  const [destinationCatalog,setDestinationCatalog]=useState<Destination[]>([...destinations]);
+  const [destinationConnection,setDestinationConnection]=useState<'loading'|'ready'|'error'>('loading');
+  const [destinationConnectionError,setDestinationConnectionError]=useState('');
   const [hotelConnection,setHotelConnection]=useState<'loading'|'ready'|'error'|'signed-out'>('loading');
   const [hotelConnectionError,setHotelConnectionError]=useState('');
   const hotelRequest=useRef(0);
+  async function refreshDestinations() {
+    setDestinationConnection('loading'); setDestinationConnectionError('');
+    try {
+      const response=await fetch('/api/destinations',{cache:'no-store',signal:AbortSignal.timeout(15000)});
+      const payload=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(payload.error||`Destination database request failed (${response.status}).`);
+      if(!Array.isArray(payload.destinations))throw new Error('Destination database returned an invalid response.');
+      const catalog=payload.destinations as Destination[];
+      replaceDestinationCatalog(catalog);
+      setDestinationCatalog([...catalog]);
+      setDestinationConnection('ready');
+    } catch(error) {
+      setDestinationConnection('error');
+      setDestinationConnectionError(error instanceof Error?error.message:'Could not load destination database.');
+    }
+  }
   async function refreshHotels(){
     const request=++hotelRequest.current;
     setHotelConnection('loading'); setHotelConnectionError('');
@@ -162,13 +185,17 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     setMounted(true);
     // Login is public and has no session yet. The full navigation after sign-in
     // remounts this provider and loads the hotel master with the new cookie.
-    if(window.location.pathname!=='/login')void refreshHotels();
+    if(window.location.pathname!=='/login') { void refreshHotels(); void refreshDestinations(); }
   }, []);
   useEffect(() => { if (mounted) { try { const {hotelDatabase: _privateRates, ...saved}=state; localStorage.setItem(STORAGE, JSON.stringify(saved)); } catch { /* ignore storage errors */ } } }, [state, mounted]);
 
   const value = useMemo<PlannerContextValue>(() => ({
     ...state,
     hydrated: mounted,
+    destinationCatalog,
+    destinationConnection,
+    destinationConnectionError,
+    refreshDestinations,
     hotelConnection,
     hotelConnectionError,
     refreshHotels,
@@ -349,7 +376,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       setState((s) => ({ ...s, ...snapshot, hotelDatabase: s.hotelDatabase, savedItineraryId: id }));
     },
     markSavedItinerary(id) { setState((s) => ({ ...s, savedItineraryId: id })); },
-  }), [state, mounted, hotelConnection, hotelConnectionError]);
+  }), [state, mounted, hotelConnection, hotelConnectionError, destinationCatalog, destinationConnection, destinationConnectionError]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

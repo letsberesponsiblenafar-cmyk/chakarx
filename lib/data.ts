@@ -12,6 +12,7 @@ export type Site = {
 };
 
 export type Destination = {
+  id?: string;
   name: string;
   tier: string;
   district: string;
@@ -35,6 +36,11 @@ export type Destination = {
   sites: Site[];
   base?: boolean;
   cluster: string;
+  srinagar_hours?: number;
+  srinagar_km?: number;
+  day_note?: string;
+  enabled_things_to_do?: string[];
+  enabled_activities?: string[];
 };
 
 export type Route = { km: number; hours: number; source: string; live_required: boolean };
@@ -46,7 +52,10 @@ export type Hotel = {
 };
 export type Source = { name: string; url: string; type: string; status: string; observed: string; note: string };
 
-export const destinations = destinationsJson as Destination[];
+export const destinations: Destination[] = [...(destinationsJson as Destination[])];
+export function replaceDestinationCatalog(records: Destination[]) {
+  destinations.splice(0, destinations.length, ...records);
+}
 export const routes = routesJson as Record<string, Route>;
 // Hotel master data is fetched from the authenticated server API after sign-in.
 export const hotelDatabase: Hotel[] = [];
@@ -64,5 +73,11 @@ export const hotels = hotelDatabase.reduce<Record<string, Hotel[]>>((acc, hotel)
 }, {});
 
 export function destinationByName(name: string) { return destinations.find((d) => d.name === name); }
-export function routeByName(from: string, to: string) { return routes[`${from}|${to}`] ?? null; }
+export function routeByName(from: string, to: string) {
+  const stored = routes[`${from}|${to}`];
+  if (stored) return stored;
+  const custom = from === 'Srinagar' ? destinationByName(to) : to === 'Srinagar' ? destinationByName(from) : null;
+  if (!custom?.srinagar_hours || !custom.srinagar_km) return null;
+  return { hours: custom.srinagar_hours, km: custom.srinagar_km, source: 'Destination library route', live_required: false };
+}
 export function hotelById(id: string) { return hotelDatabase.find((h) => h.id === id); }
