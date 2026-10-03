@@ -19,6 +19,8 @@ const { destinations, replaceDestinationCatalog, routeByName } = require('../lib
 const { createPlan, setPlanDayTrip } = require('../lib/itinerary.ts');
 const { dayNarrative } = require('../lib/narrative.ts');
 const { validateDestination } = require('../lib/destination-validation.ts');
+const { tripActivities, quotedActivityCost } = require('../lib/activities.ts');
+const { calculateCosts } = require('../lib/costing.ts');
 const input = { name: 'Client', arrival: '2026-10-10', departure: '2026-10-15', pickup: 'Srinagar', adults: 2, youngAges: [], budget: 0, hotelCategory: 'Signature', transport: 'Sedan', mealPlan: 'Breakfast & Dinner', style: 'Balanced', interests: ['Nature'] };
 
 const original = [...destinations];
@@ -31,6 +33,16 @@ try {
   assert.match(copy, /curated Srinagar waterfront walk/);
   assert.match(copy, /Waterfront walk/);
   assert.doesNotMatch(copy, /Closed attraction|Shikara ride|Confirm road access|confirm local access|weather/i);
+
+  const shikara = tripActivities(plan).find((activity) => activity.destination === 'Srinagar' && activity.name === 'Shikara ride');
+  assert.ok(shikara, 'Destination activities should appear for costing even when not enabled for automatic day copy.');
+  assert.equal(shikara.available, false);
+  const baseCost = { transportDaily: 4200, otherAmount: 0, profitPct: 10, activityCosts: {} };
+  const before = calculateCosts(plan, [], baseCost);
+  const after = calculateCosts(plan, [], { ...baseCost, activityCosts: { [shikara.key]: 3000 } });
+  assert.equal(quotedActivityCost(baseCost.activityCosts, shikara), null);
+  assert.equal(after.activities, 3000);
+  assert.equal(Math.round(after.sellingTotal - before.sellingTotal), 3465, 'A group activity cost should enter markup and GST once.');
 
   replaceDestinationCatalog([{ ...edited, enabled_activities: ['Shikara ride'] }, ...original.filter((item) => item.name !== 'Srinagar')]);
   plan = createPlan(input);

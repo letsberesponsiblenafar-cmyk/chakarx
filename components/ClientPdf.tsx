@@ -9,6 +9,7 @@ import { calculateCosts } from '@/lib/costing';
 import { dayNarrative, dayTitle } from '@/lib/narrative';
 import type { DayPlan, Plan, TripInput } from '@/lib/itinerary';
 import { savePlannerItinerary } from '@/lib/save-itinerary';
+import { quotedActivityCost, tripActivities } from '@/lib/activities';
 
 const PAGE_W = 540;
 const PAGE_H = 780;
@@ -29,7 +30,8 @@ type ArtKey = keyof typeof ART;
 type Costs = ReturnType<typeof calculateCosts>;
 type PdfHotel = HotelSelection & { nightNumbers: number[] };
 type PdfFonts = { regular: string; bold: string; cover: string };
-type PdfArt = Record<ArtKey,string> & {brandWhite?:string; brandInk?:string};
+type PdfArt = Record<ArtKey,string> & {brandWhite?:string; brandInk?:string; hotelRows?: Record<number,string>};
+type ActivityLists = { included: string[]; excluded: string[] };
 
 function printable(value: unknown) {
   return String(value ?? '').trim().replace(/[\u2018\u2019]/g,"'").replace(/[\u2013\u2014]/g,'-').replace(/→/g,'to').replace(/≤/g,'<=');
@@ -73,15 +75,60 @@ async function packageArtworkWithoutRateDisclaimer(source: string) {
   context.drawImage(image, 0, Math.floor(canvas.height * .78), canvas.width, canvas.height - start, 0, start, canvas.width, canvas.height - start);
   return canvas.toDataURL('image/jpeg', .96);
 }
-function artworkPage(doc: jsPDF, data: PdfArt, key: ArtKey, first = false) {
+async function hotelArtworkForRows(source: string, count: number) {
+  if (count >= 4) return source;
+  const image = new Image(); image.src = source; await image.decode();
+  const canvas = document.createElement('canvas'); canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
+  const context = canvas.getContext('2d'); if (!context) throw new Error('Could not prepare hotel artwork.');
+  context.drawImage(image,0,0);
+  const starts = [245,345,477,599];
+  const top = Math.round(starts[count] / PAGE_H * canvas.height);
+  const bottom = Math.round(727 / PAGE_H * canvas.height);
+  // Replace only unused table rows with an unprinted piece of the original
+  // paper. Keep the category header, filled rows, margins and page number.
+  const left = Math.round(32 / PAGE_W * canvas.width);
+  const right = Math.round(510 / PAGE_W * canvas.width);
+  const sampleLeft = Math.round(55 / PAGE_W * canvas.width);
+  const sampleRight = Math.round(475 / PAGE_W * canvas.width);
+  const stripTop = Math.round(139 / PAGE_H * canvas.height);
+  const stripHeight = Math.round(12 / PAGE_H * canvas.height);
+  for (let y = top; y < bottom; y += stripHeight) {
+    const height = Math.min(stripHeight,bottom-y);
+    context.drawImage(image,sampleLeft,stripTop,sampleRight-sampleLeft,height,left,y,right-left,height);
+  }
+  return canvas.toDataURL('image/jpeg',.97);
+}
+async function listArtworkForClient(source: string, background: string) {
+  const image = new Image(); image.src = source; await image.decode();
+  const clean = new Image(); clean.src = background; await clean.decode();
+  const canvas = document.createElement('canvas'); canvas.width=image.naturalWidth; canvas.height=image.naturalHeight;
+  const context=canvas.getContext('2d'); if(!context)throw new Error('Could not prepare inclusion artwork.');
+  // The sample PDF embeds its landscape separately from its lettering. Use
+  // that original photo for the variable list, keeping the supplied heading
+  // and footer exactly as they appear in the branded artwork.
+  context.drawImage(clean,0,0,canvas.width,canvas.height);
+  const top=Math.round(122/PAGE_H*canvas.height),bottom=Math.round(722/PAGE_H*canvas.height);
+  context.drawImage(image,0,0,canvas.width,top,0,0,canvas.width,top);
+  context.drawImage(image,0,bottom,canvas.width,canvas.height-bottom,0,bottom,canvas.width,canvas.height-bottom);
+  const feather=Math.round(5/PAGE_H*canvas.height);
+  for(let offset=0;offset<feather;offset+=2){
+    context.globalAlpha=1-offset/feather;
+    context.drawImage(image,0,top+offset,canvas.width,2,0,top+offset,canvas.width,2);
+    context.globalAlpha=offset/feather;
+    context.drawImage(image,0,bottom-feather+offset,canvas.width,2,0,bottom-feather+offset,canvas.width,2);
+  }
+  context.globalAlpha=1;
+  return canvas.toDataURL('image/jpeg',.97);
+}
+function artworkPage(doc: jsPDF, data: PdfArt, key: ArtKey, first = false, override?: string) {
   if (!first) doc.addPage();
-  doc.addImage(data[key], key === 'cover' ? 'PNG' : 'JPEG', 0, 0, PAGE_W, PAGE_H, undefined, 'FAST');
+  doc.addImage(override || data[key], key === 'cover' ? 'PNG' : 'JPEG', 0, 0, PAGE_W, PAGE_H, undefined, 'FAST');
   if (key === 'thanks') return;
   const lightArt = key === 'cover' || key === 'letter' || key === 'inclusions' || key === 'exclusions' || key === 'policies' || key === 'testimonials';
   const logo = lightArt ? data.brandWhite : data.brandInk;
   if (!logo) return;
   const left = key === 'cover' || key === 'letter';
-  const x = left ? 18 : 413, y = left ? 8 : 6, width = left ? 134 : 119;
+  const width = left ? 115 : 101, x = left ? 18 : PAGE_W - width - 17, y = left ? 8 : 6;
   doc.addImage(logo, 'PNG', x, y, width, width * 223 / 593, undefined, 'NONE');
 }
 function addCover(doc: jsPDF, data: PdfArt, name: string) {
@@ -96,7 +143,8 @@ function addSummary(doc: jsPDF, data: Record<ArtKey,string>, plan: Plan, input: 
   center(doc, date(input.departure), 174, 423, 12.5, [30,24,18], true);
   center(doc, input.pickup || 'Pick-up to confirm', 352, 530, 12.5, [30,24,18], true);
   const persons = `${input.adults} adult${input.adults === 1 ? '' : 's'}${input.youngAges.length ? ` plus ${input.youngAges.length} child${input.youngAges.length === 1 ? '' : 'ren'} (${input.youngAges.join(', ')} yrs)` : ''}`;
-  const lines = textLines(doc, persons, 250, 11);
+  const lines = textLines(doc, persons, 250, 11.5, true);
+  doc.setFont('evolventa','bold');
   doc.setTextColor(30,24,18); doc.text(lines.slice(0,2), 80, 646, { lineHeightFactor: 1.13 });
   doc.setFont('evolventa','normal'); doc.setFontSize(10); doc.text('Number of persons',80,lines.length>1?681:668);
 }
@@ -156,10 +204,11 @@ function addPackage(doc: jsPDF, data: Record<ArtKey,string>, plan: Plan, input: 
 function addHotelPages(doc: jsPDF, data: Record<ArtKey,string>, hotels: PdfHotel[], category: string) {
   const rows = hotels.length ? hotels : [];
   for (let start=0; start<Math.max(1,rows.length); start+=4) {
-    artworkPage(doc,data,'hotels');
+    const visible=rows.slice(start,start+4);
+    artworkPage(doc,data,'hotels',false,(data as PdfArt).hotelRows?.[visible.length]);
     center(doc,'Category',159,220,11,[255,255,255]);
     center(doc,category,382,220,11,[255,255,255],true);
-    rows.slice(start,start+4).forEach((hotel,i)=>{
+    visible.forEach((hotel,i)=>{
       const y=[296,413,537,659][i];
       center(doc,`${hotel.location} ${hotel.nights}N`,160,y,10,[255,255,255],true);
       const nights=`Nights ${hotel.nightNumbers.join(', ')}`;
@@ -167,6 +216,25 @@ function addHotelPages(doc: jsPDF, data: Record<ArtKey,string>, hotels: PdfHotel
       const lines=textLines(doc,hotel.hotelName||'Hotel to be confirmed',187,9.6);
       doc.setTextColor(255,255,255); doc.text(lines.slice(0,3),382,y-(Math.min(lines.length,3)-1)*5,{align:'center',lineHeightFactor:1.1});
     });
+  }
+}
+function addClientList(doc: jsPDF, data: PdfArt, key: 'inclusions' | 'exclusions', items: string[]) {
+  const entries=items.length?items:['No additional activities are listed for this package.'];
+  let index=0;
+  while(index<entries.length){
+    artworkPage(doc,data,key);
+    let y=158;
+    doc.setFont('evolventa','bold');doc.setFontSize(10);doc.setTextColor(222,184,91);
+    doc.text(key==='inclusions'?'YOUR PACKAGE INCLUDES':'NOT INCLUDED IN THIS PACKAGE',39,139);
+    while(index<entries.length){
+      const lines=textLines(doc,entries[index],438,11.2);
+      const height=lines.length*16+13;
+      if(y+height>696&&y>158)break;
+      doc.setFont('evolventa','bold');doc.setFontSize(12);doc.setTextColor(222,184,91);doc.text('•',40,y);
+      doc.setFont('evolventa','normal');doc.setFontSize(11.2);doc.setTextColor(255,255,255);
+      doc.text(lines,58,y,{lineHeightFactor:1.42});
+      y+=height;index++;
+    }
   }
 }
 function pdfHotels(plan: Plan, selections: HotelSelection[], input: TripInput): PdfHotel[] {
@@ -179,7 +247,7 @@ function pdfHotels(plan: Plan, selections: HotelSelection[], input: TripInput): 
   });
 }
 
-export function buildClientPdf(data: PdfArt, plan: Plan, input: TripInput, selections: HotelSelection[], costs: Costs, customerName: string, fonts: PdfFonts) {
+export function buildClientPdf(data: PdfArt, plan: Plan, input: TripInput, selections: HotelSelection[], costs: Costs, customerName: string, fonts: PdfFonts, activityLists: ActivityLists = {included:[],excluded:[]}) {
   const doc=new jsPDF({unit:'pt',format:[PAGE_W,PAGE_H],orientation:'portrait',compress:true});
   doc.addFileToVFS('Evolventa-Regular.ttf', fonts.regular);
   doc.addFileToVFS('Evolventa-Bold.ttf', fonts.bold);
@@ -194,13 +262,26 @@ export function buildClientPdf(data: PdfArt, plan: Plan, input: TripInput, selec
   addDaywise(doc,data,plan,input.pickup);
   addPackage(doc,data,plan,input,hotels,costs);
   addHotelPages(doc,data,hotels,input.hotelCategory);
-  (['inclusions','exclusions','policies','testimonials','thanks'] as const).forEach((key)=>artworkPage(doc,data,key));
+  addClientList(doc,data,'inclusions',[
+    `Accommodation at the listed hotels for ${plan.nights} night${plan.nights===1?'':'s'}.`,
+    `${input.transport} private transport for the itinerary, including sightseeing and transfers.`,
+    input.mealPlan==='None'?'':`${input.mealPlan} at the hotels.`,
+    'Road tolls and applicable vehicle charges.',
+    ...activityLists.included.map((name)=>`${name} - included in the package.`),
+  ].filter(Boolean));
+  addClientList(doc,data,'exclusions',[
+    ...activityLists.excluded.map((name)=>`${name} - not included.`),
+    'Activities and tickets not expressly listed among the inclusions.',
+    'Flights, train tickets, personal shopping, tips and laundry.',
+    'Meals not included in the selected meal plan.',
+  ]);
+  (['policies','testimonials','thanks'] as const).forEach((key)=>artworkPage(doc,data,key));
   return doc;
 }
 
 export default function ClientPdf() {
   const planner = usePlanner();
-  const { plan, input, hotelSelections, costModel, hydrated, markSavedItinerary, reset } = planner;
+  const { plan, input, hotelSelections, costModel, destinationCatalog, hydrated, markSavedItinerary, reset } = planner;
   const [downloading,setDownloading] = useState(false);
   const [saveState,setSaveState] = useState<'saving'|'saved'|'error'>('saving');
   const [saveError,setSaveError] = useState('');
@@ -236,11 +317,20 @@ export default function ClientPdf() {
     setDownloading(true);
     try {
       const entries=await Promise.all((Object.keys(ART) as ArtKey[]).map(async (key)=>[key,await imageData(ART[key])] as const));
-      const data=Object.fromEntries(entries) as PdfArt;
+      const data=Object.fromEntries(entries) as unknown as PdfArt;
       data.package=await packageArtworkWithoutRateDisclaimer(data.package);
+      const visibleOnLastHotelPage=hotels.length%4 || (hotels.length ? 4 : 0);
+      data.hotelRows=visibleOnLastHotelPage<4?{[visibleOnLastHotelPage]:await hotelArtworkForRows(data.hotels,visibleOnLastHotelPage)}:{};
+      const [inclusionsPhoto,exclusionsPhoto]=await Promise.all([imageData('/pdf-assets/inclusions-photo.jpg'),imageData('/pdf-assets/exclusions-photo.jpg')]);
+      [data.inclusions,data.exclusions]=await Promise.all([listArtworkForClient(data.inclusions,inclusionsPhoto),listArtworkForClient(data.exclusions,exclusionsPhoto)]);
       [data.brandWhite,data.brandInk]=await Promise.all([imageData('/chakar-logo-original-white.png'),imageData('/chakar-logo-original-ink.png')]);
       const [regular,bold,cover]=await Promise.all([imageData('/fonts/Evolventa-Regular.ttf'),imageData('/fonts/Evolventa-Bold.ttf'),imageData('/fonts/RedHatDisplay-400.ttf')]);
-      const doc=buildClientPdf(data,currentPlan,currentInput,hotelSelections,currentCosts,customerName,{regular:regular.split(',')[1],bold:bold.split(',')[1],cover:cover.split(',')[1]});
+      const included:string[]=[],excluded:string[]=[];
+      tripActivities(currentPlan,destinationCatalog).forEach((activity)=>{
+        const name=`${activity.destination}: ${activity.name}`;
+        if(quotedActivityCost(costModel.activityCosts,activity)!==null)included.push(name);else excluded.push(name);
+      });
+      const doc=buildClientPdf(data,currentPlan,currentInput,hotelSelections,currentCosts,customerName,{regular:regular.split(',')[1],bold:bold.split(',')[1],cover:cover.split(',')[1]},{included,excluded});
       const blob=doc.output('blob');
       if (!blob || blob.size<1024) throw new Error('The PDF engine returned an empty document.');
       // The saved record is committed before offering the file, so a successful
@@ -260,8 +350,8 @@ export default function ClientPdf() {
   }
 
   return <PlannerChrome title="Client-ready itinerary PDF" eyebrow="STEP 04 · CLIENT PDF">
-    <section className="pdf-hero"><div className="pdf-brand-lockup"><span className="original-logo" role="img" aria-label="Chakar Experience"/><span>DISCOVER KASHMIR · HEAVEN ON EARTH</span></div><h2>{customerName}&apos;s Kashmir journey</h2><p>The client document follows the supplied Chakar itinerary: cover and letter, tour summary, compact day-wise itinerary, package and hotel tables, then the fixed inclusions, exclusions, policies, testimonials and thank-you page.</p><div className={`pdf-save-state ${saveState}`} role="status">{saveState==='saving'?'Saving this client itinerary to the workspace…':saveState==='saved'?'Saved to Saved Itineraries. You can edit and download it again anytime.':<><span>Automatic save failed: {saveError}</span><button type="button" onClick={()=>void ensureSaved().catch(()=>{})}>Retry save</button></>}</div>{currentCosts.missingHotelRates.length>0&&<div className="pdf-block-warning"><Info size={15}/><span><b>Current total is provisional.</b> Add a room rate for {currentCosts.missingHotelRates.join(', ')} to complete the quote. The current calculated amount remains visible in the PDF.</span></div>}<button className="primary-cta inline" type="button" onClick={download} disabled={downloading}><Download size={17}/>{downloading?'Preparing PDF…':'Download client PDF'}</button></section>
-    <section className="pdf-preview"><div className="section-head"><div><span className="eyebrow">DOCUMENT CONTENT</span><h2>Review this itinerary</h2><p>These values are pulled from the live planner. The fixed pages use the same artwork for every customer.</p></div></div><div className="pdf-review-grid"><div className="pdf-review-cover"><img src={ART.cover} alt="Discover Kashmir cover artwork"/><span className="pdf-preview-logo"><span className="original-logo" role="img" aria-label="Chakar Experience"/></span><span>Dear {customerName},</span></div><div className="pdf-review-details"><div><small>Tour summary</small><b>{currentPlan.nights} nights / {currentPlan.days} days</b><span>{date(input.arrival)} – {date(input.departure)}</span><span>{input.pickup} pick-up · {input.adults} adults · {input.youngAges.length} {input.youngAges.length===1?'child':'children'}</span></div><div><small>Package type</small><b>{input.hotelCategory} · {uiMoney(currentCosts.sellingTotal)}</b><span>{input.transport} · {input.mealPlan} · {roomSummary(hotels)}</span></div><div><small>Hotel type</small>{hotels.map((hotel)=><span key={hotel.location}>{hotel.location} {hotel.nights}N (nights {hotel.nightNumbers.join(', ')}) · {hotel.hotelName}</span>)}</div></div></div><div className="pdf-review-days"><h3>Day-wise itinerary</h3>{currentPlan.dayPlans.map((day)=><div key={day.day}><b>Day {day.day} · {date(day.date,true)} · {dayTitle(day,input.pickup)}</b><p>{dayNarrative(day,input.pickup)}</p></div>)}</div><div className="pdf-fixed-pages"><b>Fixed pages in every PDF</b><span>Cover letter</span><span>Inclusions</span><span>Exclusions</span><span>Policies</span><span>Testimonials</span><span>Thank you</span></div></section>
+    <section className="pdf-hero"><div className="pdf-brand-lockup"><span className="original-logo" role="img" aria-label="Chakar Experience"/><span>DISCOVER KASHMIR · HEAVEN ON EARTH</span></div><h2>{customerName}&apos;s Kashmir journey</h2><p>The client document follows the supplied Chakar itinerary: cover and letter, tour summary, compact day-wise itinerary, package and hotel tables, tailored inclusions and exclusions, policies, testimonials and thank-you page.</p><div className={`pdf-save-state ${saveState}`} role="status">{saveState==='saving'?'Saving this client itinerary to the workspace…':saveState==='saved'?'Saved to Saved Itineraries. You can edit and download it again anytime.':<><span>Automatic save failed: {saveError}</span><button type="button" onClick={()=>void ensureSaved().catch(()=>{})}>Retry save</button></>}</div>{currentCosts.missingHotelRates.length>0&&<div className="pdf-block-warning"><Info size={15}/><span><b>Current total is provisional.</b> Add a room rate for {currentCosts.missingHotelRates.join(', ')} to complete the quote. The current calculated amount remains visible in the PDF.</span></div>}<button className="primary-cta inline" type="button" onClick={download} disabled={downloading}><Download size={17}/>{downloading?'Preparing PDF…':'Download client PDF'}</button></section>
+    <section className="pdf-preview"><div className="section-head"><div><span className="eyebrow">DOCUMENT CONTENT</span><h2>Review this itinerary</h2><p>These values are pulled from the live planner. Activity pricing controls the tailored inclusion and exclusion pages.</p></div></div><div className="pdf-review-grid"><div className="pdf-review-cover"><img src={ART.cover} alt="Discover Kashmir cover artwork"/><span className="pdf-preview-logo"><span className="original-logo" role="img" aria-label="Chakar Experience"/></span><span>Dear {customerName},</span></div><div className="pdf-review-details"><div><small>Tour summary</small><b>{currentPlan.nights} nights / {currentPlan.days} days</b><span>{date(input.arrival)} – {date(input.departure)}</span><span>{input.pickup} pick-up · {input.adults} adults · {input.youngAges.length} {input.youngAges.length===1?'child':'children'}</span></div><div><small>Package type</small><b>{input.hotelCategory} · {uiMoney(currentCosts.sellingTotal)}</b><span>{input.transport} · {input.mealPlan} · {roomSummary(hotels)}</span></div><div><small>Hotel type</small>{hotels.map((hotel)=><span key={hotel.location}>{hotel.location} {hotel.nights}N (nights {hotel.nightNumbers.join(', ')}) · {hotel.hotelName}</span>)}</div></div></div><div className="pdf-review-days"><h3>Day-wise itinerary</h3>{currentPlan.dayPlans.map((day)=><div key={day.day}><b>Day {day.day} · {date(day.date,true)} · {dayTitle(day,input.pickup)}</b><p>{dayNarrative(day,input.pickup)}</p></div>)}</div><div className="pdf-fixed-pages"><b>Document sections</b><span>Cover letter</span><span>Tailored inclusions</span><span>Tailored exclusions</span><span>Policies</span><span>Testimonials</span><span>Thank you</span></div></section>
     <div className="next-row"><Link className="secondary-link" href="/planner/costing"><ChevronLeft size={16}/> Back to costing</Link><div className="pdf-next-actions"><Link className="secondary-link" href="/saved-itineraries"><FolderOpen size={16}/> Saved Itineraries</Link><button className="primary-cta inline" type="button" onClick={reset}>Build New</button></div></div>
   </PlannerChrome>;
 }

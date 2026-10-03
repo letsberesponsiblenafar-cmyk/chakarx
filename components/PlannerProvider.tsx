@@ -8,7 +8,7 @@ export type HotelSelection = {
   location: string; hotelId: string; hotelName: string; category: string; starRating: number | null; address: string; roomType: string; website: string;
   nights: number; rooms: number; extraBeds: number; cnb: number; nightlyRate: number; extraBedRate: number; cnbRate: number; source: string; status: string;
 };
-export type CostModel = { transportDaily: number; mealPerPersonNight: number; activityBudget: number; contingencyPct: number; profitPct: number; otherAmount: number };
+export type CostModel = { transportDaily: number; mealPerPersonNight: number; activityBudget: number; activityCosts: Record<string, number>; contingencyPct: number; profitPct: number; otherAmount: number };
 export type HotelDefaults = { rooms: number; extraBeds: number; cnb: number; nightlyRate: number; extraBedRate: number; cnbRate: number };
 export type PlannerState = { input: TripInput; plan: Plan | null; routeVersion: string | null; hotelSelections: HotelSelection[]; hotelDatabase: Hotel[]; costModel: CostModel; hotelDefaults: HotelDefaults; generated: boolean; savedItineraryId: string | null };
 export type ItinerarySnapshot = Omit<PlannerState, 'hotelDatabase' | 'savedItineraryId'>;
@@ -60,7 +60,7 @@ const defaultInput: TripInput = {
   name: '', arrival: '', departure: '', pickup: 'Srinagar', adults: 2, youngAges: [], budget: 60000,
   hotelCategory: 'Signature', transport: 'Ertiga', mealPlan: 'Breakfast & Dinner', style: 'Balanced', interests: ['Nature', 'Photography', 'Relaxation'],
 };
-const defaultCost: CostModel = { transportDaily: 4200, mealPerPersonNight: 0, activityBudget: 0, contingencyPct: 0, profitPct: 10, otherAmount: 0 };
+const defaultCost: CostModel = { transportDaily: 4200, mealPerPersonNight: 0, activityBudget: 0, activityCosts: {}, contingencyPct: 0, profitPct: 10, otherAmount: 0 };
 const defaultHotelDefaults: HotelDefaults = { rooms: 1, extraBeds: 0, cnb: 0, nightlyRate: 0, extraBedRate: 0, cnbRate: 0 };
 const STORAGE = 'chakar-experience-planner-v18-itinerary-controls';
 
@@ -76,7 +76,7 @@ function readState(): PlannerState {
         routeVersion: typeof x.routeVersion === 'string' ? x.routeVersion : null,
         hotelDatabase: importedHotels,
         hotelDefaults: { ...defaultHotelDefaults, ...(x.hotelDefaults || {}) },
-        costModel: { ...defaultCost, ...(x.costModel || {}) },
+        costModel: { ...defaultCost, ...(x.costModel || {}), activityCosts: x.costModel?.activityCosts || {} },
         input: { ...defaultInput, ...(x.input || {}), pickup: x.input?.pickup === 'Srinagar, Jammu' ? 'Srinagar' : (x.input?.pickup || defaultInput.pickup) },
         generated: Boolean(x.generated),
         savedItineraryId: typeof x.savedItineraryId === 'string' ? x.savedItineraryId : null,
