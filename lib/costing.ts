@@ -13,7 +13,7 @@ export function calculateCosts(plan: Plan, hotels: HotelSelection[], model: Cost
   // Meal-plan choice remains part of the client brief, but meal pricing is intentionally
   // not added to Others. Operators enter only genuine additional package costs there.
   const meals = 0;
-  const activities = tripActivities(plan).reduce((sum, activity) => sum + (quotedActivityCost(model.activityCosts, activity) ?? 0), 0);
+  const activities = tripActivities(plan).reduce((sum, activity) => sum + (quotedActivityCost(model.activityCosts, activity, model.activitySelections) ?? 0), 0);
   const priced = priceTrip({ accommodation, vehicleDays, transportDaily: model.transportDaily, other: model.otherAmount + activities, profitPct: model.profitPct });
   const people = plan.input.adults + plan.input.youngAges.length;
   const missingHotelRates = hotels.filter((h) => !h.hotelName || h.hotelName === 'Hotel to be added' || h.nightlyRate <= 0).map((h) => h.location);

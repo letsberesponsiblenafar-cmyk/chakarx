@@ -75,9 +75,11 @@ export const hotels = hotelDatabase.reduce<Record<string, Hotel[]>>((acc, hotel)
 export function destinationByName(name: string) { return destinations.find((d) => d.name === name); }
 export function routeByName(from: string, to: string) {
   const stored = routes[`${from}|${to}`];
-  if (stored) return stored;
   const custom = from === 'Srinagar' ? destinationByName(to) : to === 'Srinagar' ? destinationByName(from) : null;
-  if (!custom?.srinagar_hours || !custom.srinagar_km) return null;
-  return { hours: custom.srinagar_hours, km: custom.srinagar_km, source: 'Destination library route', live_required: false };
+  if (custom?.srinagar_hours && (custom.srinagar_km || stored?.km)) return {
+    hours: custom.srinagar_hours, km: custom.srinagar_km || stored!.km,
+    source: 'Destination library route', live_required: false,
+  };
+  return stored || null;
 }
 export function hotelById(id: string) { return hotelDatabase.find((h) => h.id === id); }

@@ -15,21 +15,32 @@ export function tripActivities(plan: Plan, catalog: Destination[] = destinations
   );
 }
 
-export function quotedActivityCost(costs: Record<string, number>, activity: TripActivity): number | null {
-  if (!activity.available) return null;
+export function activitySelected(activity: TripActivity, selections: Record<string, boolean> = {}, costs: Record<string, number> = {}) {
+  if (typeof selections[activity.key] === 'boolean') return selections[activity.key];
+  // Older saved itineraries had prices but no per-trip checkboxes. Preserve
+  // those explicit quotes until the operator changes their selection.
+  const legacyCost = costs[activity.key];
+  return activity.available && typeof legacyCost === 'number' && Number.isFinite(legacyCost) && legacyCost >= 0;
+}
+
+export function quotedActivityCost(costs: Record<string, number>, activity: TripActivity, selections: Record<string, boolean> = {}): number | null {
+  if (!activitySelected(activity, selections, costs)) return null;
   const value = costs?.[activity.key];
-  // A library switch controls whether this activity can be quoted for a trip.
-  // Unticked activities remain visible only in the client exclusions.
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
 }
 
-export function clientActivityLists(plan: Plan, costs: Record<string, number>, catalog: Destination[] = destinations) {
+export function clientActivityLists(plan: Plan, costs: Record<string, number>, selections: Record<string, boolean> = {}, manualExclusions: string[] = [], catalog: Destination[] = destinations) {
   const included: string[] = [];
   const excluded: string[] = [];
   for (const activity of tripActivities(plan, catalog)) {
     const label = `${activity.destination}: ${activity.name}`;
-    if (quotedActivityCost(costs, activity) !== null) included.push(label);
+    if (quotedActivityCost(costs, activity, selections) !== null) included.push(label);
     else excluded.push(label);
+  }
+  const seen = new Set([...included, ...excluded].map((item) => item.toLowerCase()));
+  for (const raw of manualExclusions) {
+    const item = String(raw).trim();
+    if (item && !seen.has(item.toLowerCase())) { excluded.push(item); seen.add(item.toLowerCase()); }
   }
   return { included, excluded };
 }

@@ -62,6 +62,8 @@ const fonts = {
   cover: fs.readFileSync(path.join(root, 'public', 'fonts', 'RedHatDisplay-400.ttf')).toString('base64'),
 };
 const doc = buildClientPdf(art, plan, input, selections, costs, input.name, fonts);
+const withExclusion = buildClientPdf(art, plan, input, selections, costs, input.name, fonts, { included: [], excluded: ['Airfare'] });
+if (withExclusion.getNumberOfPages() !== doc.getNumberOfPages() + 1) throw new Error('The client exclusion page should appear only when there are explicit exclusions.');
 const target = path.join(os.tmpdir(), 'chakar-client-pdf-check.pdf');
 fs.writeFileSync(target, Buffer.from(doc.output('arraybuffer')));
 if (doc.getNumberOfPages() < 10 || costs.sellingTotal <= 0) throw new Error('Client PDF is incomplete.');

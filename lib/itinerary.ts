@@ -21,7 +21,7 @@ export type Plan = {
 };
 
 type PlanningStyle = TripInput['style'];
-export const ROUTE_VERSION = 'kashmir-circuit-2026-10-10-unique-sightseeing';
+export const ROUTE_VERSION = 'kashmir-circuit-2026-10-10-arrival-sightseeing';
 const transportRates: Record<string, number> = { Sedan: 3400, Ertiga: 4200, Innova: 5200, 'Tempo Traveller': 7600 };
 
 function daysBetween(a: string, b: string) {
@@ -180,10 +180,19 @@ function siteLimit(style: PlanningStyle, transfer: boolean, isDeparture: boolean
   return style === 'Relaxed' ? 3 : style === 'Packed' ? 5 : 4;
 }
 
-function transferSightseeingLimit(hours: number, style: PlanningStyle, anotherNightAtDestination: boolean) {
-  if (hours >= 4) return anotherNightAtDestination ? 0 : 1;
+function transferSightseeingLimit(hours: number, style: PlanningStyle) {
+  if (hours >= 4) return 1;
   if (hours >= 3) return 1;
   return siteLimit(style, true, false);
+}
+
+function easyArrivalScore(site: Destination['local_sightseeing'][number], destination: string) {
+  const label = `${site.name} ${site.description}`.toLowerCase();
+  const place = destination.toLowerCase();
+  if (label.includes(place) && /town|market|riverfront|riverside|meadow|boulevard|lakefront/.test(label)) return 100;
+  if (/town|market|riverfront|riverside|meadow|boulevard|lakefront|local walk/.test(label)) return 60;
+  if (/river|lake|garden|temple/.test(label)) return 25;
+  return 0;
 }
 
 function compatibleSites(d: Destination, used: Set<string>, date: string, input: TripInput) {
@@ -202,9 +211,11 @@ function compatibleSites(d: Destination, used: Set<string>, date: string, input:
   });
 }
 
-function siteBlocks(d: Destination, count: number, used: Set<string>, date: string, input: TripInput, kind: DayBlock['kind'] = 'sightseeing') {
+function siteBlocks(d: Destination, count: number, used: Set<string>, date: string, input: TripInput, kind: DayBlock['kind'] = 'sightseeing', easyArrival = false) {
   const out: DayBlock[] = [];
-  for (const s of compatibleSites(d, used, date, input)) {
+  const candidates = compatibleSites(d, used, date, input);
+  if (easyArrival) candidates.sort((a, b) => easyArrivalScore(b, d.name) - easyArrivalScore(a, d.name));
+  for (const s of candidates) {
     if (out.length >= count) break;
     const rule = sightseeingRule(d.name, s.name);
     const conditional = rule.status === 'CONDITIONAL' || rule.status === 'SEASONAL' || rule.status === 'LIVE_CHECK';
@@ -226,7 +237,7 @@ function siteBlocks(d: Destination, count: number, used: Set<string>, date: stri
 
 function fallbackBlock(stay: string): DayBlock {
   const d = destinationByName(stay);
-  return { name: `Explore ${stay} at your own pace`, description: d?.description || 'Free time around the selected destination.', reason: 'The library has fewer unallocated sights for this date, so the plan preserves unstructured time instead of inventing an attraction.', tags: d?.tags || ['relaxation'], destination: stay, kind: 'free-time', intelligence: { status: 'STANDARD', note: 'Unstructured time intentionally preserved.' } };
+  return { name: `Short orientation walk in ${stay}`, description: `Walk through the area near your ${stay} hotel.`, reason: 'The library has fewer unallocated sights for this date, so the plan avoids repeating a named attraction.', tags: d?.tags || ['relaxation'], destination: stay, kind: 'free-time', intelligence: { status: 'STANDARD', note: 'A short local walk is planned without repeating an attraction.' } };
 }
 
 function dayTripBlock(base: Destination, target: Destination, date: string, input: TripInput, used: Set<string>, onArrival: boolean): DayBlock {
@@ -410,9 +421,8 @@ function buildDays(input: TripInput, nightSequence: string[], departurePoint = '
       : null;
     const excursion = override === null ? null : override ? destinationByName(override)
       : arrivalVisit || (!transfer ? chooseDayTrip(base, visited, date, input) : null);
-    const anotherNightAtDestination = nightSequence[index + 1] === stay;
     const sightseeingCapacity = excursion ? 0 : transfer
-      ? transferSightseeingLimit(drive.hours, input.style, anotherNightAtDestination)
+      ? transferSightseeingLimit(drive.hours, input.style)
       : siteLimit(input.style, false, false);
     // If the previous overnight stop got only a brief arrival window, use
     // the next morning for its remaining sights before a short onward drive.
@@ -421,7 +431,7 @@ function buildDays(input: TripInput, nightSequence: string[], departurePoint = '
       ? Math.min(2, sightseeingCapacity) : 0;
     const outgoing = outgoingLimit ? siteBlocks(destinationByName(previous)!, outgoingLimit, used, date, input, 'transfer') : [];
     const localLimit = Math.max(0, sightseeingCapacity - outgoing.length);
-    const sightseeing = siteBlocks(base, localLimit, used, date, input, transfer ? 'transfer' : 'sightseeing');
+    const sightseeing = siteBlocks(base, localLimit, used, date, input, transfer ? 'transfer' : 'sightseeing', transfer && drive.hours >= 3);
     const blocks = [...arrival, ...outgoing, ...sightseeing];
     let dayTripDestination: string | null | undefined;
     dayTripDestination = excursion?.name ?? (override === null ? null : undefined);

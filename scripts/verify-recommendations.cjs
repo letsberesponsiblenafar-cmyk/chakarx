@@ -52,9 +52,13 @@ const twoPahalgamNights = rebuildPlanFromNightSequence(createPlan(input(7)), ['S
 const longTransfer = twoPahalgamNights.dayPlans[2];
 const fullPahalgamDay = twoPahalgamNights.dayPlans[3];
 assert.ok(longTransfer.drive.hours >= 4, 'Gulmarg to Pahalgam should be treated as a long transfer');
-assert.equal(longTransfer.blocks.filter((block) => block.destination === 'Pahalgam' && block.kind !== 'free-time').length, 0, 'Long arrival transfer must reserve major Pahalgam sightseeing for the next day');
+const easyArrivalStops = longTransfer.blocks.filter((block) => block.destination === 'Pahalgam' && block.kind !== 'free-time');
+assert.equal(easyArrivalStops.length, 1, 'Long arrival transfer should have one easy nearby Pahalgam stop');
+assert.match(easyArrivalStops[0].name, /Lidder River|Pahalgam town/i, 'The arrival stop should stay close to the Pahalgam hotel base');
 assert.ok(fullPahalgamDay.blocks.filter((block) => block.destination === 'Pahalgam' && block.kind === 'sightseeing').length >= 3);
 assert.doesNotMatch(dayNarrative(longTransfer, 'Srinagar'), /Aru Valley|Betaab Valley|Chandanwari/);
+assert.doesNotMatch(dayNarrative(longTransfer, 'Srinagar'), /own pace|rest of the day/i);
+assert.match(dayNarrative(longTransfer, 'Srinagar'), /Lidder River|Pahalgam town/i);
 assert.match(dayNarrative(fullPahalgamDay, 'Srinagar'), /Aru Valley|Betaab Valley/);
 
 const onePahalgamNight = createPlan(input(5));

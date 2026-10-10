@@ -16,8 +16,8 @@ for (const ext of ['.ts', '.tsx']) require.extensions[ext] = function (module, f
 };
 
 const { destinations, replaceDestinationCatalog, routeByName } = require('../lib/data.ts');
-const { createPlan, setPlanDayTrip } = require('../lib/itinerary.ts');
-const { dayNarrative } = require('../lib/narrative.ts');
+const { createPlan, rebuildPlanFromNightSequence, setPlanDayTrip } = require('../lib/itinerary.ts');
+const { dayNarrative, activitySentence } = require('../lib/narrative.ts');
 const { validateDestination } = require('../lib/destination-validation.ts');
 const { tripActivities, quotedActivityCost, clientActivityLists } = require('../lib/activities.ts');
 const { calculateCosts } = require('../lib/costing.ts');
@@ -31,34 +31,43 @@ try {
   let plan = createPlan(input);
   let copy = dayNarrative(plan.dayPlans.find((day) => day.stay === 'Srinagar'), input.pickup);
   assert.match(copy, /curated Srinagar waterfront walk/);
-  assert.match(copy, /Waterfront walk/);
+  assert.equal((copy.match(/waterfront walk/gi) || []).length, 1, 'The selected experience should not duplicate the destination note.');
   assert.doesNotMatch(copy, /Closed attraction|Shikara ride|Confirm road access|confirm local access|weather/i);
   assert.equal(plan.dayPlans.filter((day) => dayNarrative(day, input.pickup).includes('curated Srinagar waterfront walk')).length, 1, 'The destination note should appear on only one visit day');
-  assert.equal(plan.dayPlans.filter((day) => dayNarrative(day, input.pickup).includes('Waterfront walk')).length, 1, 'Enabled experiences should not repeat on later Srinagar days');
+  assert.equal(plan.dayPlans.filter((day) => /waterfront walk/i.test(dayNarrative(day, input.pickup))).length, 1, 'Enabled experiences should not repeat on later Srinagar days');
 
   const shikara = tripActivities(plan).find((activity) => activity.destination === 'Srinagar' && activity.name === 'Shikara ride');
-  assert.ok(shikara, 'Unticked activities should remain available to the PDF exclusions list.');
+  assert.ok(shikara, 'All destination activities should be available for trip-specific selection.');
   assert.equal(shikara.available, false);
-  const baseCost = { transportDaily: 4200, otherAmount: 0, profitPct: 10, activityCosts: {} };
+  const baseCost = { transportDaily: 4200, otherAmount: 0, profitPct: 10, activityCosts: {}, activitySelections: {}, manualExclusions: [] };
   const before = calculateCosts(plan, [], baseCost);
-  const disabledCost = calculateCosts(plan, [], { ...baseCost, activityCosts: { [shikara.key]: 3000 } });
+  const disabledCost = calculateCosts(plan, [], { ...baseCost, activityCosts: { [shikara.key]: 3000 }, activitySelections: { [shikara.key]: false } });
   assert.equal(quotedActivityCost(baseCost.activityCosts, shikara), null);
-  assert.equal(quotedActivityCost({ [shikara.key]: 3000 }, shikara), null, 'An old quote must not re-include an unticked activity.');
+  assert.equal(quotedActivityCost({ [shikara.key]: 3000 }, shikara), null, 'An old price on a disabled library activity must not silently become included.');
+  assert.equal(quotedActivityCost({ [shikara.key]: 3000 }, shikara, { [shikara.key]: false }), null, 'A per-trip untick must exclude an activity even when an old cost exists.');
   assert.equal(disabledCost.sellingTotal, before.sellingTotal);
-  assert.ok(clientActivityLists(plan, { [shikara.key]: 3000 }).excluded.includes('Srinagar: Shikara ride'));
-  assert.ok(!clientActivityLists(plan, { [shikara.key]: 3000 }).included.includes('Srinagar: Shikara ride'));
-
-  replaceDestinationCatalog([{ ...edited, enabled_activities: ['Shikara ride'] }, ...original.filter((item) => item.name !== 'Srinagar')]);
-  plan = createPlan(input);
-  copy = dayNarrative(plan.dayPlans.find((day) => day.stay === 'Srinagar'), input.pickup);
-  assert.match(copy, /Shikara ride/);
-  assert.equal(plan.dayPlans.filter((day) => dayNarrative(day, input.pickup).includes('Shikara ride')).length, 1);
-  const selectedShikara = tripActivities(plan).find((activity) => activity.destination === 'Srinagar' && activity.name === 'Shikara ride');
-  assert.equal(selectedShikara.available, true, 'Only ticked activities should be shown in Activities & Transport.');
-  const after = calculateCosts(plan, [], { ...baseCost, activityCosts: { [selectedShikara.key]: 3000 } });
+  const offLists = clientActivityLists(plan, { [shikara.key]: 3000 }, { [shikara.key]: false }, ['Airfare']);
+  assert.ok(offLists.excluded.includes('Srinagar: Shikara ride'));
+  assert.ok(offLists.excluded.includes('Airfare'));
+  assert.ok(!offLists.included.includes('Srinagar: Shikara ride'));
+  assert.equal(offLists.excluded.length, tripActivities(plan).length + 1, 'Only listed trip activities and the manual entry should be excluded.');
+  const allPriced = Object.fromEntries(tripActivities(plan).map((activity) => [activity.key, 0]));
+  const allSelected = Object.fromEntries(tripActivities(plan).map((activity) => [activity.key, true]));
+  assert.deepEqual(clientActivityLists(plan, allPriced, allSelected).excluded, [], 'No exclusions should be generated when every listed activity is included.');
+  assert.ok(clientActivityLists(plan, {}, { [shikara.key]: true }).excluded.includes('Srinagar: Shikara ride'), 'A selected but unpriced activity remains excluded.');
+  const selectedShikara = shikara;
+  const after = calculateCosts(plan, [], { ...baseCost, activityCosts: { [selectedShikara.key]: 3000 }, activitySelections: { [selectedShikara.key]: true } });
   assert.equal(after.activities, 3000);
-  assert.ok(clientActivityLists(plan, { [selectedShikara.key]: 3000 }).included.includes('Srinagar: Shikara ride'));
+  assert.ok(clientActivityLists(plan, { [selectedShikara.key]: 3000 }, { [selectedShikara.key]: true }).included.includes('Srinagar: Shikara ride'));
   assert.equal(Math.round(after.sellingTotal - before.sellingTotal), 3465, 'A ticked group activity cost should enter markup and GST once.');
+  copy = dayNarrative(plan.dayPlans.find((day) => day.stay === 'Srinagar'), input.pickup, { activityCosts: { [shikara.key]: 3000 }, activitySelections: { [shikara.key]: true } });
+  assert.match(copy, /Enjoy a shikara ride/);
+  assert.doesNotMatch(dayNarrative(plan.dayPlans.find((day) => day.stay === 'Srinagar'), input.pickup, { activityCosts: { [shikara.key]: 3000 }, activitySelections: { [shikara.key]: false } }), /shikara ride/i);
+  assert.equal(activitySentence('Take the Gondola'), 'Enjoy a gondola ride.');
+  assert.equal(activitySentence('Enjoy Take the Gondola'), 'Enjoy a gondola ride.');
+  assert.equal(activitySentence('Old-city heritage walk'), 'Take a heritage walk through the old city.');
+  assert.equal(activitySentence('Horse riding where locally available'), 'Enjoy horse riding.');
+  assert.equal(activitySentence('Kashmiri food and kahwa experience'), 'Enjoy Kashmiri food and kahwa.');
 
   const custom = validateDestination({ ...edited, id: 'test-custom', name: 'Test Valley', tier: 'Secondary', district: 'Srinagar', day_note: 'Discover the riverside scenery.', srinagar_hours: 2, srinagar_km: 75, things_to_do: [], activities: [], enabled_things_to_do: [], enabled_activities: [] });
   replaceDestinationCatalog([...destinations, custom]);
@@ -66,5 +75,10 @@ try {
   const withVisit = setPlanDayTrip(plan, 2, 'Test Valley');
   assert.equal(withVisit.dayPlans[1].dayTripDestination, 'Test Valley');
   assert.match(dayNarrative(withVisit.dayPlans[1], input.pickup), /riverside scenery/);
+  const pahalgam = destinations.find((item) => item.name === 'Pahalgam');
+  replaceDestinationCatalog(destinations.map((item) => item.name === 'Pahalgam' ? { ...pahalgam, srinagar_hours: 3.2 } : item));
+  const viaSrinagar = rebuildPlanFromNightSequence(plan, ['Srinagar', 'Gulmarg', 'Pahalgam', 'Pahalgam', 'Srinagar']);
+  assert.deepEqual(viaSrinagar.dayPlans[2].drive.via, ['Srinagar']);
+  assert.equal(viaSrinagar.dayPlans[2].drive.hours, routeByName('Gulmarg', 'Srinagar').hours + 3.2);
 } finally { replaceDestinationCatalog(original); }
 console.log('Destination edits, activity switches, new routes and client-safe day copy passed.');

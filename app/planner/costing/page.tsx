@@ -15,7 +15,7 @@ export default function CostingPage(){
  if(!hydrated)return <AppShell><PlannerChrome title="Costing" eyebrow="STEP 04 · COSTING"><div className="empty-panel"><WalletCards size={28}/><h2>Loading your current quote…</h2></div></PlannerChrome></AppShell>;
  if(!plan||!costs)return <AppShell><PlannerChrome title="Costing" eyebrow="STEP 04 · COSTING"><div className="empty-panel"><WalletCards size={28}/><h2>Complete the itinerary and hotels first.</h2><Link className="primary-cta inline" href="/"><ChevronRight size={16}/> Build Your Trip</Link></div></PlannerChrome></AppShell>;
  const groupBudget=(input.budget||0)*costs.people; const within=groupBudget===0||costs.sellingTotal<=groupBudget;
- const includedCount=tripActivities(plan,destinationCatalog).filter((activity)=>quotedActivityCost(costModel.activityCosts,activity)!==null).length;
+ const includedCount=tripActivities(plan,destinationCatalog).filter((activity)=>quotedActivityCost(costModel.activityCosts,activity,costModel.activitySelections)!==null).length;
  return <AppShell><PlannerChrome title="Trip costing" eyebrow="STEP 04 · COSTING">
   <section className="cost-summary"><div><span className="eyebrow">CUSTOMER SELLING TOTAL</span><h2>{money(costs.sellingTotal)}</h2><p>Accommodation, transport, quoted activities and other costs, followed by your markup and 5% GST. Internal rates are omitted from the client PDF.</p></div><div className={within?'budget-status ok':'budget-status warn'}><span>Budget / person</span><b>{input.budget?money(input.budget):'No cap'}</b><small>{groupBudget?`${within?'Within':'Above'} group reference · ${money(groupBudget)}`:'No budget cap'}</small></div></section>
   <div className="cost-grid four-columns">

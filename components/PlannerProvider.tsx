@@ -8,7 +8,7 @@ export type HotelSelection = {
   location: string; hotelId: string; hotelName: string; category: string; starRating: number | null; address: string; roomType: string; website: string;
   nights: number; rooms: number; extraBeds: number; cnb: number; nightlyRate: number; extraBedRate: number; cnbRate: number; source: string; status: string;
 };
-export type CostModel = { transportDaily: number; transportIsCustom: boolean; mealPerPersonNight: number; activityBudget: number; activityCosts: Record<string, number>; contingencyPct: number; profitPct: number; otherAmount: number };
+export type CostModel = { transportDaily: number; transportIsCustom: boolean; mealPerPersonNight: number; activityBudget: number; activityCosts: Record<string, number>; activitySelections: Record<string, boolean>; manualExclusions: string[]; contingencyPct: number; profitPct: number; otherAmount: number };
 export type HotelDefaults = { rooms: number; extraBeds: number; cnb: number; nightlyRate: number; extraBedRate: number; cnbRate: number };
 export type PlannerState = { input: TripInput; plan: Plan | null; routeVersion: string | null; hotelSelections: HotelSelection[]; hotelDatabase: Hotel[]; costModel: CostModel; hotelDefaults: HotelDefaults; generated: boolean; savedItineraryId: string | null };
 export type ItinerarySnapshot = Omit<PlannerState, 'hotelDatabase' | 'savedItineraryId'>;
@@ -61,7 +61,7 @@ const defaultInput: TripInput = {
   name: '', arrival: '', departure: '', pickup: 'Srinagar', adults: 2, youngAges: [], budget: 60000,
   hotelCategory: 'Signature', transport: 'Ertiga', mealPlan: 'Breakfast & Dinner', style: 'Balanced', interests: ['Nature', 'Photography', 'Relaxation'],
 };
-const defaultCost: CostModel = { transportDaily: 4200, transportIsCustom: false, mealPerPersonNight: 0, activityBudget: 0, activityCosts: {}, contingencyPct: 0, profitPct: 10, otherAmount: 0 };
+const defaultCost: CostModel = { transportDaily: 4200, transportIsCustom: false, mealPerPersonNight: 0, activityBudget: 0, activityCosts: {}, activitySelections: {}, manualExclusions: [], contingencyPct: 0, profitPct: 10, otherAmount: 0 };
 const defaultHotelDefaults: HotelDefaults = { rooms: 1, extraBeds: 0, cnb: 0, nightlyRate: 0, extraBedRate: 0, cnbRate: 0 };
 const STORAGE = 'chakar-experience-planner-v18-itinerary-controls';
 
@@ -77,7 +77,7 @@ function readState(): PlannerState {
         routeVersion: typeof x.routeVersion === 'string' ? x.routeVersion : null,
         hotelDatabase: importedHotels,
         hotelDefaults: { ...defaultHotelDefaults, ...(x.hotelDefaults || {}) },
-        costModel: { ...defaultCost, ...(x.costModel || {}), transportIsCustom: x.costModel?.transportIsCustom === true || (Boolean(x.input?.transport) && !transportOptions.includes(x.input.transport)), activityCosts: x.costModel?.activityCosts || {} },
+        costModel: { ...defaultCost, ...(x.costModel || {}), transportIsCustom: x.costModel?.transportIsCustom === true || (Boolean(x.input?.transport) && !transportOptions.includes(x.input.transport)), activityCosts: x.costModel?.activityCosts || {}, activitySelections: x.costModel?.activitySelections || {}, manualExclusions: Array.isArray(x.costModel?.manualExclusions) ? x.costModel.manualExclusions : [] },
         input: { ...defaultInput, ...(x.input || {}), pickup: x.input?.pickup === 'Srinagar, Jammu' ? 'Srinagar' : (x.input?.pickup || defaultInput.pickup) },
         generated: Boolean(x.generated),
         savedItineraryId: typeof x.savedItineraryId === 'string' ? x.savedItineraryId : null,
@@ -382,7 +382,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     },
     reset() { try { localStorage.removeItem(STORAGE); } catch {} location.href = '/'; },
     loadSavedItinerary(id, snapshot) {
-      setState((s) => ({ ...s, ...snapshot, costModel: { ...defaultCost, ...snapshot.costModel, transportIsCustom: snapshot.costModel?.transportIsCustom === true || (Boolean(snapshot.input?.transport) && !transportOptions.includes(snapshot.input.transport)) }, hotelDatabase: s.hotelDatabase, savedItineraryId: id }));
+      setState((s) => ({ ...s, ...snapshot, costModel: { ...defaultCost, ...snapshot.costModel, activitySelections: snapshot.costModel?.activitySelections || {}, manualExclusions: Array.isArray(snapshot.costModel?.manualExclusions) ? snapshot.costModel.manualExclusions : [], transportIsCustom: snapshot.costModel?.transportIsCustom === true || (Boolean(snapshot.input?.transport) && !transportOptions.includes(snapshot.input.transport)) }, hotelDatabase: s.hotelDatabase, savedItineraryId: id }));
     },
     markSavedItinerary(id) { setState((s) => ({ ...s, savedItineraryId: id })); },
   }), [state, mounted, hotelConnection, hotelConnectionError, destinationCatalog, destinationConnection, destinationConnectionError]);
