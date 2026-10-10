@@ -1,4 +1,4 @@
-import { destinationByName, type Destination } from '@/lib/data';
+import { destinationByName, enabledSightseeing, type Destination } from '@/lib/data';
 import type { DayBlock, DayPlan } from '@/lib/itinerary';
 import { quotedActivityCost } from '@/lib/activities';
 
@@ -8,17 +8,17 @@ export type NarrativeQuote = { activityCosts: Record<string, number>; activitySe
 // Client copy is composed from the operator's selected route and destination guide.
 const corridors: Record<string,string> = {
   'Srinagar|Gulmarg': 'through Tangmarg and the foothills of the Pir Panjal',
-  'Gulmarg|Srinagar': 'back through Tangmarg to the Kashmir Valley',
+  'Gulmarg|Srinagar': 'through Tangmarg into the Kashmir Valley',
   'Srinagar|Pahalgam': 'through South Kashmir, the saffron and orchard belt, and the Lidder Valley',
   'Pahalgam|Srinagar': 'along the Lidder Valley and South Kashmir countryside',
   'Srinagar|Sonamarg': 'along the Sindh River corridor via Kangan',
-  'Sonamarg|Srinagar': 'back along the Sindh River corridor',
+  'Sonamarg|Srinagar': 'along the Sindh River corridor through Kangan',
   'Srinagar|Gurez': 'via Bandipora and Razdan Pass towards Dawar and the Kishanganga River',
   'Gurez|Srinagar': 'over Razdan Pass and through Bandipora',
   'Srinagar|Doodhpathri': 'through the Budgam countryside towards the Shaliganga River meadows',
   'Doodhpathri|Srinagar': 'through the Budgam countryside',
   'Srinagar|Naranag': 'through the Sindh Valley towards the Wangath and Naranag heritage area',
-  'Naranag|Srinagar': 'back through the Sindh Valley',
+  'Naranag|Srinagar': 'through the Sindh Valley',
   'Gulmarg|Pahalgam': 'through Tangmarg and Srinagar, then south through the orchard belt into the Lidder Valley',
   'Pahalgam|Gulmarg': 'through South Kashmir and Srinagar, then onwards through Tangmarg to the Pir Panjal foothills',
   'Sonamarg|Pahalgam': 'along the Sindh River to Srinagar, then south towards the Lidder Valley',
@@ -50,14 +50,21 @@ const sightSentences: Record<string, string> = {
   'Dawar Village': 'Explore Dawar’s traditional village lanes in Gurez Valley.',
   'Kishanganga River': 'Walk beside the Kishanganga River with the Gurez mountains in view.',
 };
+export function sightseeingSentence(sight: { name: string; description: string; client_sentence?: string }) {
+  const authored = sight.client_sentence?.trim();
+  if (authored) return /[.!?]$/.test(authored) ? authored : `${authored}.`;
+  if (sightSentences[sight.name]) return sightSentences[sight.name];
+  const detail = sight.description.trim().replace(/[.!?]+$/, '').replace(/^(?:a|an|the)\s+/i, '');
+  return detail ? `Visit ${sight.name} for its ${detail[0].toLowerCase()}${detail.slice(1)}.` : `Visit ${sight.name}.`;
+}
 const destinationStory: Record<string,string> = {
-  Srinagar: 'Spend time around Dal Lake, the Boulevard, Mughal gardens and the Zabarwan foothills at a comfortable pace.',
-  Gulmarg: 'Enjoy Gulmarg’s alpine meadows and sweeping views of the Pir Panjal mountains.',
-  Pahalgam: 'Follow the Lidder River through Pahalgam’s pine-lined valley and enjoy its mountain scenery.',
-  Sonamarg: 'Enjoy the Sindh River and the mountain scenery around Sonamarg.',
-  Doodhpathri: 'Explore the meadows and Shaliganga River area without rushing the day.',
-  Naranag: 'Discover the ancient Naranag temple remains and the scenery of Wangath Valley.',
-  Gurez: 'Explore Dawar, the Kishanganga River and the traditional wooden-village landscape.',
+  Srinagar: 'Discover Srinagar’s lakeside setting and cultural heritage.',
+  Gulmarg: 'Discover Gulmarg’s alpine setting and Pir Panjal scenery.',
+  Pahalgam: 'Explore Pahalgam’s pine-lined mountain valley.',
+  Sonamarg: 'Discover Sonamarg’s high valley and mountain scenery.',
+  Doodhpathri: 'Explore Doodhpathri’s open meadow landscape.',
+  Naranag: 'Discover Naranag’s mountain setting and heritage.',
+  Gurez: 'Discover the mountain-village landscape of Gurez.',
 };
 export function defaultDayNote(destination: Destination) {
   return destinationStory[destination.name] || destination.description || `Enjoy ${destination.name} at a comfortable pace.`;
@@ -75,11 +82,6 @@ export function dayTitle(day: DayPlan, pickup: string) {
   if (day.transfer) return `${day.from} to ${day.stay}`;
   const excursion = day.blocks.find((block) => block.name.toLowerCase().includes('day trip'));
   return excursion ? `${excursion.name} from ${day.stay}` : `${day.stay}${day.stay === 'Srinagar' ? ' local' : ''} sightseeing`;
-}
-
-function listNames(names: string[]) {
-  if (names.length < 2) return names[0] || '';
-  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
 function blockDestination(block: DayBlock, day: DayPlan) {
@@ -107,11 +109,9 @@ function matchesPlannedPlace(label: string, planned: string[]) {
   return planned.some((stop) => stop.toLowerCase().includes(name) || name.includes(stop.toLowerCase()));
 }
 
-function sightseeingCopy(stops: string[]) {
+function sightseeingCopy(stops: string[], destination: NonNullable<ReturnType<typeof destinationByName>> | undefined) {
   if (!stops.length) return '';
-  const featured = stops.slice(0, 2).map((name, index) => sightSentences[name] || `${index ? 'Continue to' : 'Visit'} ${name}.`);
-  if (stops.length > 2) featured.push(`Then visit ${listNames(stops.slice(2))}.`);
-  return featured.join(' ');
+  return stops.map((name) => sightseeingSentence(destination?.local_sightseeing.find((sight) => sight.name === name) || { name, description: '' })).join(' ');
 }
 
 export function activitySentence(raw: string) {
@@ -144,31 +144,33 @@ function visitCopy(day: DayPlan, destination: string, planned: string[], quote?:
   const guide = destinationByName(destination);
   const primary = day.primaryVisitFor?.includes(destination) ?? day.dayTripDestination === destination;
   const quotedActivities = quote && guide ? guide.activities.filter((name) => quotedActivityCost(
-    quote.activityCosts, { key: `${destination}\u001f${name}`, destination, name, available: true }, quote.activitySelections || {},
-  ) !== null) : guide?.enabled_activities || [];
+    quote.activityCosts, { key: `${destination}\u001f${name}`, destination, name, available: (guide.enabled_activities || []).includes(name) }, quote.activitySelections || {},
+  ) !== null) : [];
   // The Gondola's mountain stations are reached through a separately quoted
   // activity, so sightseeing copy must never promise them on an unpriced trip.
-  const clientStops = quote ? planned.filter((name) => !/gondola|kongdori|apharwat/i.test(name)) : planned;
-  const noteSentences = primary && guide?.day_note?.trim()
-    ? (guide.day_note.match(/[^.!?]+[.!?]?/g) || []).map((sentence) => sentence.trim()).filter((sentence) => {
+  const activeSights = guide ? new Set(enabledSightseeing(guide)) : null;
+  const clientStops = planned.filter((name) => (!activeSights || activeSights.has(name)) && (!quote || !/gondola|kongdori|apharwat/i.test(name)));
+  const noteSource = guide ? guide.day_note?.trim() || defaultDayNote(guide) : '';
+  const noteSentences = primary && noteSource
+    ? (noteSource.match(/[^.!?]+[.!?]?/g) || []).map((sentence) => sentence.trim()).filter((sentence) => {
       if (/\b(after breakfast|check out|check in|overnight|drive to|return to|departure|pick-up|pickup)\b/i.test(sentence)) return false;
       if (quote && /gondola|shikara|pony ride|horse rid|rafting|skiing|snowboarding/i.test(sentence)) return false;
-      return referencedPlaces(sentence, guide).every((place) => matchesPlannedPlace(place, clientStops));
+      // A place gets its own authored sentence below; the introduction should
+      // never consume or duplicate one of those selected sightseeing lines.
+      return referencedPlaces(sentence, guide!).length === 0;
     }).slice(0, 2) : [];
   const note = noteSentences.join(' ');
-  const namedInNote = guide ? referencedPlaces(note, guide) : [];
-  const remainingStops = clientStops.filter((stop) => !namedInNote.some((place) => matchesPlannedPlace(place, [stop])));
-  const stops = sightseeingCopy(remainingStops);
-  const generalThings = (guide?.enabled_things_to_do || []).filter((item) =>
-    !/\b(gondola|shikara|pony|horse rid|rafting|skiing|snowboarding|helicopter|angling|fishing)\b/i.test(item)
-    && !/^(use|combine|plan|build|allow|treat|do not|pair|dedicate|start early|visit during)\b/i.test(item));
-  const experiences = guide ? [...new Set([...generalThings, ...quotedActivities])].filter((item) => {
+  const stops = sightseeingCopy(clientStops, guide);
+  const experiences = guide ? [...new Set(quotedActivities)].filter((item) => {
     if (note.toLowerCase().includes(item.toLowerCase())) return false;
     const places = referencedPlaces(item, guide);
     if (places.length) return places.every((place) => matchesPlannedPlace(place, clientStops)) && !/^(visit|explore|see)\b/i.test(item);
     return primary;
   }) : [];
-  const experienceText = experiences.map(activitySentence).filter(Boolean).join(' ');
+  const experienceText = experiences.map((name) => {
+    const authored = guide?.activity_copy?.[name]?.trim();
+    return authored ? /[.!?]$/.test(authored) ? authored : `${authored}.` : activitySentence(name);
+  }).filter(Boolean).join(' ');
   return [note, stops, experienceText].filter(Boolean).join(' ');
 }
 
@@ -212,7 +214,7 @@ export function dayNarrative(day: DayPlan, pickup: string, quote?: NarrativeQuot
     const originStops = plannedStops(day, day.from);
     const originCopy = originStops.length ? visitCopy(day, day.from, originStops, quote) : '';
     const opening = `After breakfast, check out from your ${day.from} hotel.`;
-    const transfer = `Drive to ${day.stay} ${route} and check in on arrival.`;
+    const transfer = `Drive to ${day.stay} ${route}. Check in on arrival.`;
     return [opening, originCopy, transfer, destinationCopy, `Overnight in ${day.stay}.`].filter(Boolean).join(' ');
   }
   return [`After breakfast, set out for ${day.stay === 'Srinagar' ? 'Srinagar local sightseeing' : `${day.stay} sightseeing`}.`, destinationCopy || `Take a guided walk through the area near your hotel.`, `Return to your ${day.stay} hotel for the night.`].join(' ');

@@ -24,6 +24,7 @@ export function activitySelected(activity: TripActivity, selections: Record<stri
 }
 
 export function quotedActivityCost(costs: Record<string, number>, activity: TripActivity, selections: Record<string, boolean> = {}): number | null {
+  if (!activity.available) return null;
   if (!activitySelected(activity, selections, costs)) return null;
   const value = costs?.[activity.key];
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;

@@ -29,9 +29,10 @@ export type Destination = {
   source: string;
   description: string;
   highlights: string[];
-  local_sightseeing: Array<{ name: string; description: string; tags: string[]; season?: string }>;
+  local_sightseeing: Array<{ name: string; description: string; client_sentence?: string; tags: string[]; season?: string }>;
   things_to_do: string[];
   activities: string[];
+  activity_copy?: Record<string, string>;
   photoQuery: string;
   sites: Site[];
   base?: boolean;
@@ -40,6 +41,7 @@ export type Destination = {
   srinagar_km?: number;
   day_note?: string;
   enabled_things_to_do?: string[];
+  enabled_sightseeing?: string[];
   enabled_activities?: string[];
 };
 
@@ -73,6 +75,14 @@ export const hotels = hotelDatabase.reduce<Record<string, Hotel[]>>((acc, hotel)
 }, {});
 
 export function destinationByName(name: string) { return destinations.find((d) => d.name === name); }
+export function enabledSightseeing(destination: Destination) {
+  const names = destination.local_sightseeing.map((sight) => sight.name);
+  // Existing library records predate the sightseeing switch. Keep their
+  // previously scheduled places available until an operator changes a tick.
+  return destination.enabled_sightseeing === undefined
+    ? names
+    : destination.enabled_sightseeing.filter((name) => names.includes(name));
+}
 export function routeByName(from: string, to: string) {
   const stored = routes[`${from}|${to}`];
   const custom = from === 'Srinagar' ? destinationByName(to) : to === 'Srinagar' ? destinationByName(from) : null;

@@ -40,7 +40,18 @@ assert.ok(short.dayPlans[0].notes.some((note)=>note.includes('early arrival')));
 assert.equal(short.dayPlans.at(-1).to, 'Srinagar');
 
 const medium = createPlan(input(8));
-for (const name of [...core,'Doodhpathri','Naranag']) assert.ok(visits(medium).has(name), `Eight-day trip missed ${name}`);
+for (const name of core) assert.ok(visits(medium).has(name), `Eight-day trip missed ${name}`);
+assert.deepEqual(medium.dayPlans.slice(0, -1).map((day) => day.stay), ['Srinagar','Gulmarg','Srinagar','Pahalgam','Srinagar','Sonamarg','Srinagar']);
+assert.ok(medium.dayPlans.slice(1, -1).every((day) => day.from === 'Srinagar' || day.stay === 'Srinagar' || day.from === day.stay), 'The suggested route must return through Srinagar between core stays');
+for (const name of ['Gulmarg','Pahalgam','Sonamarg']) {
+  const arrival = medium.dayPlans.find((day) => day.stay === name);
+  const returnDay = medium.dayPlans[arrival.day];
+  const first = arrival.blocks.filter((block) => block.destination === name && block.kind !== 'free-time').map((block) => block.name);
+  const next = returnDay.blocks.filter((block) => block.destination === name && block.kind !== 'free-time').map((block) => block.name);
+  assert.ok(next.length >= 1, `${name} return morning should include a fresh nearby place`);
+  assert.ok(next.every((sight) => !first.includes(sight)), `${name} return day repeated its arrival sightseeing`);
+}
+assert.doesNotMatch(dayNarrative(medium.dayPlans[2], 'Srinagar'), /to Srinagar back through/i);
 assert.ok(medium.dayPlans.some((day)=>day.stay==='Pahalgam'));
 assert.ok(!dayTitle(medium.dayPlans.find((day)=>day.stay==='Pahalgam'), 'Srinagar').includes('Pahalgam local sightseeing'));
 
@@ -77,7 +88,7 @@ const changedOrigin = rebuildPlanFromNightSequence(withNaranagVisit, ['Srinagar'
 assert.equal(changedOrigin.dayPlans[5].from, 'Pahalgam');
 assert.notEqual(changedOrigin.dayPlans[5].dayTripDestination, 'Naranag', 'A day visit that becomes too long after the previous night changes must be removed.');
 
-const onePahalgamNight = createPlan(input(5));
+const onePahalgamNight = rebuildPlanFromNightSequence(createPlan(input(5)), ['Srinagar','Gulmarg','Pahalgam','Srinagar']);
 const arrivalAtPahalgam = onePahalgamNight.dayPlans[2];
 const departureFromPahalgam = onePahalgamNight.dayPlans[3];
 const arrivalStops = arrivalAtPahalgam.blocks.filter((block) => block.destination === 'Pahalgam' && block.kind !== 'free-time').map((block) => block.name);

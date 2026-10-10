@@ -13,12 +13,13 @@ The planner ships with 44 Kashmir destination records. Each record is destinatio
 - minimum / ideal / maximum days
 - minimum / ideal / maximum nights where overnight is supported
 - overnight capability
-- local sightseeing with short descriptions and tags
-- things to do
-- popular activities
+- editable local sightseeing, each with a client itinerary sentence; these records automatically form the tickable Things to Do list
+- popular activities with editable client sentences and library availability switches
 - a photo query for the library profile
 
 The Destinations step is date-first: each day has a visit or sightseeing destination and an overnight base. Changing the overnight base keeps the day visit, so an overnight in Gulmarg can become a Gulmarg day trip with a Srinagar hotel night. The later Itinerary step displays the chosen route, hotels and day copy; only the “About this day” description is editable there.
+
+Ticked sightseeing places are candidates for the route, not a promise to fit every place into one day. Generated copy uses the destination introduction and one sentence for each scheduled place, without repeating sights across days. The Itinerary step flags selected places that could not be scheduled. Quoted activities add their own client sentence. Suggested routes use Srinagar as a hub: short trips use day visits, while longer trips add outlying hotel nights with a return through Srinagar before the next major base.
 
 ## Hotel master
 Six supplied October 2026 hotel workbooks were verified as identical copies of the same six-destination source and deduplicated to 166 unique hotel records.
@@ -30,7 +31,7 @@ Supplier B2B rates are omitted from the customer PDF. The browser now loads hote
 Every generated overnight base gets a hotel-selection record. The Destinations step controls exact hotel nights; the Hotels step shows their dates and lets the operator change the suggested hotel, occupancy and internal rates. Hotel suggestions favor a positive room rate, a matching category and rate validity for the selected stay dates. One confirmation at the bottom verifies all selected hotel rates, availability, rooms and meal plan; changing any stay clears its confirmation. An incomplete quote cannot be downloaded as a client PDF. Missing supplier rates are never invented; the dashboard filters hotels needing a rate. The hotel import uses “Sonmarg” while the destination library uses “Sonamarg”; the planner maps these names when attaching hotels.
 
 ## Costing
-Activities are offered on the Activities & Transport step. An untouched option stays off the client PDF; the operator explicitly includes it with a group price or marks it as an exclusion. A selected but unpriced activity blocks client PDF download. Short-trip arrival excursions require an early arrival time, and departure-day sightseeing requires a late departure.
+Activities enabled in the destination library are offered on the Activities & Transport step. An untouched option stays off the client PDF; the operator explicitly includes it with a group price or marks it as an exclusion. Disabled library activities cannot be newly quoted. A selected but unpriced activity blocks client PDF download. Short-trip arrival excursions require an early arrival time, and departure-day sightseeing requires a late departure.
 
 The internal model is:
 

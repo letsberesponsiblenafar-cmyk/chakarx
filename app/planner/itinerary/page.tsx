@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import PlannerChrome from '@/components/PlannerChrome';
 import { usePlanner } from '@/components/PlannerProvider';
+import { enabledSightseeing } from '@/lib/data';
 import { dayNarrative, dayTitle } from '@/lib/narrative';
 
 function displayDate(value: string) {
@@ -13,12 +14,22 @@ function displayDate(value: string) {
 }
 
 export default function ItineraryPage() {
-  const { input, plan, hotelSelections, costModel, setDayContent } = usePlanner();
+  const { input, plan, destinationCatalog, hotelSelections, costModel, setDayContent } = usePlanner();
   const [editingDay, setEditingDay] = useState<number | null>(null);
   if (!plan) return <AppShell><PlannerChrome title="Review your itinerary" eyebrow="STEP 04 · ITINERARY"><div className="empty-panel"><FileText size={28}/><h2>Build your journey first</h2><p>Choose the dates and route to see the day descriptions.</p><Link className="primary-cta inline" href="/">Build Your Trip <ChevronRight size={16}/></Link></div></PlannerChrome></AppShell>;
 
+  const visited = new Set(plan.dayPlans.filter((day) => day.label !== 'Departure day').flatMap((day) => [day.stay, day.dayTripDestination].filter((name): name is string => Boolean(name))));
+  const scheduled = new Set(plan.dayPlans.flatMap((day) => day.blocks.flatMap((block) =>
+    block.sights?.length ? block.sights.map((name) => `${block.destination}::${name}`) : block.destination ? [`${block.destination}::${block.name}`] : [])));
+  const unscheduled = destinationCatalog.filter((destination) => visited.has(destination.name)).map((destination) => ({
+    name: destination.name,
+    places: enabledSightseeing(destination).filter((name) => !scheduled.has(`${destination.name}::${name}`)),
+  })).filter((item) => item.places.length);
+  const unscheduledCount = unscheduled.reduce((sum, item) => sum + item.places.length, 0);
+
   return <AppShell><PlannerChrome title="Review your itinerary" eyebrow="STEP 04 · ITINERARY">
     <section className="journey-intro itinerary-review-intro"><div><span className="eyebrow">DAY-WISE COPY</span><h2>The route is ready. Refine the story.</h2><p>Destinations, overnight stays, hotels and activities are carried through from the earlier steps. Here, edit only the description the client will read for each day.</p></div><Link className="secondary-link" href="/planner/destinations">Review destinations <ChevronRight size={15}/></Link></section>
+    {unscheduledCount > 0 && <details className="itinerary-unscheduled"><summary>{unscheduledCount} selected {unscheduledCount === 1 ? 'place is' : 'places are'} not scheduled</summary><p>The route includes only what fits the chosen days and current planning rules. These places stay out of the client PDF unless you add time, change the journey, or quote an activity they require:</p>{unscheduled.map((item) => <div key={item.name}><b>{item.name}</b><span>{item.places.join(' · ')}</span></div>)}</details>}
     <div className="itinerary-review-list">{plan.dayPlans.map((day) => {
       const hotel = hotelSelections.find((stay) => stay.location === day.stay);
       const editing = editingDay === day.day;

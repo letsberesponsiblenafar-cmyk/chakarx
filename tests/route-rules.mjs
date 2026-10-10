@@ -52,27 +52,28 @@ try {
   assert.match(short.dayPlans[0].notes.join(' '), /early arrival/i);
 
   const five = await planFor(5);
-  assert.deepEqual(five.dayPlans.slice(0, -1).map((day) => day.stay), ['Srinagar', 'Gulmarg', 'Pahalgam', 'Srinagar']);
-  assert.equal(five.dayPlans[0].dayTripDestination, 'Sonamarg');
-  assert.match(five.dayPlans[0].notes.join(' '), /early arrival/i);
+  assert.deepEqual(five.dayPlans.slice(0, -1).map((day) => day.stay), Array(4).fill('Srinagar'));
+  assert.equal(five.dayPlans[0].dayTripDestination, undefined, 'Five days should not depend on an arrival-day mountain excursion');
+  assert.deepEqual(five.dayPlans.slice(1, -1).map((day) => day.dayTripDestination), ['Gulmarg', 'Pahalgam', 'Sonamarg']);
 
   const six = await planFor(6);
-  assert.deepEqual(six.dayPlans.slice(0, -1).map((day) => day.stay), ['Srinagar', 'Gulmarg', 'Pahalgam', 'Srinagar', 'Srinagar']);
-  assert.equal(six.dayPlans[4].dayTripDestination, 'Sonamarg');
+  assert.deepEqual(six.dayPlans.slice(0, -1).map((day) => day.stay), ['Srinagar', 'Gulmarg', 'Srinagar', 'Srinagar', 'Srinagar']);
+  assert.deepEqual(six.dayPlans.slice(3, -1).map((day) => day.dayTripDestination), ['Pahalgam', 'Sonamarg']);
 
   for (const days of [7, 8]) {
     const plan = await planFor(days);
-    for (const name of ['Gulmarg', 'Pahalgam', 'Sonamarg']) assert.ok(plan.hotelPlans.some((stay) => stay.location === name), `${days} days misses ${name}`);
-    assert.ok(plan.dayPlans.some((day) => day.dayTripDestination === 'Naranag'), `${days} days misses Naranag`);
+    for (const name of ['Gulmarg', 'Pahalgam']) assert.ok(plan.hotelPlans.some((stay) => stay.location === name), `${days} days misses ${name}`);
+    assert.ok(plan.dayPlans.some((day) => day.stay === 'Sonamarg' || day.dayTripDestination === 'Sonamarg'), `${days} days misses Sonamarg`);
+    assert.ok(plan.dayPlans.slice(1, -1).every((day) => day.from === 'Srinagar' || day.stay === 'Srinagar' || day.from === day.stay), `${days} days contains a rushed cross-valley hotel transfer`);
     assert.equal(plan.dayPlans.at(-1).to, 'Srinagar');
   }
 
   const ten = await planFor(10);
   assert.ok(ten.hotelPlans.some((stay) => stay.location === 'Doodhpathri'));
-  assert.ok(ten.dayPlans.some((day) => day.dayTripDestination === 'Naranag'));
+  assert.ok(ten.dayPlans.slice(1, -1).every((day) => day.from === 'Srinagar' || day.stay === 'Srinagar' || day.from === day.stay), 'Doodhpathri must not create a cross-valley overnight transfer');
 
   const eleven = await planFor(11);
-  assert.ok(eleven.hotelPlans.some((stay) => !['Srinagar', 'Gulmarg', 'Pahalgam', 'Sonamarg', 'Doodhpathri'].includes(stay.location)), 'Longer trip should add a destination');
+  assert.ok(eleven.dayPlans.some((day) => day.dayTripDestination === 'Naranag'), 'Spare Srinagar day should visit Naranag');
 
   const sixteen = await planFor(16);
   assert.ok(sixteen.hotelPlans.some((stay) => ['Gulmarg', 'Pahalgam', 'Sonamarg', 'Doodhpathri'].includes(stay.location) && stay.nights > 1), 'Extended trip should lengthen a core stay');

@@ -36,18 +36,25 @@ export function validateDestination(raw: unknown): Destination {
   if (!Array.isArray(d.local_sightseeing) || d.local_sightseeing.length > 80) throw new Error('Sightseeing must be a list.');
   const local_sightseeing = d.local_sightseeing.map((item) => {
     const sight = item as Record<string,unknown>;
-    return { name: string(sight.name, 'Sight name', 120), description: string(sight.description, 'Sight description', 800), tags: list(sight.tags, 'Sight tags'), season: string(sight.season ?? 'all', 'Sight season', 80) };
+    return { name: string(sight.name, 'Sight name', 120), description: string(sight.description, 'Sight description', 800), client_sentence: string(sight.client_sentence ?? '', 'Client sightseeing sentence', 500), tags: list(sight.tags, 'Sight tags'), season: string(sight.season ?? 'all', 'Sight season', 80) };
   }).filter((sight) => sight.name);
-  const things_to_do = list(d.things_to_do, 'Things to do');
+  const sightNames = local_sightseeing.map((sight) => sight.name);
+  const enabled_sightseeing = d.enabled_sightseeing === undefined ? undefined
+    : list(d.enabled_sightseeing, 'Enabled sightseeing').filter((name) => sightNames.includes(name));
+  // Retain the legacy fields for old saved records, but derive them from the
+  // single editable sightseeing list whenever a destination is saved.
+  const things_to_do = sightNames;
   const activities = list(d.activities, 'Popular activities');
-  const enabled_things_to_do = list(d.enabled_things_to_do ?? [], 'Enabled things to do').filter((x) => things_to_do.includes(x));
+  const enabled_things_to_do = enabled_sightseeing ?? sightNames;
   const enabled_activities = list(d.enabled_activities ?? [], 'Enabled activities').filter((x) => activities.includes(x));
+  const rawActivityCopy = d.activity_copy && typeof d.activity_copy === 'object' && !Array.isArray(d.activity_copy) ? d.activity_copy as Record<string, unknown> : {};
+  const activity_copy = Object.fromEntries(activities.map((name) => [name, string(rawActivityCopy[name] ?? '', `${name} client sentence`, 500)]));
   return {
     id, name, tier: string(d.tier, 'Tier', 80), district: string(d.district, 'District', 100), tags: list(d.tags, 'Tags'),
     min_days, ideal_days, max_days, min_nights, ideal_nights, max_nights,
     overnight_allowed: Boolean(d.overnight_allowed), season: string(d.season, 'Season', 80), access: string(d.access, 'Access', 80),
     source: string(d.source, 'Source', 200), description: string(d.description, 'Description', 2500), day_note: string(d.day_note ?? '', 'About this day', 2500),
-    highlights: list(d.highlights, 'Highlights'), local_sightseeing, things_to_do, activities, enabled_things_to_do, enabled_activities,
+    highlights: list(d.highlights, 'Highlights'), local_sightseeing, things_to_do, activities, activity_copy, enabled_things_to_do, enabled_sightseeing, enabled_activities,
     photoQuery: string(d.photoQuery, 'Photo query', 150), sites: Array.isArray(d.sites) ? d.sites as Destination['sites'] : [],
     base: Boolean(d.base), cluster: string(d.cluster, 'Cluster', 80),
     srinagar_hours: distance(d.srinagar_hours, 'Drive hours from Srinagar'),

@@ -389,7 +389,12 @@ body{font-size:15px}.build-trip-page{max-width:1500px;margin:0 auto}.build-heade
 .destination-detail-pair>.destination-detail-section,.destination-form-pair>.destination-form-section{margin-top:0}
 .destination-switch-help,.destination-form-section-head p{font-size:13px;line-height:1.5;color:var(--muted);margin:0}
 .destination-detail-section .destination-toggle-list{display:grid;gap:12px;margin-top:16px}
-.destination-detail-section .destination-toggle-list label{padding:11px 12px;border:1px solid #e8ddcd;border-radius:10px;background:#fbf7ef}
+.destination-detail-section .destination-toggle-list label{display:flex;align-items:flex-start;gap:11px;padding:13px 14px;border:1px solid #e8ddcd;border-radius:10px;background:#fbf7ef;cursor:pointer}
+.destination-detail-section .destination-toggle-list label input{flex:none;width:17px;height:17px;margin-top:2px;accent-color:#956c2f}
+.destination-detail-section .destination-toggle-list label span{display:grid;gap:4px;min-width:0}
+.destination-detail-section .destination-toggle-list label b{font-size:13px;color:#3c2919}
+.destination-detail-section .destination-toggle-list label small{font-size:11px;line-height:1.45;color:#766652}
+.destination-detail-section.destination-note small{display:block;margin-top:12px;color:#806a50;font-size:11px;line-height:1.5}
 .destination-detail-section .destination-toggle-list .destination-disabled{opacity:.58}
 .destination-full-form{display:block}
 .destination-form-section-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}
@@ -411,6 +416,12 @@ body{font-size:15px}.build-trip-page{max-width:1500px;margin:0 auto}.build-heade
 .destination-option-list{display:grid;gap:9px}
 .destination-option-row{display:grid;grid-template-columns:125px minmax(0,1fr) 31px;align-items:center;gap:10px;padding:9px;background:#fbf7ef;border:1px solid #e9dece;border-radius:10px}
 .destination-option-row-simple{grid-template-columns:minmax(0,1fr) 31px}
+.destination-option-row-simple .destination-option-copy{grid-column:1/-1}
+.itinerary-unscheduled{margin:17px 0;padding:17px 20px;border:1px solid #e3d1aa;border-radius:14px;background:#fff9e8;color:#594325}
+.itinerary-unscheduled summary{cursor:pointer;font-weight:800;font-size:13px}
+.itinerary-unscheduled p{font-size:12px;line-height:1.55;margin:12px 0}
+.itinerary-unscheduled div{display:grid;gap:4px;border-top:1px solid #e9ddc3;padding:10px 0;font-size:12px}
+.itinerary-unscheduled div span{line-height:1.5;color:#746246}
 .destination-option-check{display:flex;align-items:center;gap:7px;font-size:11px;color:#67563d;font-weight:700}
 .destination-option-check input,.destination-check input{width:17px;height:17px;accent-color:#956c2f}
 .destination-form-empty{font-size:13px;color:#867666;margin:15px 0 0}

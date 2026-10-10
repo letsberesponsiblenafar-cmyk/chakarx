@@ -22,7 +22,7 @@ type PlannerContextValue = PlannerState & {
   destinationCatalog: Destination[];
   destinationConnection: 'loading' | 'ready' | 'error';
   destinationConnectionError: string;
-  refreshDestinations: () => Promise<void>;
+  refreshDestinations: (rebuildCurrent?: boolean) => Promise<void>;
   hotelConnection: 'loading' | 'ready' | 'error' | 'signed-out';
   hotelConnectionError: string;
   refreshHotels: () => Promise<void>;
@@ -141,7 +141,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   const [hotelConnection,setHotelConnection]=useState<'loading'|'ready'|'error'|'signed-out'>('loading');
   const [hotelConnectionError,setHotelConnectionError]=useState('');
   const hotelRequest=useRef(0);
-  async function refreshDestinations() {
+  async function refreshDestinations(rebuildCurrent = false) {
     setDestinationConnection('loading'); setDestinationConnectionError('');
     try {
       const response=await fetch('/api/destinations',{cache:'no-store',signal:AbortSignal.timeout(15000)});
@@ -151,6 +151,14 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       const catalog=payload.destinations as Destination[];
       replaceDestinationCatalog(catalog);
       setDestinationCatalog([...catalog]);
+      if (rebuildCurrent) setState((current) => {
+        if (!current.plan) return current;
+        try {
+          const sequence = current.plan.dayPlans.slice(0, current.plan.nights).map((day) => day.stay);
+          const plan = rebuildPlanFromNightSequence(current.plan, sequence);
+          return { ...current, plan, hotelSelections: syncHotelSelections(plan, current.hotelSelections, current.hotelDatabase, current.input) };
+        } catch { return current; }
+      });
       setDestinationConnection('ready');
     } catch(error) {
       setDestinationConnection('error');

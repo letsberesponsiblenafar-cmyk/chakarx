@@ -12,7 +12,7 @@ export default function EditDestinationPage() {
   const { destinationCatalog, destinationConnection, destinationConnectionError, refreshDestinations } = usePlanner();
   const destination = destinationCatalog.find((item) => item.id === id || item.name === id);
   async function saved(record: Destination) {
-    await refreshDestinations();
+    await refreshDestinations(true);
     router.push(`/library/${encodeURIComponent(record.id || record.name)}`);
   }
   return <AppShell>{destination
