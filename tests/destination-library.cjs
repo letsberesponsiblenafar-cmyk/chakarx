@@ -46,9 +46,10 @@ try {
   assert.equal(quotedActivityCost({ [shikara.key]: 3000 }, shikara), null, 'An old price on a disabled library activity must not silently become included.');
   assert.equal(quotedActivityCost({ [shikara.key]: 3000 }, shikara, { [shikara.key]: false }), null, 'A per-trip untick must exclude an activity even when an old cost exists.');
   assert.equal(disabledCost.sellingTotal, before.sellingTotal);
-  const offLists = clientActivityLists(plan, { [shikara.key]: 3000 }, { [shikara.key]: false }, ['Airfare']);
+  const offLists = clientActivityLists(plan, { [shikara.key]: 3000 }, { [shikara.key]: false }, ['Welcome dinner'], ['Airfare']);
   assert.ok(offLists.excluded.includes('Srinagar: Shikara ride'));
   assert.ok(offLists.excluded.includes('Airfare'));
+  assert.ok(offLists.included.includes('Welcome dinner'));
   assert.ok(!offLists.included.includes('Srinagar: Shikara ride'));
   assert.equal(offLists.excluded.length, tripActivities(plan).length + 1, 'Only listed trip activities and the manual entry should be excluded.');
   const allPriced = Object.fromEntries(tripActivities(plan).map((activity) => [activity.key, 0]));

@@ -29,7 +29,7 @@ export function quotedActivityCost(costs: Record<string, number>, activity: Trip
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
 }
 
-export function clientActivityLists(plan: Plan, costs: Record<string, number>, selections: Record<string, boolean> = {}, manualExclusions: string[] = [], catalog: Destination[] = destinations) {
+export function clientActivityLists(plan: Plan, costs: Record<string, number>, selections: Record<string, boolean> = {}, manualInclusions: string[] = [], manualExclusions: string[] = [], catalog: Destination[] = destinations) {
   const included: string[] = [];
   const excluded: string[] = [];
   for (const activity of tripActivities(plan, catalog)) {
@@ -38,6 +38,10 @@ export function clientActivityLists(plan: Plan, costs: Record<string, number>, s
     else excluded.push(label);
   }
   const seen = new Set([...included, ...excluded].map((item) => item.toLowerCase()));
+  for (const raw of manualInclusions) {
+    const item = String(raw).trim();
+    if (item && !seen.has(item.toLowerCase())) { included.push(item); seen.add(item.toLowerCase()); }
+  }
   for (const raw of manualExclusions) {
     const item = String(raw).trim();
     if (item && !seen.has(item.toLowerCase())) { excluded.push(item); seen.add(item.toLowerCase()); }

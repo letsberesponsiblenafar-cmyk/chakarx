@@ -17,10 +17,11 @@ for (const ext of ['.ts', '.tsx']) require.extensions[ext] = function (module, f
   } }).outputText, filename);
 };
 
-const { createPlan, rebuildPlanFromNightSequence, setPlanDayTrip } = require('../lib/itinerary.ts');
+const { createPlan, rebuildPlanFromNightSequence, retargetDay, setPlanDayTrip } = require('../lib/itinerary.ts');
 const { calculateCosts } = require('../lib/costing.ts');
 const { itinerarySnapshot } = require('../components/PlannerProvider.tsx');
 const { dayNarrative, dayTitle } = require('../lib/narrative.ts');
+const { tripDuration, departureForNights } = require('../lib/trip-dates.ts');
 const input = (days) => ({
   name: 'Route QA', arrival: '2026-10-03', departure: `2026-10-${String(days + 2).padStart(2,'0')}`,
   pickup: 'Srinagar', adults: 2, youngAges: [], budget: 0, hotelCategory: 'Signature',
@@ -59,7 +60,19 @@ assert.ok(fullPahalgamDay.blocks.filter((block) => block.destination === 'Pahalg
 assert.doesNotMatch(dayNarrative(longTransfer, 'Srinagar'), /Aru Valley|Betaab Valley|Chandanwari/);
 assert.doesNotMatch(dayNarrative(longTransfer, 'Srinagar'), /own pace|rest of the day/i);
 assert.match(dayNarrative(longTransfer, 'Srinagar'), /Lidder River|Pahalgam town/i);
+assert.match(dayNarrative(longTransfer, 'Srinagar'), /Tangmarg and Srinagar/);
 assert.match(dayNarrative(fullPahalgamDay, 'Srinagar'), /Aru Valley|Betaab Valley/);
+const handEdited = { ...twoPahalgamNights, dayPlans: twoPahalgamNights.dayPlans.map((day) => day.day === 4 ? { ...day, customTitle: 'Old Pahalgam day', customAbout: 'Old Pahalgam plan.' } : day.day === 1 ? { ...day, customAbout: 'Personal arrival note.' } : day) };
+const changedThirdDay = retargetDay(handEdited, 3, 'Sonamarg');
+assert.equal(changedThirdDay.dayPlans[3].from, 'Sonamarg', 'Changing an overnight must update the next day’s origin.');
+assert.equal(changedThirdDay.dayPlans[3].customAbout, undefined, 'Stale next-day copy must be cleared when its route and sights change.');
+assert.notEqual(dayNarrative(changedThirdDay.dayPlans[3], 'Srinagar'), 'Old Pahalgam plan.');
+assert.equal(changedThirdDay.dayPlans[0].customAbout, 'Personal arrival note.', 'Unchanged manual day copy should be preserved.');
+const shortVisitBase = rebuildPlanFromNightSequence(createPlan(input(8)), Array(7).fill('Srinagar'));
+const withNaranagVisit = setPlanDayTrip(shortVisitBase, 6, 'Naranag');
+const changedOrigin = rebuildPlanFromNightSequence(withNaranagVisit, ['Srinagar','Srinagar','Srinagar','Pahalgam','Pahalgam','Srinagar','Srinagar']);
+assert.equal(changedOrigin.dayPlans[5].from, 'Pahalgam');
+assert.notEqual(changedOrigin.dayPlans[5].dayTripDestination, 'Naranag', 'A day visit that becomes too long after the previous night changes must be removed.');
 
 const onePahalgamNight = createPlan(input(5));
 const arrivalAtPahalgam = onePahalgamNight.dayPlans[2];
@@ -83,7 +96,8 @@ for (const day of [1,3,5,6,7]) repeatedSrinagar = setPlanDayTrip(repeatedSrinaga
 const allSrinagarStops = repeatedSrinagar.dayPlans.flatMap((day) => day.blocks.filter((block) => block.destination === 'Srinagar' && block.kind !== 'free-time' && block.kind !== 'departure').map((block) => block.name));
 assert.equal(allSrinagarStops.length, new Set(allSrinagarStops).size, 'Separated Srinagar days must not repeat a planned stop');
 for (const name of allSrinagarStops) {
-  const mentions = repeatedSrinagar.dayPlans.filter((day) => day.label !== 'Departure day' && dayNarrative(day, 'Srinagar').includes(name)).length;
+  const marker = name === 'Dal Lake & Boulevard' ? 'Boulevard Road' : name;
+  const mentions = repeatedSrinagar.dayPlans.filter((day) => day.label !== 'Departure day' && dayNarrative(day, 'Srinagar').includes(marker)).length;
   assert.equal(mentions, 1, `${name} should appear in only one About this day section`);
 }
 
@@ -95,4 +109,8 @@ assert.equal(customQuote.transport, customPlan.dayPlans.length * 6100, 'Custom d
 const saved = JSON.parse(JSON.stringify(itinerarySnapshot({ input: customPlan.input, plan: customPlan, routeVersion: null, hotelSelections: [], hotelDatabase: [], costModel: customCost, hotelDefaults: {}, generated: true, savedItineraryId: null })));
 assert.equal(saved.input.transport, customVehicle, 'Saved itinerary must retain the custom vehicle name');
 assert.equal(saved.costModel.transportDaily, 6100, 'Saved itinerary must retain the custom vehicle rate');
+assert.deepEqual(tripDuration('2026-10-10', '2026-10-18'), { days: 9, nights: 8 });
+assert.equal(departureForNights('2026-10-10', 6), '2026-10-16');
+assert.equal(departureForNights('2028-02-28', 2), '2028-03-01');
+assert.equal(tripDuration('2026-10-18', '2026-10-10'), null);
 console.log('PASS core visits, transfer-day pacing, unique multi-day sightseeing, day-trip highlights and custom vehicle pricing');

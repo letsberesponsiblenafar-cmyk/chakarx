@@ -1,11 +1,12 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { ChevronRight, Sparkles, MapPin } from 'lucide-react';
+import { CalendarDays, ChevronRight, Sparkles, MapPin } from 'lucide-react';
 import { usePlanner } from '@/components/PlannerProvider';
 import { hotelCategories, mealOptions } from '@/lib/data';
 import { createPlan, ROUTE_VERSION } from '@/lib/itinerary';
 import { calculateCosts } from '@/lib/costing';
+import { departureForNights, tripDuration } from '@/lib/trip-dates';
 
 function datePlus(n:number){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}
 function fmtDate(s:string){return new Date(`${s}T12:00:00`).toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'})}
@@ -18,12 +19,32 @@ export default function ChakarPlanner(){
  const [childrenText,setChildrenText]=useState(String(input.youngAges.length));
  const [budgetText,setBudgetText]=useState(String(input.budget));
  const [ageText,setAgeText]=useState<string[]>(input.youngAges.map(String));
+ const [durationDaysText,setDurationDaysText]=useState('');
+ const [durationNightsText,setDurationNightsText]=useState('');
  useEffect(()=>setAdultsText(String(input.adults)),[input.adults]);
  useEffect(()=>setChildrenText(String(input.youngAges.length)),[input.youngAges.length]);
  useEffect(()=>setBudgetText(String(input.budget)),[input.budget]);
  useEffect(()=>setAgeText(input.youngAges.map(String)),[input.youngAges]);
  const arrivals=input.arrival||datePlus(7), departures=input.departure||datePlus(14);
+ const duration=tripDuration(arrivals,departures);
+ useEffect(()=>{setDurationDaysText(duration?String(duration.days):'');setDurationNightsText(duration?String(duration.nights):'')},[arrivals,departures]);
  const preview=plan;
+ const draftNeedsRefresh=Boolean(preview && (preview.input.arrival!==arrivals || preview.input.departure!==departures));
+ function changeArrival(value:string){
+  const nights=duration?.nights||7;
+  setInputField('arrival',value);
+  const adjusted=value?departureForNights(value,nights):null;
+  if(adjusted)setInputField('departure',adjusted);
+ }
+ function commitDuration(unit:'days'|'nights'){
+  const raw=unit==='days'?durationDaysText:durationNightsText;
+  const number=Number(raw);
+  const nights=unit==='days'?number-1:number;
+  const adjusted=raw.trim()!==''?departureForNights(arrivals,nights):null;
+  if(!adjusted){setQuickError('Enter 2–31 days or 1–30 nights.');setDurationDaysText(duration?String(duration.days):'');setDurationNightsText(duration?String(duration.nights):'');return}
+  setQuickError('');
+  setInputField('departure',adjusted);
+ }
  function submit(){
   setQuickError('');
   try{
@@ -55,7 +76,7 @@ export default function ChakarPlanner(){
       <div className="section-head"><div><span className="eyebrow">TRIP DETAILS</span><h2>Tell us about the trip</h2><p>Every field below directly affects the itinerary, hotel occupancy or customer costing.</p></div><span className="step-chip">STEP 01</span></div>
       <div className="build-form-divider"><span>01</span><b>Journey essentials</b></div>
       <div className="form-section"><label>Traveller's name</label><input value={input.name} onChange={e=>setInputField('name',e.target.value)} placeholder="Enter traveller's name"/></div>
-      <div className="form-section"><label>Travel dates</label><div className="two-field"><input aria-label="Arrival date" type="date" value={input.arrival||arrivals} onChange={e=>setInputField('arrival',e.target.value)}/><input aria-label="Departure date" type="date" value={input.departure||departures} onChange={e=>setInputField('departure',e.target.value)}/></div></div>
+      <div className="form-section"><label>Travel dates</label><div className="two-field"><input aria-label="Arrival date" type="date" value={input.arrival||arrivals} onChange={e=>changeArrival(e.target.value)}/><input aria-label="Departure date" type="date" value={input.departure||departures} onChange={e=>setInputField('departure',e.target.value)}/></div><small className="field-note">Changing arrival keeps the current trip length. Changing departure updates the days and nights shown in your brief.</small></div>
       <div className="form-section"><label>Pick-up point</label><select value={input.pickup==='Srinagar'?'Srinagar':input.pickup==='Jammu'?'Jammu':'Other'} onChange={e=>setInputField('pickup',e.target.value==='Other'?'':e.target.value)}><option>Srinagar</option><option>Jammu</option><option>Other</option></select>{!['Srinagar','Jammu'].includes(input.pickup)&&<input className="other-pickup" value={input.pickup} onChange={e=>setInputField('pickup',e.target.value)} placeholder="Type your pick-up point"/>}</div>
       <div className="build-form-divider"><span>02</span><b>Travellers</b></div>
       <div className="form-section"><label>Adults</label><input className="direct-number" type="number" min="1" value={adultsText} onChange={e=>{const raw=e.target.value;setAdultsText(raw);if(raw!==''&&Number.isInteger(Number(raw))&&Number(raw)>=1)setInputField('adults',Number(raw))}}/></div>
@@ -72,9 +93,12 @@ export default function ChakarPlanner(){
     </section>
     <section className="preview-card build-preview">
       <div className="section-head"><div><span className="eyebrow">WHAT HAPPENS NEXT</span><h2>From trip details to a working itinerary</h2><p>Chakar will create the day-wise route first. You can then edit destinations, hotels, transport and activities before reviewing the final price.</p></div></div>
-      <div className="build-live-brief"><span className="eyebrow">YOUR CURRENT BRIEF</span><div><strong>{input.name.trim()||'Your traveller'}</strong><b>{people} traveller{people===1?'':'s'}</b></div><p>{input.hotelCategory} stay · {input.mealPlan} · {input.pickup||'Pick-up to set'} pick-up</p></div>
+      <div className="build-live-brief"><span className="eyebrow">YOUR CURRENT BRIEF</span><div><strong>{input.name.trim()||'Your traveller'}</strong><b>{people} traveller{people===1?'':'s'}</b></div><p>{input.hotelCategory} stay · {input.mealPlan} · {input.pickup||'Pick-up to set'} pick-up</p>
+        <div className="build-duration-panel"><div className="build-duration-heading"><CalendarDays size={17}/><span>Trip length</span><small>{duration?`${fmtDate(arrivals)} – ${fmtDate(departures)}`:'Choose a departure after arrival'}</small></div><div className="build-duration-fields"><label>Days<input aria-label="Trip days" type="number" min="2" max="31" value={durationDaysText} onChange={e=>setDurationDaysText(e.target.value)} onBlur={()=>commitDuration('days')} onKeyDown={e=>{if(e.key==='Enter')e.currentTarget.blur()}}/></label><span>↔</span><label>Nights<input aria-label="Trip nights" type="number" min="1" max="30" value={durationNightsText} onChange={e=>setDurationNightsText(e.target.value)} onBlur={()=>commitDuration('nights')} onKeyDown={e=>{if(e.key==='Enter')e.currentTarget.blur()}}/></label></div><small>Adjust either number; the departure date updates automatically.</small></div>
+      </div>
       <div className="build-flow"><div><span>01</span><b>Itinerary</b><p>Day-by-day destination and sightseeing with overnight stays.</p></div><div><span>02</span><b>Hotels</b><p>Select hotels, manage occupancy and internal B2B rates.</p></div><div><span>03</span><b>Activities &amp; Transport</b><p>Choose a vehicle and quote activities for the whole group.</p></div><div><span>04</span><b>Costing</b><p>Review accommodation, transport, activities, markup and GST.</p></div><div><span>05</span><b>Client PDF</b><p>Preview and download the customer itinerary.</p></div></div>
-      {preview&&<div className="preview-bottom"><div><span>Current draft</span><strong>{preview.days} days</strong></div><div><span>Budget / person</span><strong>{budgetText.trim()===''?'No cap':money(Number(budgetText)||0)}</strong></div><div><span>Travellers</span><strong>{people}</strong></div><div><span>Current total</span><strong>{money(calculateCosts(preview,hotelSelections,costModel).sellingTotal)}</strong></div></div>}
+      {draftNeedsRefresh&&<div className="build-refresh-hint">Trip dates changed. Press Next to rebuild the itinerary and refresh its quote.</div>}
+      {preview&&<div className="preview-bottom"><div><span>{draftNeedsRefresh?'Previous draft':'Current draft'}</span><strong>{preview.days} days</strong></div><div><span>Budget / person</span><strong>{budgetText.trim()===''?'No cap':money(Number(budgetText)||0)}</strong></div><div><span>Travellers</span><strong>{people}</strong></div><div><span>{draftNeedsRefresh?'Previous total':'Current total'}</span><strong>{money(calculateCosts(preview,hotelSelections,costModel).sellingTotal)}</strong></div></div>}
       <div className="build-note"><MapPin size={16}/><span><b>Children rule:</b> enter each child's age. Any age above 14 is automatically moved into Adults so room and costing calculations stay correct.</span></div>
     </section>
    </div>

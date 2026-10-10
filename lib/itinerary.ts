@@ -580,17 +580,16 @@ export function rebuildPlanFromNightSequence(plan: Plan, nightSequence: string[]
   if (nightSequence.some((name) => !destinationByName(name)?.overnight_allowed)) throw new Error('Every selected overnight destination must allow overnight stays.');
   const previousTrips: Record<number, string | null> = {};
   plan.dayPlans.forEach((day, index) => {
-    if (index < nightSequence.length && day.stay === nightSequence[index] && day.dayTripDestination !== undefined) previousTrips[day.day] = day.dayTripDestination;
+    if (index >= nightSequence.length || day.stay !== nightSequence[index] || day.dayTripDestination === undefined) return;
+    const newOrigin = index ? nightSequence[index - 1] : (plan.input.pickup.toLowerCase().includes('srinagar') ? 'Srinagar' : plan.input.pickup);
+    const visit = day.dayTripDestination;
+    if (visit === null || newOrigin === day.from || routeLeg(newOrigin, visit).hours + routeLeg(visit, nightSequence[index]).hours <= 6) {
+      previousTrips[day.day] = visit;
+    }
   });
   const dayPlans = buildDays(plan.input, nightSequence, plan.dayPlans[plan.days - 1]?.to || 'Srinagar', previousTrips);
   const previousByDay = new Map(plan.dayPlans.map((d) => [d.day, d]));
-  const mergedDays = dayPlans.map((d) => {
-    const previous = previousByDay.get(d.day);
-    if (!previous) return d;
-    const sameStay = previous.stay === d.stay && previous.label === d.label;
-    const customBlocks = sameStay ? previous.blocks.filter((block) => block.kind === 'custom' && !d.blocks.some((next) => next.name === block.name)) : [];
-    return { ...d, blocks: [...d.blocks, ...customBlocks], customTitle: sameStay ? previous.customTitle : undefined, customAbout: sameStay ? previous.customAbout : undefined };
-  });
+  const mergedDays = dayPlans.map((d) => carryDayEdits(previousByDay.get(d.day), d));
   const segments = groupedStays(nightSequence);
   const m = metrics(mergedDays, nightSequence.length);
   const hotelPlans = makeHotelPlans(nightSequence, plan.input.hotelCategory);
@@ -607,6 +606,20 @@ export function rebuildPlanFromNightSequence(plan: Plan, nightSequence: string[]
     travelLoad: m.travelLoad,
     evaluation: { ...plan.evaluation, capacity: `${segments.length} stay segments using destination day and night windows`, route: `${Math.round(m.routeKm)} km across ${m.driveHours.toFixed(1)} planning driving hours` },
   };
+}
+
+function dayContext(day: DayPlan) {
+  return JSON.stringify([
+    day.date, day.label, day.from, day.to, day.stay, day.dayTripDestination || null,
+    day.drive.hours, day.drive.via,
+    day.blocks.filter((block) => block.kind !== 'custom').map((block) => [block.kind, block.destination, block.name, block.sights || []]),
+  ]);
+}
+
+function carryDayEdits(previous: DayPlan | undefined, generated: DayPlan): DayPlan {
+  if (!previous || dayContext(previous) !== dayContext(generated)) return generated;
+  const customBlocks = previous.blocks.filter((block) => block.kind === 'custom' && !generated.blocks.some((next) => next.name === block.name));
+  return { ...generated, blocks: [...generated.blocks, ...customBlocks], customTitle: previous.customTitle, customAbout: previous.customAbout };
 }
 
 /** Retarget a single day to a new overnight-capable destination and refresh that day's local sightseeing. */
@@ -631,11 +644,7 @@ export function setPlanDayTrip(plan: Plan, dayNumber: number, destinationName: s
   plan.dayPlans.forEach((day) => { if (day.dayTripDestination !== undefined) trips[day.day] = day.dayTripDestination; });
   trips[dayNumber] = destinationName;
   const days = buildDays(plan.input, sequence, plan.dayPlans[plan.days - 1]?.to || 'Srinagar', trips);
-  const merged = days.map((day) => {
-    const previous = plan.dayPlans[day.day - 1];
-    const manual = previous?.blocks.filter((block) => block.kind === 'custom' && !day.blocks.some((next) => next.name === block.name)) || [];
-    return { ...day, blocks: [...day.blocks, ...manual], customTitle: day.day === dayNumber ? undefined : previous?.customTitle, customAbout: day.day === dayNumber ? undefined : previous?.customAbout };
-  });
+  const merged = days.map((day) => day.day === dayNumber ? day : carryDayEdits(plan.dayPlans[day.day - 1], day));
   const m = metrics(merged, plan.nights);
   return { ...plan, dayPlans: merged, routeKm: m.routeKm, driveHours: m.driveHours, travelLoad: m.travelLoad, evaluation: { ...plan.evaluation, route: `${Math.round(m.routeKm)} km across ${m.driveHours.toFixed(1)} planning driving hours` } };
 }
@@ -646,11 +655,7 @@ export function setPlanDeparturePoint(plan: Plan, departurePoint: string): Plan 
   const trips: Record<number, string | null> = {};
   plan.dayPlans.forEach((day) => { if (day.dayTripDestination !== undefined) trips[day.day] = day.dayTripDestination; });
   const days = buildDays(plan.input, sequence, departurePoint, trips);
-  const merged = days.map((day) => {
-    const previous = plan.dayPlans[day.day - 1];
-    const manual = previous?.blocks.filter((block) => block.kind === 'custom' && !day.blocks.some((next) => next.name === block.name)) || [];
-    return { ...day, blocks: [...day.blocks, ...manual], customTitle: day.label === 'Departure day' ? undefined : previous?.customTitle, customAbout: day.label === 'Departure day' ? undefined : previous?.customAbout };
-  });
+  const merged = days.map((day) => day.label === 'Departure day' ? day : carryDayEdits(plan.dayPlans[day.day - 1], day));
   const m = metrics(merged, plan.nights);
   return { ...plan, dayPlans: merged, routeKm: m.routeKm, driveHours: m.driveHours, travelLoad: m.travelLoad, evaluation: { ...plan.evaluation, route: `${Math.round(m.routeKm)} km across ${m.driveHours.toFixed(1)} planning driving hours` } };
 }
