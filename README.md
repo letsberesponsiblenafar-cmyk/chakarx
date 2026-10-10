@@ -3,7 +3,7 @@
 Kashmir itinerary intelligence and B2B trip-package builder.
 
 ## Product flow
-Build Your Trip -> Day-wise Itinerary -> Hotels -> Costing -> Client PDF -> Saved Itineraries
+Build Your Trip -> Destinations and overnight stays -> Hotels -> Activities & Transport -> Itinerary descriptions -> Costing -> Client PDF -> Saved Itineraries
 
 `/saved-itineraries` is a private client library. A PDF download saves the editable trip to Supabase before offering the file. Open a saved client to change days, hotels or costing, use **Save changes** to keep edits, or download a revised PDF. **Build New** clears only the current planner draft and starts a separate trip; it does not delete prior clients. Existing PDF files created before this feature are not imported automatically.
 
@@ -18,7 +18,7 @@ The planner ships with 44 Kashmir destination records. Each record is destinatio
 - popular activities
 - a photo query for the library profile
 
-The day editor is date-first: it shows the date, stay destination and local sightseeing without artificial clock slots. Clicking an overnight destination suggestion refreshes that day's stay and the available local sightseeing list immediately.
+The Destinations step is date-first: each day has a visit or sightseeing destination and an overnight base. Changing the overnight base keeps the day visit, so an overnight in Gulmarg can become a Gulmarg day trip with a Srinagar hotel night. The later Itinerary step displays the chosen route, hotels and day copy; only the “About this day” description is editable there.
 
 ## Hotel master
 Six supplied October 2026 hotel workbooks were verified as identical copies of the same six-destination source and deduplicated to 166 unique hotel records.
@@ -27,7 +27,7 @@ Hotel dashboard: `/hotels` (admin sign-in required). The dashboard lists the sha
 
 Supplier B2B rates are omitted from the customer PDF. The browser now loads hotel data from an authenticated server endpoint after sign-in and does not bundle or persist the master in localStorage.
 
-Every generated overnight base gets a hotel-selection record. Each destination card shows its exact night numbers and dates. The operator can clear the suggested pattern and select nights from scratch; a night disappears from other pickers once assigned. Applying the pattern updates the itinerary and hotel-night totals. The Hotels step controls rooms, extra beds and CNB; vehicle and activities are priced in the next step. Hotel suggestions favor a positive room rate, a matching category and rate validity for the selected stay dates. The operator confirms each rate, availability, room type and meal plan. An incomplete quote cannot be downloaded as a client PDF. Missing supplier rates are never invented; the dashboard filters hotels needing a rate. The hotel import uses “Sonmarg” while the destination library uses “Sonamarg”; the planner maps these names when attaching hotels.
+Every generated overnight base gets a hotel-selection record. The Destinations step controls exact hotel nights; the Hotels step shows their dates and lets the operator change the suggested hotel, occupancy and internal rates. Hotel suggestions favor a positive room rate, a matching category and rate validity for the selected stay dates. One confirmation at the bottom verifies all selected hotel rates, availability, rooms and meal plan; changing any stay clears its confirmation. An incomplete quote cannot be downloaded as a client PDF. Missing supplier rates are never invented; the dashboard filters hotels needing a rate. The hotel import uses “Sonmarg” while the destination library uses “Sonamarg”; the planner maps these names when attaching hotels.
 
 ## Costing
 Activities are offered on the Activities & Transport step. An untouched option stays off the client PDF; the operator explicitly includes it with a group price or marks it as an exclusion. A selected but unpriced activity blocks client PDF download. Short-trip arrival excursions require an early arrival time, and departure-day sightseeing requires a late departure.

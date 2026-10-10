@@ -16,7 +16,7 @@ for (const ext of ['.ts', '.tsx']) require.extensions[ext] = function (module, f
 };
 
 const { destinations, replaceDestinationCatalog, routeByName } = require('../lib/data.ts');
-const { createPlan, rebuildPlanFromNightSequence, setPlanDayTrip } = require('../lib/itinerary.ts');
+const { createPlan, rebuildPlanFromNightSequence, retargetDay, setPlanDayTrip } = require('../lib/itinerary.ts');
 const { dayNarrative, activitySentence } = require('../lib/narrative.ts');
 const { validateDestination } = require('../lib/destination-validation.ts');
 const { tripActivities, quotedActivityCost, clientActivityLists } = require('../lib/activities.ts');
@@ -29,6 +29,11 @@ try {
   const edited = validateDestination({ ...srinagar, id: 'Srinagar', day_note: 'Enjoy a curated Srinagar waterfront walk.', things_to_do: ['Waterfront walk', 'Closed attraction'], activities: ['Shikara ride'], enabled_things_to_do: ['Waterfront walk'], enabled_activities: [] });
   replaceDestinationCatalog([edited, ...original.filter((item) => item.name !== 'Srinagar')]);
   let plan = createPlan(input);
+  const gulmargDay = plan.dayPlans.find((day) => day.stay === 'Gulmarg');
+  assert.ok(gulmargDay, 'The suggested route should include Gulmarg.');
+  const dayTripPlan = setPlanDayTrip(retargetDay(plan, gulmargDay.day, 'Srinagar'), gulmargDay.day, 'Gulmarg');
+  assert.equal(dayTripPlan.dayPlans[gulmargDay.day - 1].dayTripDestination, 'Gulmarg', 'Changing the night to Srinagar must preserve the Gulmarg day visit.');
+  assert.equal(dayTripPlan.dayPlans[gulmargDay.day - 1].stay, 'Srinagar');
   let copy = dayNarrative(plan.dayPlans.find((day) => day.stay === 'Srinagar'), input.pickup);
   assert.match(copy, /curated Srinagar waterfront walk/);
   assert.equal((copy.match(/waterfront walk/gi) || []).length, 1, 'The selected experience should not duplicate the destination note.');
