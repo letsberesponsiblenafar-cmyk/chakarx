@@ -29,7 +29,7 @@ export default function ChakarPlanner(){
  const duration=tripDuration(arrivals,departures);
  useEffect(()=>{setDurationDaysText(duration?String(duration.days):'');setDurationNightsText(duration?String(duration.nights):'')},[arrivals,departures]);
  const preview=plan;
- const draftNeedsRefresh=Boolean(preview && (preview.input.arrival!==arrivals || preview.input.departure!==departures));
+ const draftNeedsRefresh=Boolean(preview && (preview.input.arrival!==arrivals || preview.input.departure!==departures || (preview.input.arrivalTime||'')!==(input.arrivalTime||'') || (preview.input.departureTime||'')!==(input.departureTime||'')));
  function changeArrival(value:string){
   const nights=duration?.nights||7;
   setInputField('arrival',value);
@@ -77,6 +77,7 @@ export default function ChakarPlanner(){
       <div className="build-form-divider"><span>01</span><b>Journey essentials</b></div>
       <div className="form-section"><label>Traveller's name</label><input value={input.name} onChange={e=>setInputField('name',e.target.value)} placeholder="Enter traveller's name"/></div>
       <div className="form-section"><label>Travel dates</label><div className="two-field"><input aria-label="Arrival date" type="date" value={input.arrival||arrivals} onChange={e=>changeArrival(e.target.value)}/><input aria-label="Departure date" type="date" value={input.departure||departures} onChange={e=>setInputField('departure',e.target.value)}/></div><small className="field-note">Changing arrival keeps the current trip length. Changing departure updates the days and nights shown in your brief.</small></div>
+      <div className="form-section"><label>Arrival and departure times <span className="field-note">Optional until known</span></label><div className="two-field"><input aria-label="Arrival time" type="time" value={input.arrivalTime||''} onChange={e=>setInputField('arrivalTime',e.target.value)}/><input aria-label="Departure time" type="time" value={input.departureTime||''} onChange={e=>setInputField('departureTime',e.target.value)}/></div><small className="field-note">An arrival-day excursion is planned only when the arrival time leaves enough daylight. Departure sightseeing requires a late departure.</small></div>
       <div className="form-section"><label>Pick-up point</label><select value={input.pickup==='Srinagar'?'Srinagar':input.pickup==='Jammu'?'Jammu':'Other'} onChange={e=>setInputField('pickup',e.target.value==='Other'?'':e.target.value)}><option>Srinagar</option><option>Jammu</option><option>Other</option></select>{!['Srinagar','Jammu'].includes(input.pickup)&&<input className="other-pickup" value={input.pickup} onChange={e=>setInputField('pickup',e.target.value)} placeholder="Type your pick-up point"/>}</div>
       <div className="build-form-divider"><span>02</span><b>Travellers</b></div>
       <div className="form-section"><label>Adults</label><input className="direct-number" type="number" min="1" value={adultsText} onChange={e=>{const raw=e.target.value;setAdultsText(raw);if(raw!==''&&Number.isInteger(Number(raw))&&Number(raw)>=1)setInputField('adults',Number(raw))}}/></div>

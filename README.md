@@ -27,9 +27,11 @@ Hotel dashboard: `/hotels` (admin sign-in required). The dashboard lists the sha
 
 Supplier B2B rates are omitted from the customer PDF. The browser now loads hotel data from an authenticated server endpoint after sign-in and does not bundle or persist the master in localStorage.
 
-Every generated overnight base gets a hotel-selection record. Each destination card shows its exact night numbers and dates. The operator can clear the suggested pattern and select nights from scratch; a night disappears from other pickers once assigned. Applying the pattern updates the itinerary and hotel-night totals. The Hotels step also controls rooms, extra beds, CNB, vehicle and its daily rate. Missing B2B rates are flagged; the current calculated customer amount remains visible and is marked provisional in the PDF. The hotel import uses “Sonmarg” while the destination library uses “Sonamarg”; the planner maps these names when attaching hotels.
+Every generated overnight base gets a hotel-selection record. Each destination card shows its exact night numbers and dates. The operator can clear the suggested pattern and select nights from scratch; a night disappears from other pickers once assigned. Applying the pattern updates the itinerary and hotel-night totals. The Hotels step controls rooms, extra beds and CNB; vehicle and activities are priced in the next step. Hotel suggestions favor a positive room rate, a matching category and rate validity for the selected stay dates. The operator confirms each rate, availability, room type and meal plan. An incomplete quote cannot be downloaded as a client PDF. Missing supplier rates are never invented; the dashboard filters hotels needing a rate. The hotel import uses “Sonmarg” while the destination library uses “Sonamarg”; the planner maps these names when attaching hotels.
 
 ## Costing
+Activities are offered on the Activities & Transport step. An untouched option stays off the client PDF; the operator explicitly includes it with a group price or marks it as an exclusion. A selected but unpriced activity blocks client PDF download. Short-trip arrival excursions require an early arrival time, and departure-day sightseeing requires a late departure.
+
 The internal model is:
 
 B2B accommodation + transport + operator-entered other package costs = internal B2B cost
@@ -45,6 +47,9 @@ The site and PDF now use a transparent full-resolution copy of the original logo
 
 ## Photos
 Destination profile photos are loaded on demand from Wikimedia Commons through `/api/photos`. The library still works when the photo service returns no results.
+
+## Sources
+The daily Vercel cron and manual source checks save their latest HTTP observations to the existing `source_observations` table in Supabase. The `/sources` screen shows actual check times and reachability. A successful HTTP response is not a verification of travel facts or live supplier inventory. `CRON_SECRET` is required for scheduled checks; the proxy passes bearer-authenticated cron requests to the handler, which validates the exact secret.
 
 ## Development
 ```bash

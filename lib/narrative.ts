@@ -177,9 +177,10 @@ export function dayNarrative(day: DayPlan, pickup: string, quote?: NarrativeQuot
   const arrivalAt = /airport|station|terminal/i.test(pickup) ? 'at' : 'in';
   const route = corridors[`${day.from}|${day.stay}`] || (day.drive.via?.length ? `via ${day.drive.via.join(' and ')}` : 'along the Kashmir valley route');
   if (day.label === 'Departure day') {
+    const opening = day.departureTime && day.departureTime < '08:00' ? 'Check out early' : 'After breakfast, check out';
     return day.stay === day.to
-      ? `After breakfast, check out from your ${day.stay} hotel and proceed to your departure point in ${day.to}. Your driver will complete the final transfer.`
-      : `After breakfast, check out from your ${day.stay} hotel and drive to ${day.to} ${corridors[`${day.stay}|${day.to}`] || (day.drive.via?.length ? `via ${day.drive.via.join(' and ')}` : 'along the planned route')}. Continue to your departure point for the onward journey.`;
+      ? `${opening} from your ${day.stay} hotel and proceed to your departure point in ${day.to}. Your driver will complete the final transfer.`
+      : `${opening} from your ${day.stay} hotel and drive to ${day.to} ${corridors[`${day.stay}|${day.to}`] || (day.drive.via?.length ? `via ${day.drive.via.join(' and ')}` : 'along the planned route')}. Continue to your departure point for the onward journey.`;
   }
 
   const excursion = day.blocks.find((block) => block.name.toLowerCase().endsWith('day trip'));
@@ -199,18 +200,20 @@ export function dayNarrative(day: DayPlan, pickup: string, quote?: NarrativeQuot
     return [opening, visitCopy(day, destination, sights, quote), closing].filter(Boolean).join(' ');
   }
 
-  const destinationCopy = visitCopy(day, day.stay, plannedStops(day, day.stay), quote);
+  const localStops = plannedStops(day, day.stay);
+  const destinationCopy = localStops.length || (day.day !== 1 && !day.transfer) ? visitCopy(day, day.stay, localStops, quote) : '';
   if (day.day === 1) {
     const opening = day.stay.toLowerCase() === pickup.toLowerCase()
       ? `Arrive ${arrivalAt} ${pickup}, meet your Chakar representative and check in to your hotel.`
       : `Arrive ${arrivalAt} ${pickup}, meet your Chakar representative and travel to ${day.stay} ${route}. Check in on arrival.`;
-    return [opening, destinationCopy || `Take a short orientation walk near your hotel.`, `Overnight in ${day.stay}.`].join(' ');
+    return [opening, destinationCopy, `Overnight in ${day.stay}.`].filter(Boolean).join(' ');
   }
   if (day.transfer) {
-    const originCopy = visitCopy(day, day.from, plannedStops(day, day.from), quote);
+    const originStops = plannedStops(day, day.from);
+    const originCopy = originStops.length ? visitCopy(day, day.from, originStops, quote) : '';
     const opening = `After breakfast, check out from your ${day.from} hotel.`;
     const transfer = `Drive to ${day.stay} ${route} and check in on arrival.`;
-    return [opening, originCopy, transfer, destinationCopy || `Take a short orientation walk near your hotel.`, `Overnight in ${day.stay}.`].filter(Boolean).join(' ');
+    return [opening, originCopy, transfer, destinationCopy, `Overnight in ${day.stay}.`].filter(Boolean).join(' ');
   }
   return [`After breakfast, set out for ${day.stay === 'Srinagar' ? 'Srinagar local sightseeing' : `${day.stay} sightseeing`}.`, destinationCopy || `Take a guided walk through the area near your hotel.`, `Return to your ${day.stay} hotel for the night.`].join(' ');
 }

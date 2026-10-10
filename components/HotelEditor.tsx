@@ -10,7 +10,7 @@ const fields:Array<{key:keyof Hotel;label:string;type?:string;placeholder?:strin
   {key:'destination',label:'Destination'},{key:'name',label:'Hotel name'},{key:'normalizedCategory',label:'Category'},{key:'starRating',label:'Star rating',type:'number'},
   {key:'mapB2B',label:'MAP B2B rate',type:'number'},{key:'extraBedB2B',label:'Extra bed B2B',type:'number'},{key:'cnbB2B',label:'CNB B2B',type:'number'},
   {key:'address',label:'Address'},{key:'roomType',label:'Room type'},{key:'website',label:'Website',type:'url'},
-  {key:'sourceCategory',label:'Supplier category'},{key:'rateValidity',label:'Rate validity'},{key:'availabilityStatus',label:'Availability status'},
+  {key:'sourceCategory',label:'Supplier category'},{key:'rateValidity',label:'Rate validity',placeholder:'e.g. 2026-10-01 to 2026-10-31'},{key:'availabilityStatus',label:'Availability status'},
 ];
 export default function HotelEditor({initialHotel}:{initialHotel?:Hotel}){
   const router=useRouter();const {replaceHotelDatabase}=usePlanner();const [hotel,setHotel]=useState<Draft>(initialHotel||{destination:'Srinagar',name:'',normalizedCategory:'Budget',sourceType:'Admin entry'});const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [message,setMessage]=useState('');

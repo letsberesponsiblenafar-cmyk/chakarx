@@ -51,11 +51,12 @@ try {
   assert.ok(offLists.excluded.includes('Airfare'));
   assert.ok(offLists.included.includes('Welcome dinner'));
   assert.ok(!offLists.included.includes('Srinagar: Shikara ride'));
-  assert.equal(offLists.excluded.length, tripActivities(plan).length + 1, 'Only listed trip activities and the manual entry should be excluded.');
+  assert.equal(offLists.excluded.length, 2, 'Only explicitly excluded activities and manual exclusions should be printed.');
+  assert.deepEqual(clientActivityLists(plan, {}, {}).excluded, [], 'Untouched activities should not become a long client exclusion list.');
   const allPriced = Object.fromEntries(tripActivities(plan).map((activity) => [activity.key, 0]));
   const allSelected = Object.fromEntries(tripActivities(plan).map((activity) => [activity.key, true]));
   assert.deepEqual(clientActivityLists(plan, allPriced, allSelected).excluded, [], 'No exclusions should be generated when every listed activity is included.');
-  assert.ok(clientActivityLists(plan, {}, { [shikara.key]: true }).excluded.includes('Srinagar: Shikara ride'), 'A selected but unpriced activity remains excluded.');
+  assert.ok(!clientActivityLists(plan, {}, { [shikara.key]: true }).included.includes('Srinagar: Shikara ride'), 'A selected but unpriced activity cannot be included.');
   const selectedShikara = shikara;
   const after = calculateCosts(plan, [], { ...baseCost, activityCosts: { [selectedShikara.key]: 3000 }, activitySelections: { [selectedShikara.key]: true } });
   assert.equal(after.activities, 3000);

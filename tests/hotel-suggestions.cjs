@@ -18,6 +18,8 @@ for (const extension of ['.ts', '.tsx']) require.extensions[extension] = functio
 };
 
 const { suggestedHotel } = require('../lib/hotels.ts');
+const { hotelRateValidity } = require('../lib/hotel-rate-validity.ts');
+const { quoteReadiness, hotelConfirmationSignature } = require('../lib/quote-readiness.ts');
 const { syncHotelSelections } = require('../components/PlannerProvider.tsx');
 const input = { adults: 2, youngAges: [], hotelCategory: 'Signature' };
 const plan = { hotelPlans: [{ location: 'Doodhpathri', nights: 1 }] };
@@ -28,6 +30,11 @@ const hotel = (id, normalizedCategory, mapB2B) => ({
 });
 const unclassified = hotel('unclassified', 'Unspecified', null);
 const exact = hotel('signature', '3 Star', 2500);
+const dated = { ...exact, rateValidity: '2026-10-01 to 2026-10-31' };
+assert.equal(hotelRateValidity(dated, '2026-10-12', '2026-10-15'), 'matching');
+assert.equal(hotelRateValidity(dated, '2026-11-12', '2026-11-15'), 'outside');
+assert.equal(suggestedHotel('Doodhpathri', 'Signature', [{ ...exact, id: 'unpriced', mapB2B: null }, dated], '2026-10-12', '2026-10-15')?.id, 'signature', 'A rated stay should outrank an unpriced category match');
+assert.equal(suggestedHotel('Doodhpathri', 'Signature', [{ ...dated, id: 'expired', rateValidity: 'September 2026' }, { ...dated, id: 'current-alternative', normalizedCategory: '4 Star' }], '2026-10-12', '2026-10-15')?.id, 'current-alternative', 'A current alternative should outrank an expired exact category rate');
 
 assert.equal(suggestedHotel('Doodhpathri', 'Signature', [unclassified])?.id, 'unclassified');
 assert.equal(suggestedHotel('Doodhpathri', 'Signature', [unclassified, exact])?.id, 'signature');
@@ -39,4 +46,12 @@ assert.match(recovered[0].status, /alternative.*confirm category/i);
 const custom = [{ ...initial[0], hotelName: 'Operator chosen stay', status: 'custom hotel name' }];
 assert.equal(syncHotelSelections(plan, custom, [unclassified], input)[0].hotelName, 'Operator chosen stay');
 assert.equal(syncHotelSelections(plan, recovered, [], input)[0].hotelId, 'unclassified', 'A temporary disconnect must preserve the selection');
+const quotePlan = { ...plan, input: { ...input, transport: 'Sedan', mealPlan: 'Breakfast & Dinner' }, nights: 1, dayPlans: [{ date: '2026-10-12', stay: 'Doodhpathri', from: 'Doodhpathri', to: 'Doodhpathri', blocks: [] }] };
+const quoteModel = { transportDaily: 3500, activityCosts: {}, activitySelections: {} };
+assert.ok(quoteReadiness(quotePlan, [{ ...recovered[0], nightlyRate: 2500, rateConfirmed: false }], quoteModel, [dated], 'ready', 'ready').some((issue) => issue.includes('Verify')));
+const confirmed = { ...recovered[0], hotelId: dated.id, nightlyRate: 2500, rateConfirmed: true, status: 'user-edited' };
+confirmed.confirmedSignature = hotelConfirmationSignature(quotePlan, confirmed, quotePlan.input.mealPlan);
+assert.deepEqual(quoteReadiness(quotePlan, [confirmed], quoteModel, [dated], 'ready', 'ready'), []);
+assert.ok(quoteReadiness(quotePlan, [{ ...confirmed, nightlyRate: 0 }], quoteModel, [dated], 'ready', 'ready').some((issue) => issue.includes('positive room rate')), 'A zero room rate must block client download');
+assert.ok(quoteReadiness({ ...quotePlan, input: { ...quotePlan.input, mealPlan: 'None' } }, [confirmed], quoteModel, [dated], 'ready', 'ready').some((issue) => issue.includes('Verify')), 'Meal plan changes require rate confirmation again');
 console.log('Hotel suggestion recovery, category alternatives and custom selection checks passed.');

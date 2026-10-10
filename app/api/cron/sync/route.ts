@@ -1,9 +1,16 @@
-import {NextResponse} from 'next/server';
-import {sources} from '@/lib/data';
-export const runtime='nodejs';
-export const maxDuration=60;
-export async function GET(req:Request){
- const secret=process.env.CRON_SECRET;const provided=req.headers.get('authorization')?.replace(/^Bearer\s+/i,'')||new URL(req.url).searchParams.get('secret');if(secret&&provided!==secret)return NextResponse.json({error:'Unauthorized'},{status:401});
- const results=[];for(const source of sources){const started=Date.now();try{const r=await fetch(source.url,{cache:'no-store',redirect:'follow',headers:{'User-Agent':'Chakar-Experience-Cron/1.0'}});const text=await r.text();results.push({name:source.name,status:r.status,bytes:new TextEncoder().encode(text).length,retrieved_at:new Date().toISOString(),latency_ms:Date.now()-started});}catch(e){results.push({name:source.name,status:0,bytes:0,retrieved_at:new Date().toISOString(),latency_ms:Date.now()-started,error:e instanceof Error?e.message:'failed'})}}
- return NextResponse.json({ok:true,count:results.length,results});
+import { NextResponse } from 'next/server';
+import { sources } from '@/lib/data';
+import { checkAndRecordSource } from '@/lib/source-observations';
+
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
+export async function GET(request: Request) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: 'Unauthorized cron request.' }, { status: 401 });
+  }
+  const results = await Promise.allSettled(sources.map((_, index) => checkAndRecordSource(index)));
+  const failures = results.map((result, index) => result.status === 'rejected' ? { source: sources[index].name, error: result.reason instanceof Error ? result.reason.message : 'Check failed' } : null).filter(Boolean);
+  return NextResponse.json({ ok: failures.length === 0, checked: results.length - failures.length, failed: failures }, { status: failures.length ? 503 : 200, headers: { 'Cache-Control': 'no-store' } });
 }

@@ -6,6 +6,8 @@ import AppShell from '@/components/AppShell';
 import PlannerChrome from '@/components/PlannerChrome';
 import { usePlanner } from '@/components/PlannerProvider';
 import { roomsRequired, cnbChildren, extraBedsRequired, sameHotelDestination, matchesPackageCategory } from '@/lib/hotels';
+import { hotelRateValidity, stayDateWindow } from '@/lib/hotel-rate-validity';
+import { hotelConfirmationSignature } from '@/lib/quote-readiness';
 
 function money(v: number) { return `₹${Math.round(v).toLocaleString('en-IN')}`; }
 function Stepper({ value, min, onChange }: { value: number; min: number; onChange: (next: number) => void }) {
@@ -75,6 +77,9 @@ export default function HotelsPage() {
       const filteredOptions = options.filter((h) => !search || `${h.name} ${h.normalizedCategory} ${h.starRating || ''}`.toLowerCase().includes(search));
       const filteredAlternatives = alternatives.filter((h) => !search || `${h.name} ${h.normalizedCategory} ${h.starRating || ''}`.toLowerCase().includes(search));
       const current = db.find((h) => h.id === sel.hotelId);
+      const stayWindow = stayDateWindow(plan.dayPlans.slice(0,plan.nights),location);
+      const rateWindow = current ? hotelRateValidity(current,stayWindow.arrival,stayWindow.departure) : 'unverified';
+      const rateConfirmed = Boolean(sel.rateConfirmed && sel.confirmedSignature === hotelConfirmationSignature(plan,sel,input.mealPlan));
       const roomCost = sel.nights * sel.rooms * sel.nightlyRate; const extraCost = sel.nights * sel.extraBeds * sel.extraBedRate; const cnbCost = sel.nights * sel.cnb * sel.cnbRate; const hasRate = sel.nightlyRate > 0;
       const mode=hotelMode[location]||'search';
       return <article id={`stay-${encodeURIComponent(location)}`} className="hotel-card refined" key={location}>
@@ -88,6 +93,7 @@ export default function HotelsPage() {
           <section className="rate-card"><div className="small-card-head"><span>INTERNAL B2B RATES</span><b>Private operator view</b></div><div className="rate-rows"><label><span>MAP / room / night</span><div><b>₹</b><input type="number" min="0" value={Math.round(sel.nightlyRate)} onChange={(e)=>setHotelRate(location,'nightlyRate',+e.target.value||0)}/></div></label><label><span>Extra bed / night</span><div><b>₹</b><input type="number" min="0" value={Math.round(sel.extraBedRate)} onChange={(e)=>setHotelRate(location,'extraBedRate',+e.target.value||0)}/></div></label><label><span>CNB / night</span><div><b>₹</b><input type="number" min="0" value={Math.round(sel.cnbRate)} onChange={(e)=>setHotelRate(location,'cnbRate',+e.target.value||0)}/></div></label></div></section>
           <section className="stay-cost-card"><div className="small-card-head"><span>STAY COST</span><b>Internal B2B calculation</b></div><div className="stay-cost-breakdown"><div><span>Rooms</span><b>{money(roomCost)}</b><small>{sel.nights}N × {sel.rooms} room{sel.rooms!==1?'s':''}</small></div><div><span>Extra beds</span><b>{money(extraCost)}</b><small>{sel.nights}N × {sel.extraBeds} EB</small></div><div><span>CNB</span><b>{money(cnbCost)}</b><small>{sel.nights}N × {sel.cnb} CNB</small></div></div><div className="stay-total-row"><span>Total accommodation</span><strong>{money(roomCost+extraCost+cnbCost)}</strong></div></section>
         </div>
+        <div className="hotel-rate-review"><div><b>Verify this stay before the client quote</b><p>{current?.rateValidity ? `Supplier rate validity: ${current.rateValidity}. ` : 'No dated supplier rate on record. '}{rateWindow==='outside'?'The saved rate does not cover these stay dates. Enter the correct rate before confirming.':rateWindow==='matching'?'The recorded validity covers these stay dates; check availability, room type and meal plan.':'Check the rate dates, availability, room type and meal plan with the supplier.'}</p></div><label><input type="checkbox" checked={rateConfirmed} disabled={!hasRate||!sel.hotelName||sel.hotelName==='Hotel to be added'} onChange={(event)=>setHotelMeta(location,{rateConfirmed:event.target.checked,confirmedSignature:event.target.checked?hotelConfirmationSignature(plan,sel,input.mealPlan):''})}/><span>I verified this rate for the selected nights, rooms, meal plan and availability</span></label></div>
         <div className="hotel-card-foot refined-foot"><span><Info size={12}/>{sel.status}</span></div>
       </article>;
     })}</div>

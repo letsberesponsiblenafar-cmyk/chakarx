@@ -3,10 +3,11 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, type R
 import { createPlan, retargetDay, rebuildPlanFromNightSequence, setPlanDayTrip, setPlanDeparturePoint, ROUTE_VERSION, type Plan, type TripInput } from '@/lib/itinerary';
 import { hotelDatabase as importedHotels, hotelCategories, mealOptions, transportOptions, travelStyles, interests, destinations, destinationByName, replaceDestinationCatalog, type Destination, type Hotel } from '@/lib/data';
 import { firstHotelCandidate, roomsRequired, cnbChildren, extraBedsRequired, matchesPackageCategory, suggestedHotel } from '@/lib/hotels';
+import { stayDateWindow } from '@/lib/hotel-rate-validity';
 
 export type HotelSelection = {
   location: string; hotelId: string; hotelName: string; category: string; starRating: number | null; address: string; roomType: string; website: string;
-  nights: number; rooms: number; extraBeds: number; cnb: number; nightlyRate: number; extraBedRate: number; cnbRate: number; source: string; status: string;
+  nights: number; rooms: number; extraBeds: number; cnb: number; nightlyRate: number; extraBedRate: number; cnbRate: number; source: string; status: string; rateConfirmed?: boolean; confirmedSignature?: string;
 };
 export type CostModel = { transportDaily: number; transportIsCustom: boolean; mealPerPersonNight: number; activityBudget: number; activityCosts: Record<string, number>; activitySelections: Record<string, boolean>; manualInclusions: string[]; manualExclusions: string[]; contingencyPct: number; profitPct: number; otherAmount: number };
 export type HotelDefaults = { rooms: number; extraBeds: number; cnb: number; nightlyRate: number; extraBedRate: number; cnbRate: number };
@@ -58,7 +59,7 @@ type PlannerContextValue = PlannerState & {
 };
 
 const defaultInput: TripInput = {
-  name: '', arrival: '', departure: '', pickup: 'Srinagar', adults: 2, youngAges: [], budget: 60000,
+  name: '', arrival: '', departure: '', arrivalTime: '', departureTime: '', pickup: 'Srinagar', adults: 2, youngAges: [], budget: 60000,
   hotelCategory: 'Signature', transport: 'Ertiga', mealPlan: 'Breakfast & Dinner', style: 'Balanced', interests: ['Nature', 'Photography', 'Relaxation'],
 };
 const defaultCost: CostModel = { transportDaily: 4200, transportIsCustom: false, mealPerPersonNight: 0, activityBudget: 0, activityCosts: {}, activitySelections: {}, manualInclusions: [], manualExclusions: [], contingencyPct: 0, profitPct: 10, otherAmount: 0 };
@@ -93,34 +94,36 @@ function selectionFromHotel(location: string, hotel: Hotel, nights: number, inpu
     location, hotelId: hotel.id, hotelName: hotel.name, category: hotel.normalizedCategory, starRating: hotel.starRating,
     address: hotel.address, roomType: hotel.roomType, website: hotel.website, nights, rooms, extraBeds, cnb,
     nightlyRate: hotel.mapB2B ?? 0, extraBedRate: hotel.extraBedB2B ?? 0, cnbRate: hotel.cnbB2B ?? 0,
-    source: hotel.sourceType, status: !matchesPackageCategory(hotel,input.hotelCategory)
+    source: hotel.sourceType, rateConfirmed: false, status: !matchesPackageCategory(hotel,input.hotelCategory)
       ? `${hotel.normalizedCategory} alternative; confirm category${hotel.mapB2B ? '' : ' and rate'} before sharing`
       : hotel.mapB2B ? hotel.availabilityStatus : 'Hotel attached; B2B room rate is missing in supplied data',
   };
 }
 
-function selectionFallback(location: string, nights: number, input: TripInput, db: Hotel[]): HotelSelection {
-  const candidate = suggestedHotel(location, input.hotelCategory, db);
+function selectionFallback(location: string, nights: number, input: TripInput, db: Hotel[], arrival?: string, departure?: string): HotelSelection {
+  const candidate = suggestedHotel(location, input.hotelCategory, db, arrival, departure);
   if (candidate) return selectionFromHotel(location, candidate, nights, input);
   return {
     location, hotelId: '', hotelName: 'Hotel to be added', category: input.hotelCategory, starRating: null, address: '', roomType: '', website: '',
     nights, rooms: roomsRequired(input.adults), extraBeds: extraBedsRequired(input.youngAges), cnb: cnbChildren(input.youngAges),
-    nightlyRate: 0, extraBedRate: 0, cnbRate: 0, source: 'No hotel record', status: 'Add or attach a hotel before confirmation',
+    nightlyRate: 0, extraBedRate: 0, cnbRate: 0, source: 'No hotel record', status: 'Add or attach a hotel before confirmation', rateConfirmed: false,
   };
 }
 
 export function syncHotelSelections(plan: Plan, current: HotelSelection[], db: Hotel[], input: TripInput) {
   return plan.hotelPlans.map((row) => {
+    const window = stayDateWindow((plan.dayPlans || []).slice(0, plan.nights || 0), row.location);
     const existing = current.find((h) => h.location === row.location);
     const existingRecord = existing?.hotelId ? db.find((h) => h.id === existing.hotelId) : null;
     if (existing && existingRecord) {
       const refreshed=selectionFromHotel(row.location,existingRecord,row.nights,input);
-      return existing.status==='user-edited'?{...refreshed,nightlyRate:existing.nightlyRate,extraBedRate:existing.extraBedRate,cnbRate:existing.cnbRate,status:existing.status}:refreshed;
+      const stable = existing.hotelName === refreshed.hotelName && existing.nightlyRate === refreshed.nightlyRate && existing.extraBedRate === refreshed.extraBedRate && existing.cnbRate === refreshed.cnbRate && existing.nights === refreshed.nights;
+      return existing.status==='user-edited'?{...refreshed,nightlyRate:existing.nightlyRate,extraBedRate:existing.extraBedRate,cnbRate:existing.cnbRate,status:existing.status,rateConfirmed:existing.nights === refreshed.nights && existing.rateConfirmed,confirmedSignature:existing.confirmedSignature}: {...refreshed,rateConfirmed:stable && existing.rateConfirmed,confirmedSignature:existing.confirmedSignature};
     }
     if (existing?.hotelId) return { ...existing, nights: row.nights, status: 'Selected hotel is not in the current database; verify this stay' };
     if (existing && existing.hotelName && existing.hotelName !== 'Hotel to be added' && existing.hotelName !== 'Hotel to be confirmed') return { ...existing, nights: row.nights };
-    const candidate = suggestedHotel(row.location, input.hotelCategory, db);
-    return candidate ? selectionFromHotel(row.location, candidate, row.nights, input) : selectionFallback(row.location, row.nights, input, db);
+    const candidate = suggestedHotel(row.location, input.hotelCategory, db, window.arrival, window.departure);
+    return candidate ? selectionFromHotel(row.location, candidate, row.nights, input) : selectionFallback(row.location, row.nights, input, db, window.arrival, window.departure);
   });
 }
 
@@ -312,13 +315,13 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       });
     },
     setHotelRate(location, field, value) {
-      setState((s) => ({ ...s, hotelSelections: s.hotelSelections.map((h) => h.location === location ? { ...h, [field]: Math.max(0, value), status: 'user-edited' } : h) }));
+      setState((s) => ({ ...s, hotelSelections: s.hotelSelections.map((h) => h.location === location ? { ...h, [field]: Math.max(0, value), status: 'user-edited', rateConfirmed: false } : h) }));
     },
     setHotelMeta(location, patch) {
-      setState((s) => ({ ...s, hotelSelections: s.hotelSelections.map((h) => h.location === location ? { ...h, ...patch } : h) }));
+      setState((s) => ({ ...s, hotelSelections: s.hotelSelections.map((h) => h.location === location ? { ...h, ...patch, rateConfirmed: typeof patch.rateConfirmed === 'boolean' ? patch.rateConfirmed : false } : h) }));
     },
     setHotelDefaults(patch) { setState((s) => ({ ...s, hotelDefaults: { ...s.hotelDefaults, ...patch } })); },
-    applyHotelDefaults() { setState((s) => ({ ...s, hotelSelections: s.hotelSelections.map((h) => ({ ...h, rooms: s.hotelDefaults.rooms, extraBeds: s.hotelDefaults.extraBeds, cnb: s.hotelDefaults.cnb, nightlyRate: s.hotelDefaults.nightlyRate || h.nightlyRate, extraBedRate: s.hotelDefaults.extraBedRate || h.extraBedRate, cnbRate: s.hotelDefaults.cnbRate || h.cnbRate, status: 'common hotel policy applied' })) })); },
+    applyHotelDefaults() { setState((s) => ({ ...s, hotelSelections: s.hotelSelections.map((h) => ({ ...h, rooms: s.hotelDefaults.rooms, extraBeds: s.hotelDefaults.extraBeds, cnb: s.hotelDefaults.cnb, nightlyRate: s.hotelDefaults.nightlyRate || h.nightlyRate, extraBedRate: s.hotelDefaults.extraBedRate || h.extraBedRate, cnbRate: s.hotelDefaults.cnbRate || h.cnbRate, status: 'common hotel policy applied', rateConfirmed: false })) })); },
     updateHotelRecord(id, patch) {
       setState((s) => {
         const hotelDatabase = s.hotelDatabase.map((h) => h.id === id ? { ...h, ...patch, lastUpdated: new Date().toISOString().slice(0, 10) } : h);

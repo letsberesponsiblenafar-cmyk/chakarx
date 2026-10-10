@@ -23,7 +23,7 @@ const { itinerarySnapshot } = require('../components/PlannerProvider.tsx');
 const { dayNarrative, dayTitle } = require('../lib/narrative.ts');
 const { tripDuration, departureForNights } = require('../lib/trip-dates.ts');
 const input = (days) => ({
-  name: 'Route QA', arrival: '2026-10-03', departure: `2026-10-${String(days + 2).padStart(2,'0')}`,
+  name: 'Route QA', arrival: '2026-10-03', departure: `2026-10-${String(days + 2).padStart(2,'0')}`, arrivalTime: '06:00',
   pickup: 'Srinagar', adults: 2, youngAges: [], budget: 0, hotelCategory: 'Signature',
   transport: 'Sedan', mealPlan: 'Breakfast & Dinner', style: 'Balanced', interests: ['Nature'],
 });
@@ -31,6 +31,9 @@ const visits = (plan) => new Set(plan.dayPlans.flatMap((day) => [day.stay, day.d
 const core = ['Srinagar', 'Gulmarg', 'Pahalgam', 'Sonamarg'];
 
 const short = createPlan(input(4));
+const lateArrival = createPlan({ ...input(4), arrivalTime: '13:00' });
+assert.equal(lateArrival.dayPlans[0].dayTripDestination, undefined, 'A late arrival must not promise a long excursion.');
+assert.ok(lateArrival.evaluation.alerts.some((alert)=>alert.includes('arrival-day excursion')));
 assert.deepEqual(short.dayPlans.slice(0,3).map((day)=>day.stay), ['Srinagar','Srinagar','Srinagar']);
 for (const name of core) assert.ok(visits(short).has(name), `Four-day trip missed ${name}`);
 assert.ok(short.dayPlans[0].notes.some((note)=>note.includes('early arrival')));

@@ -18,7 +18,7 @@ function input(days, arrival = '2026-10-05') {
   const end = new Date(`${arrival}T12:00:00`);
   end.setDate(end.getDate() + days - 1);
   return {
-    name: 'Route check', arrival, departure: end.toISOString().slice(0, 10), pickup: 'Srinagar',
+    name: 'Route check', arrival, departure: end.toISOString().slice(0, 10), arrivalTime: '06:00', pickup: 'Srinagar',
     adults: 2, youngAges: [], budget: 60000, hotelCategory: 'Signature', transport: 'Ertiga',
     mealPlan: 'Breakfast & Dinner', style: 'Balanced', interests: ['Nature'],
   };
@@ -41,6 +41,10 @@ try {
     await delay(250);
   }
   assert.ok(ready, 'Local production server did not start');
+
+  const cronReject = await fetch(`${base}/api/cron/sync`, { headers: { Authorization: 'Bearer invalid-secret' } });
+  assert.equal(cronReject.status, 401);
+  assert.match((await cronReject.json()).error, /Unauthorized cron request/, 'Bearer cron requests must reach the handler instead of the admin-cookie gate');
 
   const short = await planFor(4);
   assert.deepEqual(short.dayPlans.slice(0, -1).map((day) => day.stay), ['Srinagar', 'Srinagar', 'Srinagar']);
