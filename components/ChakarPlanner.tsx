@@ -7,6 +7,7 @@ import { hotelCategories, mealOptions } from '@/lib/data';
 import { createPlan, ROUTE_VERSION } from '@/lib/itinerary';
 import { calculateCosts } from '@/lib/costing';
 import { departureForNights, tripDuration } from '@/lib/trip-dates';
+import { planInputsNeedRefresh } from '@/lib/quote-readiness';
 
 function datePlus(n:number){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}
 function fmtDate(s:string){return new Date(`${s}T12:00:00`).toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'})}
@@ -29,7 +30,7 @@ export default function ChakarPlanner(){
  const duration=tripDuration(arrivals,departures);
  useEffect(()=>{setDurationDaysText(duration?String(duration.days):'');setDurationNightsText(duration?String(duration.nights):'')},[arrivals,departures]);
  const preview=plan;
- const draftNeedsRefresh=Boolean(preview && (preview.input.arrival!==arrivals || preview.input.departure!==departures || (preview.input.arrivalTime||'')!==(input.arrivalTime||'') || (preview.input.departureTime||'')!==(input.departureTime||'')));
+ const draftNeedsRefresh=Boolean(preview && planInputsNeedRefresh(preview,input));
  function changeArrival(value:string){
   const nights=duration?.nights||7;
   setInputField('arrival',value);
@@ -98,7 +99,7 @@ export default function ChakarPlanner(){
         <div className="build-duration-panel"><div className="build-duration-heading"><CalendarDays size={17}/><span>Trip length</span><small>{duration?`${fmtDate(arrivals)} – ${fmtDate(departures)}`:'Choose a departure after arrival'}</small></div><div className="build-duration-fields"><label>Days<input aria-label="Trip days" type="number" min="2" max="31" value={durationDaysText} onChange={e=>setDurationDaysText(e.target.value)} onBlur={()=>commitDuration('days')} onKeyDown={e=>{if(e.key==='Enter')e.currentTarget.blur()}}/></label><span>↔</span><label>Nights<input aria-label="Trip nights" type="number" min="1" max="30" value={durationNightsText} onChange={e=>setDurationNightsText(e.target.value)} onBlur={()=>commitDuration('nights')} onKeyDown={e=>{if(e.key==='Enter')e.currentTarget.blur()}}/></label></div><small>Adjust either number; the departure date updates automatically.</small></div>
       </div>
       <div className="build-flow"><div><span>01</span><b>Itinerary</b><p>Day-by-day destination and sightseeing with overnight stays.</p></div><div><span>02</span><b>Hotels</b><p>Select hotels, manage occupancy and internal B2B rates.</p></div><div><span>03</span><b>Activities &amp; Transport</b><p>Choose a vehicle and quote activities for the whole group.</p></div><div><span>04</span><b>Costing</b><p>Review accommodation, transport, activities, markup and GST.</p></div><div><span>05</span><b>Client PDF</b><p>Preview and download the customer itinerary.</p></div></div>
-      {draftNeedsRefresh&&<div className="build-refresh-hint">Trip dates changed. Press Next to rebuild the itinerary and refresh its quote.</div>}
+      {draftNeedsRefresh&&<div className="build-refresh-hint">Trip details changed. Press Next to rebuild the itinerary and refresh its quote.</div>}
       {preview&&<div className="preview-bottom"><div><span>{draftNeedsRefresh?'Previous draft':'Current draft'}</span><strong>{preview.days} days</strong></div><div><span>Budget / person</span><strong>{budgetText.trim()===''?'No cap':money(Number(budgetText)||0)}</strong></div><div><span>Travellers</span><strong>{people}</strong></div><div><span>{draftNeedsRefresh?'Previous total':'Current total'}</span><strong>{money(calculateCosts(preview,hotelSelections,costModel).sellingTotal)}</strong></div></div>}
       <div className="build-note"><MapPin size={16}/><span><b>Children rule:</b> enter each child's age. Any age above 14 is automatically moved into Adults so room and costing calculations stay correct.</span></div>
     </section>

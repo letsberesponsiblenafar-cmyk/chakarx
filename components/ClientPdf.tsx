@@ -308,7 +308,7 @@ export default function ClientPdf() {
   if (hotelConnection !== 'ready' || destinationConnection !== 'ready') return <PlannerChrome title="Client-ready itinerary PDF" eyebrow="STEP 05 · CLIENT PDF"><div className="empty-panel" role="status"><FileText size={28}/><h2>{hotelConnection === 'loading' || destinationConnection === 'loading' ? 'Loading quote data…' : 'Quote data needs attention'}</h2><p>Hotel database: {hotelConnection}. Destination library: {destinationConnection}. Resolve any connection issue before sharing a client PDF.</p><Link className="secondary-link" href="/planner/hotels">Review hotels</Link></div></PlannerChrome>;
 
   const currentPlan=plan; const currentCosts=costs; const currentInput=input;
-  const quoteIssues=quoteReadiness(currentPlan,hotelSelections,costModel,hotelDatabase,hotelConnection,destinationConnection);
+  const quoteIssues=quoteReadiness(currentPlan,input,hotelSelections,costModel,hotelDatabase,hotelConnection,destinationConnection);
   const hotels=pdfHotels(currentPlan,hotelSelections,currentInput);
   const customerName=printable(input.name)||'Traveller';
   async function download() {

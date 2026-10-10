@@ -9,6 +9,7 @@ create table if not exists source_observations (
 );
 create index if not exists source_observations_source_time_idx
   on source_observations(source_id, retrieved_at desc);
+alter table source_observations enable row level security;
 
 create table if not exists hotel_master (
   id text primary key,

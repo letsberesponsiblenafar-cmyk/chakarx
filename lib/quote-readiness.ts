@@ -1,6 +1,6 @@
 import type { CostModel, HotelSelection } from '@/components/PlannerProvider';
 import type { Hotel } from '@/lib/data';
-import { arrivalDayVisitAllowed, type Plan } from '@/lib/itinerary';
+import { arrivalDayVisitAllowed, type Plan, type TripInput } from '@/lib/itinerary';
 import { activitySelected, quotedActivityCost, tripActivities } from '@/lib/activities';
 import { hotelRateValidity, stayDateWindow } from '@/lib/hotel-rate-validity';
 
@@ -9,8 +9,21 @@ export function hotelConfirmationSignature(plan: Plan, hotel: HotelSelection, me
   return JSON.stringify([hotel.location, window.arrival, window.departure, hotel.hotelId, hotel.hotelName, hotel.rooms, hotel.extraBeds, hotel.cnb, hotel.nightlyRate, hotel.extraBedRate, hotel.cnbRate, mealPlan]);
 }
 
+export function planInputsNeedRefresh(plan: Plan, input: TripInput) {
+  const before = plan.input;
+  return before.arrival !== input.arrival || before.departure !== input.departure ||
+    (before.arrivalTime || '') !== (input.arrivalTime || '') ||
+    (before.departureTime || '') !== (input.departureTime || '') ||
+    before.pickup !== input.pickup || before.adults !== input.adults ||
+    JSON.stringify(before.youngAges) !== JSON.stringify(input.youngAges) ||
+    before.hotelCategory !== input.hotelCategory || before.mealPlan !== input.mealPlan ||
+    before.style !== input.style ||
+    JSON.stringify(before.interests) !== JSON.stringify(input.interests);
+}
+
 export function quoteReadiness(
   plan: Plan,
+  input: TripInput,
   hotels: HotelSelection[],
   model: CostModel,
   hotelMaster: Hotel[],
@@ -18,6 +31,7 @@ export function quoteReadiness(
   destinationConnection: string,
 ) {
   const issues: string[] = [];
+  if (planInputsNeedRefresh(plan, input)) issues.push('Rebuild the itinerary after changing trip details.');
   if (hotelConnection !== 'ready') issues.push('Load the hotel database before sharing a quote.');
   if (destinationConnection !== 'ready') issues.push('Load the destination library before sharing a quote.');
   const arrivalVisit = plan.dayPlans[0]?.dayTripDestination;
@@ -29,7 +43,7 @@ export function quoteReadiness(
       continue;
     }
     if (selected.rooms < 1) issues.push(`Set the number of rooms in ${stay.location}.`);
-    if (!selected.rateConfirmed || selected.confirmedSignature !== hotelConfirmationSignature(plan, selected, plan.input.mealPlan)) issues.push(`Verify the ${stay.location} rate, dates, meal plan and availability in Hotels.`);
+    if (!selected.rateConfirmed || selected.confirmedSignature !== hotelConfirmationSignature(plan, selected, input.mealPlan)) issues.push(`Verify the ${stay.location} rate, dates, meal plan and availability in Hotels.`);
     const record = selected.hotelId ? hotelMaster.find((hotel) => hotel.id === selected.hotelId) : null;
     if (selected.hotelId && !record) issues.push(`Reselect the hotel in ${stay.location}; its master record is unavailable.`);
     if (record && selected.status !== 'user-edited') {
@@ -37,7 +51,7 @@ export function quoteReadiness(
       if (hotelRateValidity(record, window.arrival, window.departure) === 'outside') issues.push(`The ${stay.location} master rate is outside the stay dates. Enter a current rate in Hotels.`);
     }
   }
-  if (!Number.isFinite(model.transportDaily) || model.transportDaily <= 0 || !plan.input.transport?.trim()) {
+  if (!Number.isFinite(model.transportDaily) || model.transportDaily <= 0 || !input.transport?.trim()) {
     issues.push('Choose a vehicle and enter its positive daily rate.');
   }
   for (const activity of tripActivities(plan, undefined, model.activitySelections)) {
