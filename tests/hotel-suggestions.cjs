@@ -48,10 +48,11 @@ assert.equal(syncHotelSelections(plan, custom, [unclassified], input)[0].hotelNa
 assert.equal(syncHotelSelections(plan, recovered, [], input)[0].hotelId, 'unclassified', 'A temporary disconnect must preserve the selection');
 const quotePlan = { ...plan, input: { ...input, transport: 'Sedan', mealPlan: 'Breakfast & Dinner' }, nights: 1, dayPlans: [{ date: '2026-10-12', stay: 'Doodhpathri', from: 'Doodhpathri', to: 'Doodhpathri', blocks: [] }] };
 const quoteModel = { transportDaily: 3500, activityCosts: {}, activitySelections: {} };
-assert.ok(quoteReadiness(quotePlan, [{ ...recovered[0], nightlyRate: 2500, rateConfirmed: false }], quoteModel, [dated], 'ready', 'ready').some((issue) => issue.includes('Verify')));
+assert.ok(quoteReadiness(quotePlan, quotePlan.input, [{ ...recovered[0], nightlyRate: 2500, rateConfirmed: false }], quoteModel, [dated], 'ready', 'ready').some((issue) => issue.includes('Verify')));
 const confirmed = { ...recovered[0], hotelId: dated.id, nightlyRate: 2500, rateConfirmed: true, status: 'user-edited' };
 confirmed.confirmedSignature = hotelConfirmationSignature(quotePlan, confirmed, quotePlan.input.mealPlan);
-assert.deepEqual(quoteReadiness(quotePlan, [confirmed], quoteModel, [dated], 'ready', 'ready'), []);
-assert.ok(quoteReadiness(quotePlan, [{ ...confirmed, nightlyRate: 0 }], quoteModel, [dated], 'ready', 'ready').some((issue) => issue.includes('positive room rate')), 'A zero room rate must block client download');
-assert.ok(quoteReadiness({ ...quotePlan, input: { ...quotePlan.input, mealPlan: 'None' } }, [confirmed], quoteModel, [dated], 'ready', 'ready').some((issue) => issue.includes('Verify')), 'Meal plan changes require rate confirmation again');
+assert.deepEqual(quoteReadiness(quotePlan, quotePlan.input, [confirmed], quoteModel, [dated], 'ready', 'ready'), []);
+assert.ok(quoteReadiness(quotePlan, quotePlan.input, [{ ...confirmed, nightlyRate: 0 }], quoteModel, [dated], 'ready', 'ready').some((issue) => issue.includes('positive room rate')), 'A zero room rate must block client download');
+assert.ok(quoteReadiness({ ...quotePlan, input: { ...quotePlan.input, mealPlan: 'None' } }, { ...quotePlan.input, mealPlan: 'None' }, [confirmed], quoteModel, [dated], 'ready', 'ready').some((issue) => issue.includes('Verify')), 'Meal plan changes require rate confirmation again');
+assert.ok(quoteReadiness(quotePlan, { ...quotePlan.input, adults: 3 }, [confirmed], quoteModel, [dated], 'ready', 'ready').some((issue) => issue.includes('Rebuild')), 'An edited traveller count must invalidate the old quote');
 console.log('Hotel suggestion recovery, category alternatives and custom selection checks passed.');
