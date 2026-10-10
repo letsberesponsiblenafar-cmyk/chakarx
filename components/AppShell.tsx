@@ -14,7 +14,7 @@ export default function AppShell({children}:{children:ReactNode}){
    <Link className="brand-link" href="/"><span className="original-logo" role="img" aria-label="Chakar Experience"/></Link>
    <div className="brand-caption">DISCOVER KASHMIR</div>
    <nav className="rail-nav">
-    {items.map(([key,label,href])=><Link key={key} href={href} className={(key==='trip'?path.startsWith('/planner')||path==='/':path===href)?'active':''} onClick={()=>setOpen(false)}>{key==='trip'?<Route size={18}/>:key==='saved'?<FolderOpen size={18}/>:key==='library'?<Database size={18}/>:key==='hotels'?<Hotel size={18}/>:<Compass size={18}/>}<span>{label}</span></Link>)}
+    {items.map(([key,label,href])=><Link key={key} href={href} className={(key==='trip'?path.startsWith('/planner')||path==='/':key==='library'?path.startsWith('/library'):path===href)?'active':''} onClick={()=>setOpen(false)}>{key==='trip'?<Route size={18}/>:key==='saved'?<FolderOpen size={18}/>:key==='library'?<Database size={18}/>:key==='hotels'?<Hotel size={18}/>:<Compass size={18}/>}<span>{label}</span></Link>)}
    </nav>
    <div className="rail-spacer"/>
    <div className="rail-card"><span className="live-dot"/><div><b>Chakar planning engine</b><small>Destinations · route · hotels · costing</small></div></div>

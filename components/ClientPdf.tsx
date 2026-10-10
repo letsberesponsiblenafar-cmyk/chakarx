@@ -9,7 +9,7 @@ import { calculateCosts } from '@/lib/costing';
 import { dayNarrative, dayTitle } from '@/lib/narrative';
 import type { DayPlan, Plan, TripInput } from '@/lib/itinerary';
 import { savePlannerItinerary } from '@/lib/save-itinerary';
-import { quotedActivityCost, tripActivities } from '@/lib/activities';
+import { clientActivityLists } from '@/lib/activities';
 
 const PAGE_W = 540;
 const PAGE_H = 780;
@@ -325,11 +325,7 @@ export default function ClientPdf() {
       [data.inclusions,data.exclusions]=await Promise.all([listArtworkForClient(data.inclusions,inclusionsPhoto),listArtworkForClient(data.exclusions,exclusionsPhoto)]);
       [data.brandWhite,data.brandInk]=await Promise.all([imageData('/chakar-logo-original-white.png'),imageData('/chakar-logo-original-ink.png')]);
       const [regular,bold,cover]=await Promise.all([imageData('/fonts/Evolventa-Regular.ttf'),imageData('/fonts/Evolventa-Bold.ttf'),imageData('/fonts/RedHatDisplay-400.ttf')]);
-      const included:string[]=[],excluded:string[]=[];
-      tripActivities(currentPlan,destinationCatalog).forEach((activity)=>{
-        const name=`${activity.destination}: ${activity.name}`;
-        if(quotedActivityCost(costModel.activityCosts,activity)!==null)included.push(name);else excluded.push(name);
-      });
+      const { included, excluded } = clientActivityLists(currentPlan, costModel.activityCosts, destinationCatalog);
       const doc=buildClientPdf(data,currentPlan,currentInput,hotelSelections,currentCosts,customerName,{regular:regular.split(',')[1],bold:bold.split(',')[1],cover:cover.split(',')[1]},{included,excluded});
       const blob=doc.output('blob');
       if (!blob || blob.size<1024) throw new Error('The PDF engine returned an empty document.');

@@ -19,7 +19,7 @@ const { destinations, replaceDestinationCatalog, routeByName } = require('../lib
 const { createPlan, setPlanDayTrip } = require('../lib/itinerary.ts');
 const { dayNarrative } = require('../lib/narrative.ts');
 const { validateDestination } = require('../lib/destination-validation.ts');
-const { tripActivities, quotedActivityCost } = require('../lib/activities.ts');
+const { tripActivities, quotedActivityCost, clientActivityLists } = require('../lib/activities.ts');
 const { calculateCosts } = require('../lib/costing.ts');
 const input = { name: 'Client', arrival: '2026-10-10', departure: '2026-10-15', pickup: 'Srinagar', adults: 2, youngAges: [], budget: 0, hotelCategory: 'Signature', transport: 'Sedan', mealPlan: 'Breakfast & Dinner', style: 'Balanced', interests: ['Nature'] };
 
@@ -37,20 +37,28 @@ try {
   assert.equal(plan.dayPlans.filter((day) => dayNarrative(day, input.pickup).includes('Waterfront walk')).length, 1, 'Enabled experiences should not repeat on later Srinagar days');
 
   const shikara = tripActivities(plan).find((activity) => activity.destination === 'Srinagar' && activity.name === 'Shikara ride');
-  assert.ok(shikara, 'Destination activities should appear for costing even when not enabled for automatic day copy.');
+  assert.ok(shikara, 'Unticked activities should remain available to the PDF exclusions list.');
   assert.equal(shikara.available, false);
   const baseCost = { transportDaily: 4200, otherAmount: 0, profitPct: 10, activityCosts: {} };
   const before = calculateCosts(plan, [], baseCost);
-  const after = calculateCosts(plan, [], { ...baseCost, activityCosts: { [shikara.key]: 3000 } });
+  const disabledCost = calculateCosts(plan, [], { ...baseCost, activityCosts: { [shikara.key]: 3000 } });
   assert.equal(quotedActivityCost(baseCost.activityCosts, shikara), null);
-  assert.equal(after.activities, 3000);
-  assert.equal(Math.round(after.sellingTotal - before.sellingTotal), 3465, 'A group activity cost should enter markup and GST once.');
+  assert.equal(quotedActivityCost({ [shikara.key]: 3000 }, shikara), null, 'An old quote must not re-include an unticked activity.');
+  assert.equal(disabledCost.sellingTotal, before.sellingTotal);
+  assert.ok(clientActivityLists(plan, { [shikara.key]: 3000 }).excluded.includes('Srinagar: Shikara ride'));
+  assert.ok(!clientActivityLists(plan, { [shikara.key]: 3000 }).included.includes('Srinagar: Shikara ride'));
 
   replaceDestinationCatalog([{ ...edited, enabled_activities: ['Shikara ride'] }, ...original.filter((item) => item.name !== 'Srinagar')]);
   plan = createPlan(input);
   copy = dayNarrative(plan.dayPlans.find((day) => day.stay === 'Srinagar'), input.pickup);
   assert.match(copy, /Shikara ride/);
   assert.equal(plan.dayPlans.filter((day) => dayNarrative(day, input.pickup).includes('Shikara ride')).length, 1);
+  const selectedShikara = tripActivities(plan).find((activity) => activity.destination === 'Srinagar' && activity.name === 'Shikara ride');
+  assert.equal(selectedShikara.available, true, 'Only ticked activities should be shown in Activities & Transport.');
+  const after = calculateCosts(plan, [], { ...baseCost, activityCosts: { [selectedShikara.key]: 3000 } });
+  assert.equal(after.activities, 3000);
+  assert.ok(clientActivityLists(plan, { [selectedShikara.key]: 3000 }).included.includes('Srinagar: Shikara ride'));
+  assert.equal(Math.round(after.sellingTotal - before.sellingTotal), 3465, 'A ticked group activity cost should enter markup and GST once.');
 
   const custom = validateDestination({ ...edited, id: 'test-custom', name: 'Test Valley', tier: 'Secondary', district: 'Srinagar', day_note: 'Discover the riverside scenery.', srinagar_hours: 2, srinagar_km: 75, things_to_do: [], activities: [], enabled_things_to_do: [], enabled_activities: [] });
   replaceDestinationCatalog([...destinations, custom]);
