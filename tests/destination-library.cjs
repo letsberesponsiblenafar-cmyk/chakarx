@@ -33,6 +33,8 @@ try {
   assert.match(copy, /curated Srinagar waterfront walk/);
   assert.match(copy, /Waterfront walk/);
   assert.doesNotMatch(copy, /Closed attraction|Shikara ride|Confirm road access|confirm local access|weather/i);
+  assert.equal(plan.dayPlans.filter((day) => dayNarrative(day, input.pickup).includes('curated Srinagar waterfront walk')).length, 1, 'The destination note should appear on only one visit day');
+  assert.equal(plan.dayPlans.filter((day) => dayNarrative(day, input.pickup).includes('Waterfront walk')).length, 1, 'Enabled experiences should not repeat on later Srinagar days');
 
   const shikara = tripActivities(plan).find((activity) => activity.destination === 'Srinagar' && activity.name === 'Shikara ride');
   assert.ok(shikara, 'Destination activities should appear for costing even when not enabled for automatic day copy.');
@@ -48,6 +50,7 @@ try {
   plan = createPlan(input);
   copy = dayNarrative(plan.dayPlans.find((day) => day.stay === 'Srinagar'), input.pickup);
   assert.match(copy, /Shikara ride/);
+  assert.equal(plan.dayPlans.filter((day) => dayNarrative(day, input.pickup).includes('Shikara ride')).length, 1);
 
   const custom = validateDestination({ ...edited, id: 'test-custom', name: 'Test Valley', tier: 'Secondary', district: 'Srinagar', day_note: 'Discover the riverside scenery.', srinagar_hours: 2, srinagar_km: 75, things_to_do: [], activities: [], enabled_things_to_do: [], enabled_activities: [] });
   replaceDestinationCatalog([...destinations, custom]);

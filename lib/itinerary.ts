@@ -1,7 +1,7 @@
 import { destinationByName, destinations, hotelCategories, interests, mealOptions, routeByName, transportOptions, travelStyles } from '@/lib/data';
 import type { Destination, Route, Site, Hotel } from '@/lib/data';
 import { firstHotelCandidate, roomsRequired, cnbChildren, extraBedsRequired } from '@/lib/hotels';
-import { destinationPriority, recommendationWeight, routeDecision, routeRule, sightseeingRule, isGurezAllowed, shouldPreferOffbeat, templateFor, destinationAccessFlags, engineRules } from '@/lib/intelligence';
+import { destinationPriority, recommendationWeight, routeDecision, routeRule, sightseeingRule, isGurezAllowed, shouldPreferOffbeat, destinationAccessFlags, engineRules } from '@/lib/intelligence';
 import { priceTrip } from '@/lib/pricing';
 
 export type TripInput = {
@@ -9,8 +9,8 @@ export type TripInput = {
   hotelCategory: string; transport: string; mealPlan: string; style: typeof travelStyles[number]; interests: string[];
 };
 export type RouteLeg = Route & { from: string; to: string; via?: string[]; known: boolean; preference: 'PREFERRED' | 'ALLOWED' | 'AVOID' | 'NOT_ALLOWED'; vehicleDaysCharged: number; rationale: string; preferredAlternative?: string };
-export type DayBlock = { name: string; description: string; reason: string; tags: string[]; source?: string; conditional?: boolean; kind?: 'sightseeing' | 'arrival' | 'transfer' | 'departure' | 'custom'; intelligence?: { status: 'STANDARD' | 'OPTIONAL' | 'CONDITIONAL' | 'EXTRA' | 'EXCLUDED' | 'SEASONAL' | 'LIVE_CHECK'; extraCost?: boolean; note?: string } };
-export type DayPlan = { day: number; date: string; label: string; from: string; to: string; stay: string; transfer: boolean; drive: RouteLeg; blocks: DayBlock[]; notes: string[]; dayTripDestination?: string | null; customTitle?: string; customAbout?: string };
+export type DayBlock = { name: string; description: string; reason: string; tags: string[]; destination?: string; sights?: string[]; source?: string; conditional?: boolean; kind?: 'sightseeing' | 'arrival' | 'transfer' | 'departure' | 'custom' | 'free-time'; intelligence?: { status: 'STANDARD' | 'OPTIONAL' | 'CONDITIONAL' | 'EXTRA' | 'EXCLUDED' | 'SEASONAL' | 'LIVE_CHECK'; extraCost?: boolean; note?: string } };
+export type DayPlan = { day: number; date: string; label: string; from: string; to: string; stay: string; transfer: boolean; drive: RouteLeg; blocks: DayBlock[]; notes: string[]; dayTripDestination?: string | null; primaryVisitFor?: string[]; customTitle?: string; customAbout?: string };
 export type Stay = { name: string; nights: number; destination: Destination };
 export type HotelCandidate = Hotel;
 export type HotelPlan = { location: string; nights: number; candidate: HotelCandidate | null };
@@ -21,7 +21,7 @@ export type Plan = {
 };
 
 type PlanningStyle = TripInput['style'];
-export const ROUTE_VERSION = 'kashmir-circuit-2026-09-29';
+export const ROUTE_VERSION = 'kashmir-circuit-2026-10-10-unique-sightseeing';
 const transportRates: Record<string, number> = { Sedan: 3400, Ertiga: 4200, Innova: 5200, 'Tempo Traveller': 7600 };
 
 function daysBetween(a: string, b: string) {
@@ -180,6 +180,12 @@ function siteLimit(style: PlanningStyle, transfer: boolean, isDeparture: boolean
   return style === 'Relaxed' ? 3 : style === 'Packed' ? 5 : 4;
 }
 
+function transferSightseeingLimit(hours: number, style: PlanningStyle, anotherNightAtDestination: boolean) {
+  if (hours >= 4) return anotherNightAtDestination ? 0 : 1;
+  if (hours >= 3) return 1;
+  return siteLimit(style, true, false);
+}
+
 function compatibleSites(d: Destination, used: Set<string>, date: string, input: TripInput) {
   const preferred = new Set(input.interests.map((x) => x.toLowerCase()));
   return d.local_sightseeing.filter((s) => {
@@ -205,6 +211,7 @@ function siteBlocks(d: Destination, count: number, used: Set<string>, date: stri
     out.push({
       name: s.name,
       description: s.description,
+      destination: d.name,
       reason: rule.notes || `${d.name === 'Srinagar' ? 'Local sightseeing' : 'Sightseeing'} selected from the ${d.name} destination library for this day.`,
       tags: s.tags,
       source: d.source,
@@ -219,22 +226,33 @@ function siteBlocks(d: Destination, count: number, used: Set<string>, date: stri
 
 function fallbackBlock(stay: string): DayBlock {
   const d = destinationByName(stay);
-  return { name: `Explore ${stay} at your own pace`, description: d?.description || 'Free time around the selected destination.', reason: 'The library has fewer unallocated sights for this date, so the plan preserves unstructured time instead of inventing an attraction.', tags: d?.tags || ['relaxation'], kind: 'sightseeing', intelligence: { status: 'STANDARD', note: 'Unstructured time intentionally preserved.' } };
+  return { name: `Explore ${stay} at your own pace`, description: d?.description || 'Free time around the selected destination.', reason: 'The library has fewer unallocated sights for this date, so the plan preserves unstructured time instead of inventing an attraction.', tags: d?.tags || ['relaxation'], destination: stay, kind: 'free-time', intelligence: { status: 'STANDARD', note: 'Unstructured time intentionally preserved.' } };
 }
 
-function dayTripBlock(base: Destination, target: Destination, date: string, input: TripInput): DayBlock {
-  const template = templateFor(target.name, 0, 'Day Trip');
-  const firstSites = compatibleSites(target, new Set<string>(), date, input).slice(0, 3);
-  const labels = firstSites.map((s) => s.name).join(' · ');
+function dayTripBlock(base: Destination, target: Destination, date: string, input: TripInput, used: Set<string>, onArrival: boolean): DayBlock {
+  const highlights = target.highlights.map((name) => name.toLowerCase());
+  const candidates = compatibleSites(target, used, date, input).sort((a, b) => {
+    const rank = (name: string) => {
+      const value = name.toLowerCase();
+      const index = highlights.findIndex((highlight) => value.includes(highlight) || highlight.includes(value));
+      return index < 0 ? 99 : index;
+    };
+    return rank(a.name) - rank(b.name);
+  });
+  const limit = onArrival ? 2 : input.style === 'Packed' ? 6 : input.style === 'Relaxed' ? 4 : 5;
+  const sights = candidates.slice(0, limit).map((site) => site.name);
+  sights.forEach((name) => used.add(`${target.name}::${name}`));
   return {
     name: `${target.name} day trip`,
-    description: template?.notes || `${target.name} excursion from ${base.name}.`,
-    reason: `Day-trip template selected. Overnight remains ${base.name}; this visit does not change the hotel base or the next day's origin.`,
+    description: sights.length ? `Dedicated ${target.name} visit covering ${sights.join(', ')}.` : `${target.name} excursion from ${base.name}.`,
+    reason: `Overnight remains ${base.name}; this visit does not change the hotel base or the next day's origin.`,
+    destination: target.name,
+    sights,
     tags: [...new Set([...target.tags, 'day-trip'])],
     source: target.source,
     conditional: target.access !== 'standard',
     kind: 'sightseeing',
-    intelligence: { status: target.access === 'standard' ? 'STANDARD' : 'CONDITIONAL', note: labels ? `Template highlights: ${labels}.` : 'Verify current access before confirmation.' },
+    intelligence: { status: target.access === 'standard' ? 'STANDARD' : 'CONDITIONAL', note: sights.length ? `Planned highlights: ${sights.join(' · ')}.` : 'No compatible sightseeing stops available for this date.' },
   };
 }
 
@@ -392,14 +410,24 @@ function buildDays(input: TripInput, nightSequence: string[], departurePoint = '
       : null;
     const excursion = override === null ? null : override ? destinationByName(override)
       : arrivalVisit || (!transfer ? chooseDayTrip(base, visited, date, input) : null);
-    const localLimit = excursion ? (transfer ? 0 : 1) : siteLimit(input.style, transfer, false);
+    const anotherNightAtDestination = nightSequence[index + 1] === stay;
+    const sightseeingCapacity = excursion ? 0 : transfer
+      ? transferSightseeingLimit(drive.hours, input.style, anotherNightAtDestination)
+      : siteLimit(input.style, false, false);
+    // If the previous overnight stop got only a brief arrival window, use
+    // the next morning for its remaining sights before a short onward drive.
+    const priorSights = days[index - 1]?.blocks.filter((block) => block.destination === previous && block.kind !== 'free-time').length || 0;
+    const outgoingLimit = index > 0 && transfer && !excursion && previous !== 'Srinagar' && priorSights < 2 && drive.hours <= 3.5
+      ? Math.min(2, sightseeingCapacity) : 0;
+    const outgoing = outgoingLimit ? siteBlocks(destinationByName(previous)!, outgoingLimit, used, date, input, 'transfer') : [];
+    const localLimit = Math.max(0, sightseeingCapacity - outgoing.length);
     const sightseeing = siteBlocks(base, localLimit, used, date, input, transfer ? 'transfer' : 'sightseeing');
-    const blocks = [...arrival, ...sightseeing];
+    const blocks = [...arrival, ...outgoing, ...sightseeing];
     let dayTripDestination: string | null | undefined;
     dayTripDestination = excursion?.name ?? (override === null ? null : undefined);
     if (excursion && excursion.name !== stay) {
         visited.add(excursion.name);
-        blocks.unshift(dayTripBlock(base, excursion, date, input));
+        blocks.unshift(dayTripBlock(base, excursion, date, input, used, index === 0));
         const outward = routeLeg(previous, excursion.name);
         const onward = routeLeg(excursion.name, base.name);
         drive = { ...drive, km: outward.km + onward.km, hours: outward.hours + onward.hours, source: `Day visit: ${previous} → ${excursion.name} → ${base.name}`, live_required: outward.live_required || onward.live_required, known: outward.known && onward.known, preference: outward.preference === 'AVOID' || onward.preference === 'AVOID' ? 'AVOID' : outward.preference, vehicleDaysCharged: Math.max(1, outward.vehicleDaysCharged, onward.vehicleDaysCharged), rationale: `Day visit only. Overnight remains ${base.name}; next-day origin remains ${base.name}. Confirm that the sightseeing and transfer fit the available time.` };
@@ -416,7 +444,22 @@ function buildDays(input: TripInput, nightSequence: string[], departurePoint = '
       blocks: blocks.length ? blocks : [fallbackBlock(stay)], notes,
     });
   }
-  return days;
+  // Assign each destination's editorial note and general experiences to its
+  // richest sightseeing day. Site-specific activities can still appear on the
+  // particular day that includes their attraction.
+  const primary = new Map<string, { index: number; score: number }>();
+  days.forEach((day, index) => {
+    if (day.label === 'Departure day') return;
+    const names = new Set(day.blocks.map((block) => block.destination).filter((name): name is string => Boolean(name)));
+    for (const name of names) {
+      const count = day.blocks.filter((block) => block.destination === name && block.kind !== 'free-time' && block.kind !== 'arrival')
+        .reduce((sum, block) => sum + (block.sights?.length || 1), 0);
+      if (!count) continue;
+      const score = count * 10 + (day.transfer ? 0 : 2);
+      if (score > (primary.get(name)?.score ?? -1)) primary.set(name, { index, score });
+    }
+  });
+  return days.map((day, index) => ({ ...day, primaryVisitFor: [...primary.entries()].filter(([, value]) => value.index === index).map(([name]) => name) }));
 }
 
 function groupedStays(nightSequence: string[]) {

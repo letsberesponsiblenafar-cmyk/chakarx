@@ -1,5 +1,5 @@
 import { destinationByName, type Destination } from '@/lib/data';
-import type { DayPlan } from '@/lib/itinerary';
+import type { DayBlock, DayPlan } from '@/lib/itinerary';
 
 // Route language follows the supplied Chakar itinerary playbook and sample packages.
 // Client copy is composed from the operator's selected route and destination guide.
@@ -44,6 +44,57 @@ export function dayTitle(day: DayPlan, pickup: string) {
   return excursion ? `${excursion.name} from ${day.stay}` : `${day.stay}${day.stay === 'Srinagar' ? ' local' : ''} sightseeing`;
 }
 
+function listNames(names: string[]) {
+  if (names.length < 2) return names[0] || '';
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
+function blockDestination(block: DayBlock, day: DayPlan) {
+  if (block.destination) return block.destination;
+  // Older saved itineraries lack the destination field. Their generated
+  // sightseeing names still identify the original stop after an update.
+  if (day.from !== day.stay && destinationByName(day.from)?.local_sightseeing.some((site) => site.name === block.name)) return day.from;
+  return day.stay;
+}
+
+function plannedStops(day: DayPlan, destination: string) {
+  return day.blocks.filter((block) => block.kind !== 'arrival' && block.kind !== 'departure' && block.kind !== 'free-time'
+    && !block.name.toLowerCase().endsWith('day trip') && !block.name.startsWith('Explore ')
+    && !['EXTRA', 'EXCLUDED', 'OPTIONAL'].includes(block.intelligence?.status || '')
+    && blockDestination(block, day) === destination).map((block) => block.name);
+}
+
+function referencedPlaces(text: string, destination: NonNullable<ReturnType<typeof destinationByName>>) {
+  const labels = [...new Set([...destination.local_sightseeing.map((site) => site.name), ...destination.highlights])];
+  return labels.filter((label) => text.toLowerCase().includes(label.toLowerCase()));
+}
+
+function matchesPlannedPlace(label: string, planned: string[]) {
+  const name = label.toLowerCase();
+  return planned.some((stop) => stop.toLowerCase().includes(name) || name.includes(stop.toLowerCase()));
+}
+
+function visitCopy(day: DayPlan, destination: string, planned: string[]) {
+  const guide = destinationByName(destination);
+  const primary = day.primaryVisitFor?.includes(destination) ?? day.dayTripDestination === destination;
+  const noteSentences = primary && guide?.day_note?.trim()
+    ? (guide.day_note.match(/[^.!?]+[.!?]?/g) || []).map((sentence) => sentence.trim()).filter((sentence) => {
+      if (/\b(after breakfast|check out|check in|overnight|drive to|return to|departure|pick-up|pickup)\b/i.test(sentence)) return false;
+      return referencedPlaces(sentence, guide).every((place) => matchesPlannedPlace(place, planned));
+    }).slice(0, 2) : [];
+  const note = noteSentences.join(' ');
+  const namedInNote = guide ? referencedPlaces(note, guide) : [];
+  const remainingStops = planned.filter((stop) => !namedInNote.some((place) => matchesPlannedPlace(place, [stop])));
+  const stops = remainingStops.length ? `Visit ${listNames(remainingStops)}.` : '';
+  const experiences = guide ? [...new Set([...(guide.enabled_things_to_do || []), ...(guide.enabled_activities || [])])].filter((item) => {
+    const places = referencedPlaces(item, guide);
+    if (places.length) return places.every((place) => matchesPlannedPlace(place, planned)) && !/^(visit|explore|see)\b/i.test(item);
+    return primary;
+  }) : [];
+  const experienceText = experiences.length ? `Enjoy ${listNames(experiences)}.` : '';
+  return [note, stops, experienceText].filter(Boolean).join(' ');
+}
+
 export function dayNarrative(day: DayPlan, pickup: string) {
   if (day.customAbout?.trim()) return day.customAbout.trim();
   if (day.label === 'Departure day') {
@@ -54,24 +105,30 @@ export function dayNarrative(day: DayPlan, pickup: string) {
 
   const excursion = day.blocks.find((block) => block.name.toLowerCase().endsWith('day trip'));
   const destination = day.dayTripDestination || excursion?.name.replace(/ day trip$/i,'') || day.stay;
-  const guide = destinationByName(destination);
-  const story = guide?.day_note?.trim() || (guide ? defaultDayNote(guide) : `Enjoy ${destination} at a comfortable pace.`);
   const route = corridors[`${day.from}|${day.stay}`] || (day.drive.via?.length ? `via ${day.drive.via.join(' and ')}` : 'along the planned Kashmir route');
-  let opening: string;
-  if (day.day === 1 && excursion) opening = `On arrival at ${pickup}, meet your driver and enjoy a visit to ${destination} before returning to your ${day.stay} hotel for the night. `;
-  else if (day.day === 1) opening = day.stay.toLowerCase() === pickup.toLowerCase()
-    ? `Arrive at ${pickup}, meet your driver and transfer to the hotel for check-in. Settle in before heading out. `
-    : `Arrive at ${pickup}, meet your driver and travel to ${day.stay} ${route}. Check in on arrival. `;
-  else if (excursion && day.transfer) opening = `After breakfast, check out from ${day.from}, visit ${destination} during the day, then continue to ${day.stay} for check-in and overnight. `;
-  else if (excursion) opening = `After breakfast, leave ${day.stay} for a day excursion to ${destination}; return to the same hotel by evening. `;
-  else if (day.transfer) opening = `After breakfast, check out from ${day.from} and drive to ${day.stay} ${route}. Check in before exploring the local area. `;
-  else opening = `After breakfast, enjoy a full day around ${day.stay} without changing hotels. `;
+  if (excursion) {
+    const legacySights = excursion.intelligence?.note?.match(/(?:Template|Planned) highlights: (.+?)\.?$/i)?.[1]?.split(' · ') || [];
+    const sights = excursion.sights?.length ? excursion.sights : legacySights;
+    const opening = day.day === 1
+      ? `On arrival at ${pickup}, meet your driver and visit ${destination} before returning to your ${day.stay} hotel.`
+      : day.transfer
+        ? `After breakfast, check out from ${day.from} and visit ${destination} before continuing to ${day.stay} for check-in.`
+        : `After breakfast, leave ${day.stay} for a day trip to ${destination} and return to the same hotel by evening.`;
+    return [opening, visitCopy(day, destination, sights), `Overnight in ${day.stay}.`].filter(Boolean).join(' ');
+  }
 
-  const stops = excursion ? [] : day.blocks.filter((block) => block.kind !== 'arrival' && block.kind !== 'departure' && !['EXTRA','EXCLUDED','OPTIONAL'].includes(block.intelligence?.status || '')).slice(0,2).map((block) => block.name);
-  const stopText = stops.length ? ` Planned stops include ${stops.join(' and ')}.` : '';
-  const things = guide?.enabled_things_to_do ?? [];
-  const activities = guide?.enabled_activities ?? [];
-  const experiences = [...new Set([...things, ...activities])];
-  const experienceText = experiences.length ? ` Experiences on this day include ${experiences.join(', ')}.` : '';
-  return `${opening}${story}${stopText}${experienceText} Overnight in ${day.stay}.`;
+  const destinationCopy = visitCopy(day, day.stay, plannedStops(day, day.stay));
+  if (day.day === 1) {
+    const opening = day.stay.toLowerCase() === pickup.toLowerCase()
+      ? `Arrive at ${pickup}, meet your driver and transfer to the hotel for check-in.`
+      : `Arrive at ${pickup}, meet your driver and travel to ${day.stay} ${route}. Check in on arrival.`;
+    return [opening, destinationCopy || `Settle in and enjoy the rest of the day at your own pace.`, `Overnight in ${day.stay}.`].join(' ');
+  }
+  if (day.transfer) {
+    const originCopy = visitCopy(day, day.from, plannedStops(day, day.from));
+    const opening = `After breakfast, check out from ${day.from}.`;
+    const transfer = `Drive to ${day.stay} ${route} and check in.`;
+    return [opening, originCopy, transfer, destinationCopy || `Enjoy the rest of the day at your own pace.`, `Overnight in ${day.stay}.`].filter(Boolean).join(' ');
+  }
+  return [`After breakfast, enjoy a full day around ${day.stay} without changing hotels.`, destinationCopy || `Explore at your own pace.`, `Overnight in ${day.stay}.`].join(' ');
 }
