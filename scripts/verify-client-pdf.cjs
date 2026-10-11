@@ -202,7 +202,7 @@ async function verifyFinalPdf() {
     'The native master must not retain mutable client values.');
   for (const hotel of selections) assert.ok(text.includes(hotel.hotelName), 'Hotel names must remain searchable after composition.');
   if (final.getPageCount() < 10 || costs.sellingTotal <= 0) throw new Error('Client PDF is incomplete.');
-  process.stdout.write(JSON.stringify({ target, pages: final.getPageCount(), bytes: bytes.byteLength, customerTotal: Math.round(costs.sellingTotal),
+  process.stdout.write(JSON.stringify({ target, pages: final.getPageCount(), bytes: fs.statSync(target).size, customerTotal: Math.round(costs.sellingTotal),
     nativeHeadingFonts: quality.fontNames.filter((name) => /TheSeasons/.test(name)).length,
     vectorPatterns: quality.patterns, fullPageBitmaps: quality.fullPageBitmaps }) + '\n');
 }
