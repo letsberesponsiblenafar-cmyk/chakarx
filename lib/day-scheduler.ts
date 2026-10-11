@@ -211,6 +211,19 @@ export function scheduleDayPlans(input: TripInput, original: DayPlan[], quote?: 
         Math.max(...previous.candidates.map((day) => preference(day, previous.destination.name)))) selected.set(identity, entry);
     }
   }
+  // A legacy library entry names the whole garden circuit rather than a fifth
+  // stop. Only its generic auto-written sentence is covered by all four named
+  // gardens; partial selections and operator-authored detail remain intact.
+  const gardenComponents = ['Pari Mahal', 'Nishat Bagh', 'Shalimar Bagh', 'Chashme Shahi'];
+  const sentenceIdentity = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  for (const [identity, entry] of selected) {
+    if (!/^mughal gardens (?:and )?zabarwan foothills$/.test(identity)) continue;
+    const sentence = entry.sight.client_sentence?.trim() || `Visit ${entry.sight.name}.`;
+    if (sentenceIdentity(sentence) !== sentenceIdentity(`Visit ${entry.sight.name}.`) ||
+      !gardenComponents.every((name) => selected.has(sightIdentity(name)))) continue;
+    selected.delete(identity);
+    entry.candidates[0].timing!.advisories!.push(`${entry.sight.name} is covered by the individually selected ${gardenComponents.join(', ')}.`);
+  }
   const entries = [...selected.values()].sort((a, b) =>
     Number(Boolean(b.sight.time_window)) - Number(Boolean(a.sight.time_window)) ||
     Number(b.sight.arrival_suitable === true) - Number(a.sight.arrival_suitable === true));

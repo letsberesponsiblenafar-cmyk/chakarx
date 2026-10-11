@@ -359,6 +359,54 @@ try {
     assert.equal(plan.dayPlans[1].dayTripDestination, cluster.name, 'Deduplicating gardens must not change the selected excursion.');
   });
 
+  test('a generic legacy garden circuit is covered by all four selected gardens without another stop or duration', () => {
+    for (const aggregateName of ['Mughal Gardens & Zabarwan Foothills', 'Mughal Gardens and Zabarwan Foothills']) {
+      reset();
+      const gardens = ['Pari Mahal', 'Nishat Bagh', 'Shalimar Bagh', 'Chashme Shahi'].map((name) => sight(name, {
+        client_sentence: name === 'Chashme Shahi' ? 'Explore Chashme Shahi and its spring-fed terraces in the Zabarwan foothills.' : `Explore the individual gardens at ${name}.`,
+      }));
+      const aggregate = sight(aggregateName, { visit_minutes: 180, transfer_minutes: 30 });
+      replaceDestinationCatalog(destinations.map((item) => item.name === 'Srinagar' ? { ...item,
+        local_sightseeing: [aggregate, ...gardens], enabled_sightseeing: [aggregate.name, ...gardens.map((place) => place.name)],
+      } : item));
+      const plan = planFor(['Srinagar'], { arrivalTime: '06:00', departureTime: '20:00' });
+      const stops = plan.dayPlans.flatMap(allocated);
+      assert.ok(!stops.includes(activityKey('Srinagar', aggregateName)), 'The circuit heading became an additional garden stop.');
+      for (const garden of gardens) {
+        assert.equal(stops.filter((name) => name === activityKey('Srinagar', garden.name)).length, 1,
+          `${garden.name} was collapsed while covering the aggregate.`);
+        assert.equal(plan.dayPlans.filter((day) => dayNarrative(day, 'Srinagar').includes(garden.client_sentence)).length, 1,
+          `${garden.name} must retain its individual client sentence exactly once.`);
+      }
+      assert.equal(plan.dayPlans.reduce((total, day) => total + day.timing.scheduledMinutes, 0), 4 * (45 + 10),
+        'The already-covered circuit must not reserve a second sightseeing duration.');
+      assert.ok(plan.dayPlans.every((day) => !dayNarrative(day, 'Srinagar').includes(aggregate.client_sentence)),
+        'The redundant generic circuit sentence leaked into the client programme.');
+    }
+  });
+
+  test('a legacy garden circuit remains when alone, partly covered, or given its own authored detail', () => {
+    const aggregateName = 'Mughal Gardens & Zabarwan Foothills';
+    for (const variant of ['alone', 'partial', 'authored']) {
+      reset();
+      const gardens = (variant === 'alone' ? [] : ['Pari Mahal', 'Nishat Bagh', 'Shalimar Bagh', ...(variant === 'authored' ? ['Chashme Shahi'] : [])])
+        .map((name) => sight(name));
+      const aggregate = sight(aggregateName, variant === 'authored' ? {
+        client_sentence: 'Walk through Mughal Gardens & Zabarwan Foothills, with a private stop for tea.',
+      } : {});
+      replaceDestinationCatalog(destinations.map((item) => item.name === 'Srinagar' ? { ...item,
+        local_sightseeing: [aggregate, ...gardens], enabled_sightseeing: [aggregate.name, ...gardens.map((place) => place.name)],
+      } : item));
+      const plan = planFor(['Srinagar'], { arrivalTime: '06:00', departureTime: '20:00' });
+      assert.equal(plan.dayPlans.flatMap(allocated).filter((name) => name === activityKey('Srinagar', aggregateName)).length, 1,
+        `${variant}: the aggregate was removed without complete equivalent coverage.`);
+      assert.equal(plan.dayPlans.filter((day) => dayNarrative(day, 'Srinagar').includes(aggregate.client_sentence)).length, 1,
+        `${variant}: the aggregate's selected client sentence must remain intact.`);
+      for (const garden of gardens) assert.equal(plan.dayPlans.flatMap(allocated).filter((name) => name === activityKey('Srinagar', garden.name)).length, 1,
+        `${variant}: a distinct selected garden was removed.`);
+    }
+  });
+
   test('physical aliases do not repeat a lake visit through different destination records', () => {
     reset();
     const names = { Srinagar: ['Nigeen Lake', 'Dal Lake & Boulevard'], 'Nigeen Lake': ['Nigeen-Lake'], 'Dal Lake': ['Dal Lake waterfront'] };
