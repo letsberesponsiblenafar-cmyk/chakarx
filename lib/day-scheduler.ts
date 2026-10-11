@@ -83,7 +83,7 @@ export function dayScheduleContext(day: DayPlan) {
   const programme = new Set([...day.blocks.filter((block) => block.kind !== 'arrival' && (block.sights === undefined || block.sights.length))
     .map((block) => block.destination).filter((name): name is string => Boolean(name)),
     ...(day.scheduledActivities || []).map((activity) => activity.destination)]);
-  return JSON.stringify([day.date, day.from, day.to, day.stay, day.dayTripDestination, day.arrivalTime, day.departureTime, day.drive.hours, day.drive.km, day.drive.via || [],
+  return JSON.stringify([day.date, day.from, day.to, day.stay, day.dayTripDestination, day.additionalVisitDestinations || [], day.arrivalTime, day.departureTime, day.drive.hours, day.drive.km, day.drive.via || [],
     day.blocks.filter((block) => block.kind !== 'arrival').map((block) => [block.name, block.description, block.destination, block.sights]),
     [...programme].filter((name) => day.primaryVisitFor?.includes(name)).map((name) => [name, destinationByName(name)?.day_note]),
     day.scheduledActivities?.map((activity) => [activity.key, destinationByName(activity.destination)?.activity_copy?.[activity.name]])]);
@@ -93,7 +93,7 @@ export function scheduleDayPlans(input: TripInput, original: DayPlan[], quote?: 
   const days: DayPlan[] = original.map((day) => ({ ...day,
     arrivalTime: day.day === 1 ? input.arrivalTime : undefined,
     blocks: day.blocks.filter((block) => block.kind === 'arrival' || block.kind === 'custom').map((block) => ({ ...block })),
-    scheduledActivities: [], primaryVisitFor: [], timing: windowFor(day, input),
+    scheduledActivities: [], primaryVisitFor: [], additionalVisitDestinations: [], timing: windowFor(day, input),
   }));
   const fixedSlots = new Map<number, { start: number; end: number }[]>();
   const normalStarts = new Map(days.map((day) => [day.day, day.timing!.startMinutes]));
@@ -178,7 +178,20 @@ export function scheduleDayPlans(input: TripInput, original: DayPlan[], quote?: 
   const selected = new Map<string, SelectedSight>();
   for (const destination of destinations) {
     const active = new Set(enabledSightseeing(destination));
-    const relevant = days.filter((day) => visiting(day, destination.name));
+    let relevant = days.filter((day) => visiting(day, destination.name));
+    if (destination.name === 'Srinagar' && !relevant.some((day) => day.label !== 'Departure day' && usable(day))) {
+      // Older/manual routes may use Srinagar only for hotel nights. Keep its
+      // selected city circuit together on one best return day, never spread it
+      // across every excursion merely because the hotel base is Srinagar.
+      const returnDay = days.filter((day) => day.stay === 'Srinagar' && day.label !== 'Departure day' && usable(day))
+        .sort((a, b) => Number(Boolean(a.dayTripDestination)) - Number(Boolean(b.dayTripDestination)) ||
+          (b.timing!.availableMinutes - b.timing!.driveMinutes - b.timing!.serviceMinutes) -
+          (a.timing!.availableMinutes - a.timing!.driveMinutes - a.timing!.serviceMinutes) || a.day - b.day)[0];
+      if (returnDay && !relevant.includes(returnDay)) {
+        relevant = [...relevant, returnDay];
+        returnDay.additionalVisitDestinations = ['Srinagar'];
+      }
+    }
     if (!relevant.length) continue;
     const normal = relevant.filter((day) => day.label !== 'Departure day' && usable(day));
     const candidates = normal.length ? normal : relevant.filter(usable);

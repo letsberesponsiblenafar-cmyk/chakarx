@@ -160,6 +160,62 @@ try {
     assert.equal(new Set(allStops).size, allStops.length);
   });
 
+  test('a legacy route without a dedicated Srinagar day groups its city sights on one suitable hotel return', () => {
+    reset();
+    const plan = setPlanDayTrip(planFor(['Srinagar', 'Gulmarg', 'Pahalgam', 'Srinagar'], {
+      arrivalTime: '06:00', departureTime: undefined,
+    }), 1, 'Sonamarg');
+    const cityDays = plan.dayPlans.filter((day) => allocated(day).some((name) => name.startsWith('Srinagar\u001f')));
+    assert.equal(cityDays.length, 1, 'A fallback must group Srinagar sights together instead of spreading them across every hotel night.');
+    assert.equal(cityDays[0].day, 4, 'The unhurried Pahalgam-to-Srinagar hotel return is the suitable fallback city visit.');
+    assert.equal(cityDays[0].from, 'Pahalgam');
+    assert.equal(cityDays[0].stay, 'Srinagar');
+    for (const day of plan.dayPlans.filter((day) => day.dayTripDestination === 'Sonamarg' || day.stay === 'Gulmarg')) {
+      assert.ok(allocated(day).every((name) => !name.startsWith('Srinagar\u001f')),
+        'An excursion or Gulmarg visit must not inherit city sightseeing merely through its Srinagar connection.');
+    }
+    const allStops = plan.dayPlans.flatMap(allocated);
+    for (const destination of destinations.filter((item) => fixtureNames.includes(item.name))) for (const place of destination.local_sightseeing) {
+      assert.equal(allStops.filter((name) => name === activityKey(destination.name, place.name)).length, 1,
+        `${destination.name}: ${place.name} was dropped or repeated while finding the fallback city day.`);
+    }
+    const cityIssues = plan.dayPlans.flatMap((day) => day.timing.issues).filter((message) => message.startsWith('Srinagar:'));
+    assert.ok(cityIssues.every((message) => !/selected programme.*visit day/i.test(message)),
+      'The grouped city return must resolve the missing Srinagar visit-day warning.');
+  });
+
+  test('an all-excursion Srinagar-base journey explicitly adds one city circuit and retains its client sentences', () => {
+    reset();
+    let plan = planFor(['Srinagar', 'Srinagar', 'Srinagar'], { arrivalTime: '06:00', departureTime: undefined });
+    plan = setPlanDayTrip(plan, 1, 'Gulmarg');
+    plan = setPlanDayTrip(plan, 2, 'Pahalgam');
+    plan = setPlanDayTrip(plan, 3, 'Sonamarg');
+    const markedDays = plan.dayPlans.filter((day) => day.additionalVisitDestinations?.includes('Srinagar'));
+    assert.equal(markedDays.length, 1, 'Exactly one excursion day must explicitly add the missing Srinagar city circuit.');
+    const cityDay = markedDays[0];
+    assert.ok(cityDay.dayTripDestination, 'This regression requires a deliberate city circuit alongside an excursion.');
+    assert.equal(cityDay.stay, 'Srinagar');
+    assert.equal(plan.dayPlans.filter((day) => allocated(day).some((name) => name.startsWith('Srinagar\u001f'))).length, 1,
+      'Srinagar sights must not spread to every day that shares its hotel base.');
+    const allStops = plan.dayPlans.flatMap(allocated);
+    const copy = dayNarrative(cityDay, 'Srinagar', { activityCosts: {}, activitySelections: {} });
+    for (const place of destinationByName('Srinagar').local_sightseeing) {
+      assert.equal(allStops.filter((name) => name === activityKey('Srinagar', place.name)).length, 1,
+        `${place.name} was dropped or repeated in the explicit city circuit.`);
+      assert.ok(copy.includes(place.client_sentence), `${place.name} was allocated but lost from the excursion-day client description.`);
+    }
+    for (const day of plan.dayPlans.filter((day) => day.dayTripDestination && day.day !== cityDay.day)) {
+      assert.ok(allocated(day).every((name) => !name.startsWith('Srinagar\u001f')), 'An unmarked excursion inherited city sightseeing.');
+      const otherCopy = dayNarrative(day, 'Srinagar', { activityCosts: {}, activitySelections: {} });
+      for (const place of destinationByName('Srinagar').local_sightseeing) assert.ok(!otherCopy.includes(place.client_sentence),
+        `${place.name} was repeated in an unmarked excursion description.`);
+    }
+    for (const destination of destinations.filter((item) => ['Gulmarg', 'Pahalgam', 'Sonamarg'].includes(item.name))) {
+      for (const place of destination.local_sightseeing) assert.equal(allStops.filter((name) => name === activityKey(destination.name, place.name)).length, 1,
+        `${destination.name}: ${place.name} was lost while adding the city circuit.`);
+    }
+  });
+
   test('repeated overnight bases receive different places rather than duplicate sightseeing', () => {
     reset();
     const plan = planFor(['Srinagar', 'Pahalgam', 'Pahalgam', 'Srinagar', 'Srinagar']);

@@ -73,15 +73,15 @@ export function defaultDayNote(destination: Destination) {
 export function dayTitle(day: DayPlan, pickup: string) {
   if (day.customTitle?.trim()) return day.customTitle.trim();
   if (day.day === 1) return day.dayTripDestination
-    ? `Arrival in ${pickup} & ${day.dayTripDestination} day visit`
+    ? `Arrival in ${pickup} & ${day.dayTripDestination} day visit${day.additionalVisitDestinations?.includes(day.stay) ? ` & ${day.stay} sightseeing` : ''}`
     : day.stay.toLowerCase() === pickup.toLowerCase() || pickup.toLowerCase().includes(day.stay.toLowerCase())
     ? `Arrival in ${day.stay}${plannedStops(day, day.stay).length ? ` & ${day.stay === 'Srinagar' ? 'local sightseeing' : 'sightseeing'}` : ''}`
     : `Arrival in ${pickup} & transfer to ${day.stay}`;
   if (day.label === 'Departure day') return day.stay !== day.to
     ? `${day.stay} to ${day.to} & departure`
     : plannedStops(day, day.stay).length || day.scheduledActivities?.length ? `${day.to} sightseeing & departure` : `Departure from ${day.to}`;
-  if (day.dayTripDestination) return `${day.dayTripDestination} day visit`;
-  if (day.transfer) return `${day.from} to ${day.stay}`;
+  if (day.dayTripDestination) return `${day.dayTripDestination} day visit${day.additionalVisitDestinations?.includes(day.stay) ? ` & ${day.stay} sightseeing` : ''}`;
+  if (day.transfer) return `${day.from} to ${day.stay}${day.stay === 'Srinagar' && plannedStops(day, day.stay).length ? ' & local sightseeing' : ''}`;
   const excursion = day.blocks.find((block) => block.name.toLowerCase().includes('day trip'));
   return excursion ? `${excursion.name} from ${day.stay}` : `${day.stay}${day.stay === 'Srinagar' ? ' local' : ''} sightseeing`;
 }
@@ -254,8 +254,9 @@ export function dayNarrative(day: DayPlan, pickup: string, quote?: NarrativeQuot
         : `After breakfast, begin your day from ${day.stay}.`;
     const originCopy = day.from !== destination && day.from !== day.stay
       ? visitCopy(day, day.from, [], quote, { introduction: false, activitiesOnly: true }) : '';
+    const additionalVisit = day.additionalVisitDestinations?.includes(day.stay);
     const hotelBaseCopy = day.stay !== destination
-      ? visitCopy(day, day.stay, [], quote, { introduction: false, activitiesOnly: true }) : '';
+      ? visitCopy(day, day.stay, additionalVisit ? plannedStops(day, day.stay) : [], quote, { introduction: false, activitiesOnly: !additionalVisit }) : '';
     const returnTransfer = day.transfer
       ? `Continue to ${day.stay} and check in to your hotel.`
       : `Return to ${day.stay} after your visit.`;
