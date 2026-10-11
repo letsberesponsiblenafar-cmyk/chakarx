@@ -106,6 +106,14 @@ try {
     }
   });
 
+  test('an unknown arrival uses the standard 08:00 start while a supplied late arrival keeps its formalities allowance', () => {
+    reset();
+    const unknown = planFor(['Srinagar', 'Srinagar'], { arrivalTime: undefined });
+    assert.equal(unknown.dayPlans[0].timing.startMinutes, 8 * 60, 'No supplied arrival time should invent a 09:30 start.');
+    const late = planFor(['Srinagar', 'Srinagar'], { arrivalTime: '13:00' });
+    assert.equal(late.dayPlans[0].timing.startMinutes, 14 * 60 + 30, 'A real 13:00 arrival still needs its 90-minute formalities allowance.');
+  });
+
   test('every enabled destination sight remains in the programme even when its duration needs review', () => {
     reset();
     const chosen = Array.from({ length: 12 }, (_, index) => sight(`Gulmarg selected excursion ${index + 1}`, {
@@ -182,6 +190,37 @@ try {
     const cityIssues = plan.dayPlans.flatMap((day) => day.timing.issues).filter((message) => message.startsWith('Srinagar:'));
     assert.ok(cityIssues.every((message) => !/selected programme.*visit day/i.test(message)),
       'The grouped city return must resolve the missing Srinagar visit-day warning.');
+  });
+
+  test('a busy Srinagar return cannot force all Pahalgam major visits onto its already overfull city circuit', () => {
+    reset();
+    replaceDestinationCatalog(destinations.map((item) => item.name === 'Srinagar' ? { ...item,
+      local_sightseeing: item.local_sightseeing.map((place) => ({ ...place, visit_minutes: 60, transfer_minutes: 0 })),
+    } : item.name === 'Gulmarg' || item.name === 'Pahalgam' ? { ...item,
+      srinagar_hours: item.name === 'Gulmarg' ? 1.5 : 2.1,
+    } : item));
+    const plan = setPlanDayTrip(planFor(['Srinagar', 'Gulmarg', 'Pahalgam', 'Srinagar'], {
+      arrivalTime: '06:00', departureTime: undefined,
+    }), 1, 'Sonamarg');
+    const arrival = plan.dayPlans[2];
+    const cityReturn = plan.dayPlans[3];
+    assert.ok(Math.abs(arrival.drive.hours - 3.6) < 0.001, 'The fixture must reproduce the 3.6-hour Gulmarg-to-Pahalgam transfer.');
+    const major = destinationByName('Pahalgam').local_sightseeing.filter((place) => place.arrival_suitable !== true);
+    assert.ok(major.some((place) => allocated(arrival).includes(activityKey('Pahalgam', place.name))),
+      'A free Pahalgam afternoon must take unvisited major places when the following return already carries the city circuit.');
+    const allStops = plan.dayPlans.flatMap(allocated);
+    for (const destination of destinations.filter((item) => fixtureNames.includes(item.name))) for (const place of destination.local_sightseeing) {
+      assert.equal(allStops.filter((name) => name === activityKey(destination.name, place.name)).length, 1,
+        `${destination.name}: ${place.name} was dropped or repeated when balancing the busy return.`);
+    }
+    const cityLoad = destinationByName('Srinagar').local_sightseeing.reduce((total, place) => total + place.visit_minutes + place.transfer_minutes, 0);
+    const majorLoad = major.reduce((total, place) => total + place.visit_minutes + place.transfer_minutes, 0);
+    const previousForcedPeak = cityReturn.timing.driveMinutes + cityReturn.timing.serviceMinutes + cityLoad + majorLoad;
+    const currentPeak = Math.max(...[arrival, cityReturn].map((day) => day.timing.driveMinutes + day.timing.serviceMinutes + day.timing.scheduledMinutes));
+    assert.ok(currentPeak <= previousForcedPeak - Math.min(...major.map((place) => place.visit_minutes + place.transfer_minutes)),
+      'Balancing Pahalgam and the city return must reduce the peak estimate by at least one major visit.');
+    assert.equal(plan.dayPlans.filter((day) => allocated(day).some((name) => name.startsWith('Srinagar\u001f'))).length, 1,
+      'Balancing Pahalgam must keep the Srinagar circuit together.');
   });
 
   test('an all-excursion Srinagar-base journey explicitly adds one city circuit and retains its client sentences', () => {

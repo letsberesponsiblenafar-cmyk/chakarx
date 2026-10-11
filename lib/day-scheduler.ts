@@ -30,7 +30,8 @@ function windowFor(day: DayPlan, input: TripInput) {
   const accessMinutes = positiveMinutes(day.drive.access_minutes, 0);
   const transferMinutes = driveMinutes + serviceMinutes + accessMinutes;
   if (day.day === 1) {
-    start = Math.max(start, (clockMinutes(input.arrivalTime) ?? startOfDay) + 90);
+    const arrival = clockMinutes(input.arrivalTime);
+    start = arrival === null ? startOfDay : Math.max(startOfDay, arrival + 90);
     // Late arrivals retain a transfer and check-in, without extra visits.
     if (!day.dayTripDestination) end = Math.max(end, start + transferMinutes);
   }
@@ -242,7 +243,18 @@ export function scheduleDayPlans(input: TripInput, original: DayPlan[], quote?: 
       // reserved for the following visit day. The final visit still retains
       // all selected places when there is no second day to share them with.
       const returnTransfer = day.transfer && day.from === destination.name && day.stay !== destination.name;
-      const anotherVisit = candidates.some((other) => other !== day && (!other.transfer || other.from === destination.name));
+      const anotherVisit = candidates.some((other) => {
+        if (other === day) return false;
+        if (!other.transfer && other.label !== 'Departure day') return true;
+        if (other.from !== destination.name) return false;
+        const mixedProgramme = other.blocks.some((block) => block.kind === 'sightseeing' && block.destination && block.destination !== destination.name) ||
+          other.scheduledActivities!.some((activity) => activity.destination !== destination.name);
+        // A return already carrying a city circuit is not a spare destination
+        // day. It can keep an arrival light only when this visit actually fits
+        // after that existing programme; otherwise balance both transfer days.
+        const spare = other.timing!.availableMinutes - other.timing!.driveMinutes - other.timing!.serviceMinutes - other.timing!.scheduledMinutes;
+        return !mixedProgramme || spare >= sightCost(sight, destination, other);
+      });
       const arrivalPenalty = ((heavyArrival && anotherVisit) || (returnTransfer && hasFullVisit)) && sight.arrival_suitable !== true ? 10 : 0;
       const arrivalStops = day.blocks.filter((block) => block.kind === 'sightseeing' && block.destination === destination.name).length;
       const arrivalLoad = heavyArrival && anotherVisit && arrivalStops >= 2 ? 20 : 0;
