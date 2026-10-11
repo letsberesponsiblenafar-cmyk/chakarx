@@ -21,7 +21,7 @@ const { createPlan, rebuildPlanFromNightSequence, retargetDay, setPlanDayTrip } 
 const { calculateCosts } = require('../lib/costing.ts');
 const { itinerarySnapshot } = require('../components/PlannerProvider.tsx');
 const { dayNarrative, dayTitle, sightseeingSentence } = require('../lib/narrative.ts');
-const { destinationByName } = require('../lib/data.ts');
+const { destinationByName, enabledSightseeing } = require('../lib/data.ts');
 const { tripDuration, departureForNights } = require('../lib/trip-dates.ts');
 const input = (days) => ({
   name: 'Route QA', arrival: '2026-10-03', departure: `2026-10-${String(days + 2).padStart(2,'0')}`, arrivalTime: '06:00',
@@ -69,9 +69,16 @@ const longTransfer = twoPahalgamNights.dayPlans[2];
 const fullPahalgamDay = twoPahalgamNights.dayPlans[3];
 assert.ok(longTransfer.drive.hours >= 4, 'Gulmarg to Pahalgam should be treated as a long transfer');
 const easyArrivalStops = longTransfer.blocks.filter((block) => block.destination === 'Pahalgam' && block.kind !== 'free-time');
-assert.equal(easyArrivalStops.length, 1, 'Long arrival transfer should have one easy nearby Pahalgam stop');
-assert.match(easyArrivalStops[0].name, /Lidder River|Pahalgam town/i, 'The arrival stop should stay close to the Pahalgam hotel base');
+assert.ok(easyArrivalStops.length >= 1 && easyArrivalStops.length <= 2, 'Long arrival transfer should have one or two easy nearby Pahalgam stops');
+assert.ok(easyArrivalStops.every((block) => destinationByName('Pahalgam').local_sightseeing
+  .find((sight) => sight.name === block.name)?.arrival_suitable === true), 'Arrival stops should stay close to the Pahalgam hotel base');
 assert.ok(fullPahalgamDay.blocks.filter((block) => block.destination === 'Pahalgam' && block.kind === 'sightseeing').length >= 3);
+for (const major of ['Aru Valley', 'Betaab Valley', 'Chandanwari']) assert.ok(fullPahalgamDay.blocks
+  .some((block) => block.destination === 'Pahalgam' && block.name === major), `${major} belongs to the following full Pahalgam day.`);
+const allPahalgamStops = twoPahalgamNights.dayPlans.flatMap((day) => day.blocks
+  .filter((block) => block.destination === 'Pahalgam' && block.kind === 'sightseeing').flatMap((block) => block.sights || [block.name]));
+for (const name of enabledSightseeing(destinationByName('Pahalgam'))) assert.equal(allPahalgamStops
+  .filter((stop) => stop === name).length, 1, `${name} must remain selected exactly once across the Pahalgam visit days.`);
 assert.doesNotMatch(dayNarrative(longTransfer, 'Srinagar'), /Aru Valley|Betaab Valley|Chandanwari/);
 assert.doesNotMatch(dayNarrative(longTransfer, 'Srinagar'), /own pace|rest of the day/i);
 assert.match(dayNarrative(longTransfer, 'Srinagar'), /Lidder River|Pahalgam town/i);
@@ -106,7 +113,13 @@ assert.ok(dayTripSights.length >= 2, 'A Pahalgam day visit must provide a meanin
 for (const name of dayTripSights) {
   assert.ok(dayNarrative(pahalgamDayTrip, 'Srinagar').includes(sightseeingSentence(destinationByName('Pahalgam').local_sightseeing.find((sight) => sight.name === name))), `About this day missed the authored sentence for ${name}`);
 }
-assert.ok(pahalgamDayTrip.timing.driveMinutes + pahalgamDayTrip.timing.serviceMinutes + pahalgamDayTrip.timing.scheduledMinutes <= pahalgamDayTrip.timing.availableMinutes, 'A day visit must fit its complete drive, visit and service budget');
+for (const name of enabledSightseeing(destinationByName('Pahalgam'))) assert.ok(dayTripSights.includes(name),
+  `The selected Pahalgam day visit must retain ${name}, even if its estimated duration needs review.`);
+const dayTripLoad = pahalgamDayTrip.timing.driveMinutes + pahalgamDayTrip.timing.serviceMinutes + pahalgamDayTrip.timing.scheduledMinutes;
+assert.equal(pahalgamDayTrip.timing.remainingMinutes, Math.max(0, pahalgamDayTrip.timing.availableMinutes - dayTripLoad),
+  'The day visit must report its complete drive, visit and service time.');
+if (dayTripLoad > pahalgamDayTrip.timing.availableMinutes) assert.ok(pahalgamDayTrip.timing.advisories?.length,
+  'An overfull selected day visit needs an explicit timing advisory, without silently dropping a place.');
 for (const name of ['Aru Valley','Betaab Valley','Chandanwari'].filter((name) => !dayTripSights.includes(name))) {
   assert.ok(!dayNarrative(pahalgamDayTrip, 'Srinagar').includes(name), `The client copy must not promise the unscheduled ${name}`);
 }

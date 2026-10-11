@@ -36,7 +36,17 @@ export function clientActivityLists(plan: Plan, costs: Record<string, number>, s
   for (const activity of tripActivities(plan, catalog, selections)) {
     const label = `${activity.destination}: ${activity.name}`;
     if (quotedActivityCost(costs, activity, selections) !== null) included.push(label);
-    else if (selections[activity.key] === false) excluded.push(label);
+    else if (selections[activity.key] === false) {
+      // A selected visit can stay in the travel programme while its ticket or
+      // arranged experience is paid separately. Do not label the visit itself
+      // as absent when the operator explicitly kept it in Things to Do.
+      const destination = catalog.find((item) => item.name === activity.destination);
+      const linked = destination?.local_sightseeing.filter((sight) => sight.requires_activity === activity.name ||
+        destination.activity_timing?.[activity.name]?.sight_names?.includes(sight.name)).map((sight) => sight.name) || [];
+      const described = plan.dayPlans.some((day) => day.blocks.some((block) => block.destination === activity.destination &&
+        (block.sights || [block.name]).some((name) => linked.includes(name))));
+      excluded.push(described ? `${label} — activity charges` : label);
+    }
   }
   const seen = new Set([...included, ...excluded].map((item) => item.toLowerCase()));
   for (const raw of manualInclusions) {

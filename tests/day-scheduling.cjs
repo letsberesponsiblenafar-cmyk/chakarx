@@ -78,7 +78,7 @@ function quote(names) {
 }
 
 try {
-  test('time budgets remain conserved across arrival, transfer, sightseeing and departure days', () => {
+  test('time accounting remains explicit across arrival, transfer, sightseeing and departure days', () => {
     reset();
     for (const style of ['Relaxed', 'Balanced', 'Packed']) for (const arrivalTime of ['06:00', '13:00', '20:00']) {
       const plan = planFor(['Srinagar', 'Gulmarg', 'Pahalgam', 'Pahalgam', 'Srinagar'], { style, arrivalTime });
@@ -86,11 +86,78 @@ try {
         const timing = day.timing;
         assert.ok(timing, `Day ${day.day} lacks timing.`);
         assert.ok(timing.scheduledMinutes >= 0 && timing.remainingMinutes >= 0);
-        assert.ok(timing.driveMinutes + timing.serviceMinutes + timing.scheduledMinutes <= timing.availableMinutes,
-          `${style}, arrival ${arrivalTime}, day ${day.day} exceeds its usable window.`);
-        assert.equal(timing.remainingMinutes, timing.availableMinutes - timing.driveMinutes - timing.serviceMinutes - timing.scheduledMinutes);
+        const plannedMinutes = timing.driveMinutes + timing.serviceMinutes + timing.scheduledMinutes;
+        assert.equal(timing.remainingMinutes, Math.max(0, timing.availableMinutes - plannedMinutes),
+          `${style}, arrival ${arrivalTime}, day ${day.day} hides its actual timing load.`);
+        if (plannedMinutes > timing.availableMinutes) assert.ok(timing.issues.length || timing.advisories?.length,
+          `${style}, arrival ${arrivalTime}, day ${day.day} needs a review when selected visits exceed its window.`);
+        if (timing.overrunMinutes !== undefined) assert.equal(timing.overrunMinutes, Math.max(0, plannedMinutes - timing.availableMinutes));
       }
     }
+  });
+
+  test('ordinary sightseeing days use the same 08:00–22:00 window for every travel style', () => {
+    reset();
+    for (const style of ['Relaxed', 'Balanced', 'Packed']) {
+      const day = planFor(['Srinagar', 'Srinagar'], { style, arrivalTime: '20:00', departureTime: '08:00' }).dayPlans[1];
+      assert.equal(day.timing.startMinutes, 8 * 60, `${style} starts its ordinary day at a different time.`);
+      assert.equal(day.timing.endMinutes, 22 * 60, `${style} ends its ordinary day at a different time.`);
+      assert.equal(day.timing.availableMinutes, 14 * 60);
+    }
+  });
+
+  test('every enabled destination sight remains in the programme even when its duration needs review', () => {
+    reset();
+    const chosen = Array.from({ length: 12 }, (_, index) => sight(`Gulmarg selected excursion ${index + 1}`, {
+      visit_minutes: 180, transfer_minutes: 30, arrival_suitable: false,
+    }));
+    const disabled = sight('Disabled Gulmarg excursion');
+    replaceDestinationCatalog(destinations.map((item) => item.name === 'Gulmarg' ? { ...item,
+      local_sightseeing: [...chosen, disabled], enabled_sightseeing: chosen.map((item) => item.name),
+    } : item));
+    const plan = setPlanDayTrip(planFor(['Srinagar', 'Srinagar'], { arrivalTime: '20:00', departureTime: '08:00' }), 2, 'Gulmarg');
+    const stops = plan.dayPlans.flatMap(allocated);
+    for (const item of chosen) assert.equal(stops.filter((stop) => stop === activityKey('Gulmarg', item.name)).length, 1,
+      `${item.name} was silently dropped or repeated.`);
+    assert.ok(!stops.includes(activityKey('Gulmarg', disabled.name)), 'An unticked library sight leaked into the programme.');
+    assert.ok(plan.dayPlans[1].timing.issues.length || plan.dayPlans[1].timing.advisories?.length,
+      'An overfull selected programme must expose its timing review.');
+    const copy = dayNarrative(plan.dayPlans[1], 'Srinagar');
+    for (const item of chosen) assert.ok(copy.includes(item.name), `${item.name} disappeared from client copy.`);
+  });
+
+  test('a selected sightseeing line is retained independently of a separately unquoted paid activity', () => {
+    reset();
+    const selected = sight('Ticket-linked selected viewpoint', { requires_activity: 'Private cable experience' });
+    replaceDestinationCatalog(destinations.map((item) => item.name === 'Gulmarg' ? { ...item,
+      local_sightseeing: [selected], enabled_sightseeing: [selected.name], activities: ['Private cable experience'],
+      enabled_activities: ['Private cable experience'], activity_timing: { 'Private cable experience': { duration_minutes: 90 } },
+      activity_copy: { 'Private cable experience': 'Enjoy the privately arranged cable experience.' },
+    } : item));
+    const plan = setPlanDayTrip(planFor(['Srinagar', 'Srinagar'], { arrivalTime: '20:00', departureTime: '08:00' }), 2, 'Gulmarg');
+    const emptyQuote = { activityCosts: {}, activitySelections: {} };
+    const scheduled = reschedulePlan(plan, emptyQuote);
+    assert.ok(allocated(scheduled.dayPlans[1]).includes(activityKey('Gulmarg', selected.name)),
+      'A paid-activity dependency cannot erase an explicitly selected sightseeing line.');
+    assert.ok(scheduled.dayPlans.every((day) => !day.scheduledActivities.length), 'An unquoted paid activity was silently included.');
+    const copy = dayNarrative(scheduled.dayPlans[1], 'Srinagar', emptyQuote);
+    assert.ok(copy.includes(selected.name), 'The selected sightseeing line was erased while composing client copy.');
+    assert.doesNotMatch(copy, /privately arranged cable experience/i);
+  });
+
+  test('a Srinagar hotel base on an excursion day does not become a Srinagar sightseeing day', () => {
+    reset();
+    let plan = planFor(['Srinagar', 'Srinagar', 'Srinagar', 'Srinagar'], { arrivalTime: '20:00', departureTime: '08:00' });
+    plan = setPlanDayTrip(plan, 2, 'Gulmarg');
+    plan = setPlanDayTrip(plan, 4, 'Pahalgam');
+    const srinagarSights = destinationByName('Srinagar').local_sightseeing;
+    for (const index of [1, 3]) assert.ok(allocated(plan.dayPlans[index]).every((stop) => !stop.startsWith('Srinagar\u001f')),
+      `Day ${index + 1} became Srinagar sightseeing only because its hotel is there.`);
+    const localDay = allocated(plan.dayPlans[2]);
+    for (const item of srinagarSights) assert.ok(localDay.includes(activityKey('Srinagar', item.name)),
+      `${item.name} was deferred to a day that only uses Srinagar for its hotel.`);
+    const allStops = plan.dayPlans.flatMap(allocated);
+    assert.equal(new Set(allStops).size, allStops.length);
   });
 
   test('repeated overnight bases receive different places rather than duplicate sightseeing', () => {
@@ -99,7 +166,9 @@ try {
     const stops = plan.dayPlans.flatMap(allocated);
     assert.equal(new Set(stops).size, stops.length, 'A named sightseeing place was repeated.');
     const srinagarDays = plan.dayPlans.filter((day) => allocated(day).some((name) => name.startsWith('Srinagar\u001f')));
-    assert.ok(srinagarDays.length >= 3, 'Srinagar places should be shared across separate return visits.');
+    assert.ok(srinagarDays.length >= 2, 'Srinagar places should be shared across its dedicated sightseeing days.');
+    assert.ok(allocated(plan.dayPlans[3]).every((name) => !name.startsWith('Srinagar\u001f')),
+      'Returning to a Srinagar hotel must not convert the Pahalgam departure programme into Srinagar sightseeing.');
     assert.ok(plan.dayPlans[2].blocks.some((block) => /Valley excursion/.test(block.name)), 'The full Pahalgam day should contain the major excursions.');
   });
 
@@ -114,6 +183,40 @@ try {
     assert.match(dayNarrative(plan.dayPlans[2], 'Srinagar'), /Aru Valley excursion|Betaab Valley excursion/);
   });
 
+  test('Gulmarg to Srinagar finishes unused Gulmarg places without turning the hotel return into Srinagar sightseeing', () => {
+    reset();
+    const plan = planFor(['Gulmarg', 'Srinagar', 'Srinagar'], { arrivalTime: '09:00', departureTime: '08:00' });
+    const arrivalStops = allocated(plan.dayPlans[0]);
+    const returnStops = allocated(plan.dayPlans[1]);
+    assert.ok(returnStops.some((name) => name.startsWith('Gulmarg\u001f')), 'The return day should finish an unused Gulmarg place.');
+    assert.ok(returnStops.every((name) => !name.startsWith('Srinagar\u001f')), 'The overnight base alone cannot assign Srinagar sightseeing.');
+    assert.ok(returnStops.every((name) => !arrivalStops.includes(name)), 'The return day repeated a Gulmarg place already visited on arrival.');
+    assert.ok(allocated(plan.dayPlans[2]).some((name) => name.startsWith('Srinagar\u001f')), 'Dedicated Srinagar sightseeing belongs to the following local day.');
+    for (const place of destinationByName('Gulmarg').local_sightseeing) assert.equal(plan.dayPlans.flatMap(allocated)
+      .filter((name) => name === activityKey('Gulmarg', place.name)).length, 1, `${place.name} was not completed exactly once.`);
+  });
+
+  test('all selected Pahalgam places are split across the arrival and full day without losing a long visit', () => {
+    reset();
+    const nearby = [sight('Pahalgam nearby river'), sight('Pahalgam nearby market')];
+    const major = Array.from({ length: 8 }, (_, index) => sight(`Pahalgam major valley ${index + 1}`, {
+      visit_minutes: 150, transfer_minutes: 30, arrival_suitable: false, cluster: `valley-${index}`,
+    }));
+    const selected = [...nearby, ...major];
+    replaceDestinationCatalog(destinations.map((item) => item.name === 'Pahalgam' ? { ...item,
+      local_sightseeing: selected, enabled_sightseeing: selected.map((item) => item.name),
+    } : item));
+    const plan = planFor(['Gulmarg', 'Pahalgam', 'Pahalgam', 'Srinagar']);
+    const arrival = allocated(plan.dayPlans[1]);
+    const fullDay = allocated(plan.dayPlans[2]);
+    assert.ok(nearby.some((item) => arrival.includes(activityKey('Pahalgam', item.name))), 'The long transfer still needs a concrete nearby programme.');
+    assert.ok(major.every((item) => !arrival.includes(activityKey('Pahalgam', item.name))), 'Major valleys belong to the following full day.');
+    assert.ok(major.every((item) => fullDay.includes(activityKey('Pahalgam', item.name))), 'A selected major valley disappeared because of its duration.');
+    const all = plan.dayPlans.flatMap(allocated);
+    for (const item of selected) assert.equal(all.filter((name) => name === activityKey('Pahalgam', item.name)).length, 1,
+      `${item.name} was dropped or repeated across Pahalgam days.`);
+  });
+
   test('Sonamarg overnight permits an early checkout for a 13:00 Srinagar departure without extra sightseeing', () => {
     reset();
     const departure = planFor(['Srinagar', 'Sonamarg'], { departureTime: '13:00' }).dayPlans.at(-1);
@@ -122,6 +225,17 @@ try {
     assert.ok(departure.timing.startMinutes < 8 * 60 + 30, 'The transfer should start before the sightseeing day.');
     assert.equal(departure.timing.issues.length, 0, departure.timing.issues.join(' '));
     assert.equal(allocated(departure).length, 0, 'An early transfer must not also promise sightseeing.');
+  });
+
+  test('a 23:00 arrival and 08:00 departure retain the travel times and request a real visit day', () => {
+    reset();
+    const plan = planFor(['Srinagar'], { arrivalTime: '23:00', departureTime: '08:00' });
+    assert.equal(plan.input.arrivalTime, '23:00');
+    assert.equal(plan.input.departureTime, '08:00');
+    assert.ok(plan.dayPlans.every((day) => allocated(day).length === 0), 'Selected places cannot create sightseeing time between a late arrival and early flight.');
+    const reviews = plan.dayPlans.flatMap((day) => [...day.timing.issues, ...(day.timing.advisories || [])]);
+    assert.ok(reviews.some((message) => /selected programme.*visit day|selected.*(?:sight|place).*day/i.test(message)),
+      'When no actual visit day exists, the operator needs a selected-programme coverage review.');
   });
 
   test('late departure includes its newly allocated sightseeing in the client narrative', () => {
@@ -186,7 +300,52 @@ try {
     const sharedVisits = stops.filter((name) => shared.has(name));
     assert.ok(sharedVisits.length > 0, 'The route must actually schedule a shared garden.');
     assert.equal(new Set(sharedVisits).size, sharedVisits.length, 'A physical garden was repeated under a different destination record.');
-    assert.ok(plan.dayPlans[1].blocks.some((block) => block.destination === cluster.name && block.sights?.length), 'The selected garden excursion must receive actual sights.');
+    assert.equal(plan.dayPlans[1].dayTripDestination, cluster.name, 'Deduplicating gardens must not change the selected excursion.');
+  });
+
+  test('physical aliases do not repeat a lake visit through different destination records', () => {
+    reset();
+    const names = { Srinagar: ['Nigeen Lake', 'Dal Lake & Boulevard'], 'Nigeen Lake': ['Nigeen-Lake'], 'Dal Lake': ['Dal Lake waterfront'] };
+    replaceDestinationCatalog(destinations.map((item) => names[item.name] ? { ...item,
+      local_sightseeing: names[item.name].map((name) => sight(name)), enabled_sightseeing: names[item.name],
+    } : item));
+    let plan = planFor(['Srinagar', 'Srinagar', 'Srinagar'], { arrivalTime: '06:00', departureTime: '20:00' });
+    plan = setPlanDayTrip(plan, 2, 'Nigeen Lake');
+    plan = setPlanDayTrip(plan, 3, 'Dal Lake');
+    const stops = plan.dayPlans.flatMap(allocated).map((name) => name.split('\u001f')[1]);
+    assert.equal(stops.filter((name) => /Nigeen[- ]Lake/i.test(name)).length, 1, 'Punctuation changed the identity of the same lake.');
+    assert.equal(stops.filter((name) => /^Dal Lake (?:& Boulevard|waterfront)$/i.test(name)).length, 1,
+      'The waterfront and Boulevard aliases repeated the same Dal Lake visit.');
+  });
+
+  test('saving and reloading a complete selected programme does not change coverage or accumulate reviews', () => {
+    reset();
+    let plan = planFor(['Srinagar', 'Gulmarg', 'Pahalgam', 'Pahalgam', 'Srinagar'], { arrivalTime: '20:00', departureTime: '08:00' });
+    plan = setPlanDayTrip(plan, 5, 'Sonamarg');
+    const first = reschedulePlan(plan, { activityCosts: {}, activitySelections: {} });
+    const restored = reschedulePlan(JSON.parse(JSON.stringify(first)), { activityCosts: {}, activitySelections: {} });
+    assert.deepEqual(JSON.parse(JSON.stringify(restored.dayPlans)), JSON.parse(JSON.stringify(first.dayPlans)),
+      'A saved programme drifted when it was reopened.');
+    const names = restored.dayPlans.flatMap(allocated);
+    assert.equal(new Set(names).size, names.length, 'Reloading introduced repeated visits.');
+  });
+
+  test('an eight-day journey retains every enabled core-library sightseeing line in client descriptions', () => {
+    replaceDestinationCatalog(original.map((item) => fixtureNames.includes(item.name) ? { ...item,
+      enabled_sightseeing: item.local_sightseeing.map((place) => place.name),
+    } : item));
+    const plan = planFor(['Srinagar', 'Gulmarg', 'Srinagar', 'Pahalgam', 'Pahalgam', 'Srinagar', 'Sonamarg'], {
+      arrivalTime: '09:00', departureTime: '18:30',
+    });
+    const stops = plan.dayPlans.flatMap(allocated);
+    for (const destination of destinations.filter((item) => fixtureNames.includes(item.name))) for (const place of destination.local_sightseeing) {
+      assert.equal(stops.filter((name) => name === activityKey(destination.name, place.name)).length, 1,
+        `${destination.name}: ${place.name} was dropped or repeated in the actual library programme.`);
+      const assignedDay = plan.dayPlans.find((day) => allocated(day).includes(activityKey(destination.name, place.name)));
+      const sentence = place.client_sentence || `Visit ${place.name}.`;
+      assert.ok(dayNarrative(assignedDay, 'Srinagar', { activityCosts: {}, activitySelections: {} }).includes(sentence),
+        `${destination.name}: ${place.name} was allocated but its planned itinerary sentence is absent from client copy.`);
+    }
   });
 
   test('spring-autumn places remain eligible during summer without an explicit availability override', () => {
@@ -216,6 +375,30 @@ try {
     assert.equal(timing.remainingMinutes, timing.availableMinutes - timing.driveMinutes - timing.serviceMinutes - timing.scheduledMinutes,
       'Extending the morning must preserve the timing budget.');
     assert.ok(timing.remainingMinutes >= 0);
+  });
+
+  test('a late local departure can cover a dawn market before its airport transfer', () => {
+    reset();
+    const market = sight('Departure-morning market', { client_sentence: 'Visit the Departure-morning market during the early-morning lake excursion.',
+      visit_minutes: 60, transfer_minutes: 15, arrival_suitable: false, time_window: { start: 360, end: 480 } });
+    replaceDestinationCatalog(destinations.map((item) => item.name === 'Srinagar' ? { ...item,
+      local_sightseeing: [market], enabled_sightseeing: [market.name],
+    } : item));
+    const plan = planFor(['Srinagar'], { arrivalTime: '20:00', departureTime: '20:00' });
+    assert.equal(allocated(plan.dayPlans[0]).length, 0, 'The preceding evening arrival cannot consume the morning market.');
+    const departure = plan.dayPlans.at(-1);
+    const stop = departure.blocks.find((block) => block.name === market.name);
+    assert.ok(stop, 'The departure morning must retain the selected market when there is enough time before the flight.');
+    assert.equal(stop.startMinute, 360, 'The market must be placed at the dedicated 06:00 start.');
+    assert.equal(departure.timing.startMinutes, 360);
+    assert.equal(plan.dayPlans.flatMap(allocated).filter((name) => name === activityKey('Srinagar', market.name)).length, 1);
+    const copy = dayNarrative(departure, 'Srinagar');
+    assert.ok(copy.includes(market.client_sentence));
+    assert.ok(copy.indexOf(market.client_sentence) < copy.indexOf('Your driver will transfer'),
+      'The client must visit the dawn market before the departure transfer.');
+    assert.equal(departure.timing.issues.length, 0, departure.timing.issues.join(' '));
+    const earlyFlight = planFor(['Srinagar'], { arrivalTime: '20:00', departureTime: '08:00' });
+    assert.ok(earlyFlight.dayPlans.every((day) => allocated(day).length === 0), 'An 08:00 flight cannot also promise the dawn market.');
   });
 
   test('a priced hotel-base activity can use spare time after an excursion without moving the hotel', () => {

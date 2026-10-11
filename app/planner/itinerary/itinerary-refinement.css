@@ -1,5 +1,5 @@
 .itinerary-day-context{display:flex;flex-wrap:wrap;gap:10px 24px;padding:14px 0 20px;margin-left:62px;color:#756c5f;font-size:.85rem;border-top:1px solid #eee6d8}
-.itinerary-day-context>span{display:inline-flex;align-items:center;gap:8px;line-height:1.5}
+.itinerary-day-context>span{display:inline-flex;align-items:center;gap:8px;line-height:1.5;min-width:0;overflow-wrap:anywhere}
 .itinerary-day-context svg{flex-shrink:0;color:#9b7a3a}
 .itinerary-planning-alert{display:flex;gap:13px;padding:20px 24px;margin:0 0 24px;background:#fff8e9;border:1px solid #e8d5a9;border-radius:18px;color:#705721}
 .itinerary-planning-alert>svg{flex-shrink:0;margin-top:2px}
@@ -13,3 +13,12 @@
 .itinerary-previous-copy p{margin:12px 0;line-height:1.7}
 .itinerary-previous-copy blockquote{margin:12px 0 16px;padding-left:15px;border-left:2px solid #cdb584;font-style:italic;line-height:1.8}
 @media(max-width:640px){.itinerary-day-context{margin-left:0;padding-top:12px;gap:9px;font-size:.8rem}.itinerary-day-context>span{width:100%}.itinerary-planning-alert{padding:16px;gap:10px}.itinerary-previous-copy{padding:14px}}
+.itinerary-planning-window{display:flex;align-items:center;gap:8px;margin-top:16px;color:#756c5f;font-size:.82rem;line-height:1.6}
+.itinerary-planning-window svg{flex-shrink:0;color:#9b7a3a}
+.itinerary-planning-window b{color:#62513a;font-weight:600}
+.itinerary-planning-estimates{margin:0 0 20px 62px;color:#756c5f;font-size:.82rem;line-height:1.7;overflow-wrap:anywhere}
+.itinerary-planning-estimates summary{display:list-item;cursor:pointer;font-weight:600;list-style-position:inside}
+.itinerary-planning-estimates summary svg{display:inline-block;vertical-align:-2px;margin:0 6px 0 2px;color:#9b7a3a}
+.itinerary-planning-estimates p{margin:9px 0}
+.itinerary-planning-estimates ul{margin:9px 0 0;padding-left:19px}
+@media(max-width:640px){.itinerary-planning-window{align-items:flex-start;font-size:.78rem}.itinerary-planning-window svg{margin-top:4px}.itinerary-planning-estimates{margin-left:0;font-size:.8rem}}

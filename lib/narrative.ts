@@ -1,4 +1,4 @@
-import { destinationByName, enabledSightseeing, type Destination } from '@/lib/data';
+import { destinationByName, type Destination } from '@/lib/data';
 import type { DayBlock, DayPlan } from '@/lib/itinerary';
 import { quotedActivityCost } from '@/lib/activities';
 
@@ -67,7 +67,7 @@ const destinationStory: Record<string,string> = {
   Gurez: 'Discover the mountain-village landscape of Gurez.',
 };
 export function defaultDayNote(destination: Destination) {
-  return destinationStory[destination.name] || destination.description || `Enjoy ${destination.name} at a comfortable pace.`;
+  return destinationStory[destination.name] || destination.description || `Explore ${destination.name}.`;
 }
 
 export function dayTitle(day: DayPlan, pickup: string) {
@@ -95,13 +95,13 @@ function blockDestination(block: DayBlock, day: DayPlan) {
 }
 
 function plannedStops(day: DayPlan, destination: string) {
-  return day.blocks.filter((block) => block.kind !== 'arrival' && block.kind !== 'departure' && block.kind !== 'free-time'
+  return [...new Set(day.blocks.filter((block) => block.kind !== 'arrival' && block.kind !== 'departure' && block.kind !== 'free-time'
     && !['EXTRA', 'EXCLUDED', 'OPTIONAL'].includes(block.intelligence?.status || '')
     && blockDestination(block, day) === destination).flatMap((block) => {
       if (block.sights !== undefined) return block.sights;
       if (block.name.toLowerCase().endsWith('day trip')) return block.intelligence?.note?.match(/(?:Template|Planned) highlights: (.+?)\.?$/i)?.[1]?.split(' · ') || [];
       return [block.name];
-    });
+    }))];
 }
 
 function referencedPlaces(text: string, destination: NonNullable<ReturnType<typeof destinationByName>>) {
@@ -145,7 +145,7 @@ export function activitySentence(raw: string) {
   return `Enjoy ${article}${lower}.`;
 }
 
-function visitCopy(day: DayPlan, destination: string, planned: string[], quote?: NarrativeQuote) {
+function visitCopy(day: DayPlan, destination: string, planned: string[], quote?: NarrativeQuote, options: { introduction?: boolean; activitiesOnly?: boolean } = {}) {
   const guide = destinationByName(destination);
   const primary = day.primaryVisitFor?.includes(destination) ?? day.dayTripDestination === destination;
   // Scheduled activities are authoritative, including an explicitly empty
@@ -159,13 +159,11 @@ function visitCopy(day: DayPlan, destination: string, planned: string[], quote?:
     : quote && guide ? guide.activities.filter((name) => quotedActivityCost(
       quote.activityCosts, { key: `${destination}\u001f${name}`, destination, name, available: (guide.enabled_activities || []).includes(name) }, quote.activitySelections || {},
     ) !== null) : [];
-  const activeSights = guide ? new Set(enabledSightseeing(guide)) : null;
-  const clientStops = planned.filter((name) => {
-    if (activeSights && !activeSights.has(name)) return false;
+  // The scheduler has already applied the library selection and distributed
+  // every assigned place. Copy must not impose another availability, season or
+  // paid-activity gate that silently removes part of that programme.
+  const clientStops = (options.activitiesOnly ? [] : planned).filter((name) => {
     const sight = guide?.local_sightseeing.find((item) => item.name === name);
-    // Dependencies come from the same library records as the scheduler. A
-    // price change must not leave an activity-dependent visit in client copy.
-    if (sight?.requires_activity && !quotedActivities.includes(sight.requires_activity)) return false;
     // A linked activity's authored sentence can already describe its sight.
     // Keep either that complete sentence or the sight sentence, once each.
     return !quotedActivities.some((activity) => {
@@ -178,10 +176,15 @@ function visitCopy(day: DayPlan, destination: string, planned: string[], quote?:
     });
   });
   const noteSource = guide ? guide.day_note?.trim() || defaultDayNote(guide) : '';
-  const noteSentences = primary && noteSource
+  // An overnight hotel does not create an additional sightseeing programme.
+  // Introduce a destination only on its main visit, with actual assigned places
+  // or experiences, rather than repeating its guide whenever the hotel is here.
+  const hasProgramme = clientStops.length > 0 || quotedActivities.length > 0;
+  const noteSentences = options.introduction !== false && hasProgramme && primary && noteSource
     ? (noteSource.match(/[^.!?]+[.!?]?/g) || []).map((sentence) => sentence.trim()).filter((sentence) => {
       if (/\b(after breakfast|check out|check in|overnight|drive to|return to|departure|pick-up|pickup)\b/i.test(sentence)) return false;
       if (/\b(confirm|subject to|weather|road access|availability|provisional)\b/i.test(sentence)) return false;
+      if (/\b(own pace|at leisure|rest of the day|free time|comfortable pace)\b/i.test(sentence)) return false;
       if (quote && /gondola|shikara|pony ride|horse rid|rafting|skiing|snowboarding/i.test(sentence)) return false;
       // A place gets its own authored sentence below; the introduction should
       // never consume or duplicate one of those selected sightseeing lines.
@@ -201,8 +204,16 @@ function visitCopy(day: DayPlan, destination: string, planned: string[], quote?:
     return authored ? /[.!?]$/.test(authored) ? authored : `${authored}.` : activitySentence(name);
   };
   const early = (name: string) => (guide?.activity_timing?.[name]?.time_window?.end ?? 1440) <= 8 * 60;
-  const earlyText = experiences.filter(early).map(sentenceForActivity).filter(Boolean).join(' ');
-  const experienceText = experiences.filter((name) => !early(name)).map(sentenceForActivity).filter(Boolean).join(' ');
+  const uniqueSentences = new Set(clientStops.map((name) => sightseeingSentence(
+    guide?.local_sightseeing.find((sight) => sight.name === name) || { name, description: '' },
+  ).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()));
+  const activityCopy = (names: string[]) => names.map(sentenceForActivity).filter((sentence) => {
+    const identity = sentence.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+    if (!identity || uniqueSentences.has(identity)) return false;
+    uniqueSentences.add(identity); return true;
+  }).join(' ');
+  const earlyText = activityCopy(experiences.filter(early));
+  const experienceText = activityCopy(experiences.filter((name) => !early(name)));
   return [note, earlyText, stops, experienceText].filter(Boolean).join(' ');
 }
 
@@ -241,8 +252,10 @@ export function dayNarrative(day: DayPlan, pickup: string, quote?: NarrativeQuot
       : day.transfer
         ? `After breakfast, check out from your ${day.from} hotel.`
         : `After breakfast, begin your day from ${day.stay}.`;
-    const originCopy = day.from !== destination && day.from !== day.stay ? visitCopy(day, day.from, plannedStops(day, day.from), quote) : '';
-    const hotelBaseCopy = day.stay !== destination ? visitCopy(day, day.stay, plannedStops(day, day.stay), quote) : '';
+    const originCopy = day.from !== destination && day.from !== day.stay
+      ? visitCopy(day, day.from, [], quote, { introduction: false, activitiesOnly: true }) : '';
+    const hotelBaseCopy = day.stay !== destination
+      ? visitCopy(day, day.stay, [], quote, { introduction: false, activitiesOnly: true }) : '';
     const returnTransfer = day.transfer
       ? `Continue to ${day.stay} and check in to your hotel.`
       : `Return to ${day.stay} after your visit.`;
@@ -253,7 +266,8 @@ export function dayNarrative(day: DayPlan, pickup: string, quote?: NarrativeQuot
   }
 
   const localStops = plannedStops(day, day.stay);
-  const destinationCopy = visitCopy(day, day.stay, localStops, quote);
+  const hotelReturn = day.transfer && day.stay === 'Srinagar' && day.from !== day.stay;
+  const destinationCopy = visitCopy(day, day.stay, localStops, quote, { introduction: !hotelReturn });
   if (day.day === 1) {
     const arrivalMinutes = day.arrivalTime && /^\d{2}:\d{2}$/.test(day.arrivalTime)
       ? Number(day.arrivalTime.slice(0, 2)) * 60 + Number(day.arrivalTime.slice(3)) : null;
