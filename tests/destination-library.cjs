@@ -70,11 +70,12 @@ try {
   assert.ok(offLists.excluded.includes('Airfare'));
   assert.ok(offLists.included.includes('Welcome dinner'));
   assert.ok(!offLists.included.includes('Srinagar: Shikara ride'));
-  assert.equal(offLists.excluded.length, 2, 'Only explicitly excluded activities and manual exclusions should be printed.');
-  assert.deepEqual(clientActivityLists(plan, {}, {}).excluded, [], 'Untouched activities should not become a long client exclusion list.');
+  assert.equal(offLists.excluded.length, 4, 'Explicit choices and short library defaults should print once; manual Airfare suppresses its duplicate.');
+  const defaultExclusions = ['Personal expenses such as laundry, shopping and tips.', 'Airfare.', 'Train tickets.'];
+  assert.deepEqual(clientActivityLists(plan, {}, {}).excluded, defaultExclusions, 'Untouched activities should add no exclusions beyond the short library defaults.');
   const allPriced = Object.fromEntries(tripActivities(plan).map((activity) => [activity.key, 0]));
   const allSelected = Object.fromEntries(tripActivities(plan).map((activity) => [activity.key, true]));
-  assert.deepEqual(clientActivityLists(plan, allPriced, allSelected).excluded, [], 'No exclusions should be generated when every listed activity is included.');
+  assert.deepEqual(clientActivityLists(plan, allPriced, allSelected).excluded, defaultExclusions, 'Including all activities leaves only the library defaults.');
   assert.ok(!clientActivityLists(plan, {}, { [shikara.key]: true }).included.includes('Srinagar: Shikara ride'), 'A selected but unpriced activity cannot be included.');
   replaceDestinationCatalog([{ ...edited, enabled_activities: ['Shikara ride'] }, ...original.filter((item) => item.name !== 'Srinagar')]);
   const selectedShikara = tripActivities(plan).find((activity) => activity.key === shikara.key);

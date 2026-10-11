@@ -1,5 +1,6 @@
 /* Render a representative client PDF through the same builder used by the UI. */
 const fs = require('node:fs');
+const assert = require('node:assert/strict');
 const os = require('node:os');
 const path = require('node:path');
 const Module = require('node:module');
@@ -21,8 +22,28 @@ for (const extension of ['.ts', '.tsx']) {
   };
 }
 
+// Record the text actually sent to jsPDF. Embedded custom fonts use glyph IDs
+// in the PDF stream, so searching its bytes would miss accidental client copy.
+const jspdf = require('jspdf');
+const NativeJsPDF = jspdf.jsPDF;
+jspdf.jsPDF = function InspectedJsPDF(options) {
+  const doc = new NativeJsPDF(options);
+  doc.clientText = [];
+  const text = doc.text;
+  doc.text = function (value, x, y, ...args) {
+    doc.clientText.push({
+      page: doc.internal.getCurrentPageInfo().pageNumber,
+      text: Array.isArray(value) ? value.flat(Infinity).join('\n') : String(value),
+      x, y, font: doc.getFont().fontName, size: doc.getFontSize(),
+    });
+    return text.call(this, value, x, y, ...args);
+  };
+  return doc;
+};
+
 const { createPlan, rebuildPlanFromNightSequence, setPlanDayTrip, setPlanDeparturePoint } = require('../lib/itinerary.ts');
 const { calculateCosts } = require('../lib/costing.ts');
+const { clientActivityLists } = require('../lib/activities.ts');
 const { buildClientPdf } = require('../components/ClientPdf.tsx');
 const input = {
   name: 'QA Traveller', arrival: '2026-10-03', departure: '2026-10-10', pickup: 'Srinagar',
@@ -46,7 +67,7 @@ const costs = calculateCosts(plan, selections, { transportDaily: 8000, otherAmou
 const artFiles = {
   cover: 'branded-cover.png', letter: 'branded-letter.jpg', summary: 'branded-summary.jpg',
   daywise: 'standard-daywise.jpg', package: 'branded-package.jpg', hotels: 'branded-hotels.jpg',
-  inclusions: 'branded-inclusions.jpg', exclusions: 'branded-exclusions.jpg', policies: 'branded-policies.jpg',
+  inclusions: 'client-inclusions.jpg', exclusions: 'client-exclusions.jpg', policies: 'branded-policies.jpg',
   testimonials: 'branded-testimonials.jpg', thanks: 'standard-thanks.jpg',
 };
 const art = Object.fromEntries(Object.entries(artFiles).map(([key, file]) => {
@@ -61,9 +82,52 @@ const fonts = {
   bold: fs.readFileSync(path.join(root, 'public', 'fonts', 'Evolventa-Bold.ttf')).toString('base64'),
   cover: fs.readFileSync(path.join(root, 'public', 'fonts', 'RedHatDisplay-400.ttf')).toString('base64'),
 };
-const doc = buildClientPdf(art, plan, input, selections, costs, input.name, fonts);
+const activityLists = clientActivityLists(plan, {}, {});
+const doc = buildClientPdf(art, plan, input, selections, costs, input.name, fonts, activityLists);
+const emptyLists = buildClientPdf(art, plan, input, selections, costs, input.name, fonts, { included: [], excluded: [] });
 const withExclusion = buildClientPdf(art, plan, input, selections, costs, input.name, fonts, { included: [], excluded: ['Airfare'] });
-if (withExclusion.getNumberOfPages() !== doc.getNumberOfPages() + 1) throw new Error('The client exclusion page should appear only when there are explicit exclusions.');
+assert.equal(withExclusion.getNumberOfPages(), emptyLists.getNumberOfPages() + 1,
+  'An empty exclusion list must omit its page; an explicit exclusion must add it.');
+assert.ok(doc.clientText.some((entry) => entry.text === `${plan.nights} Nights / ${plan.days} Days`),
+  'Removing hotel night labels must keep the tour duration in its summary.');
+assert.ok(doc.clientText.some((entry) => entry.text === `${plan.nights}N/${plan.days}D Trip Investments`),
+  'The package investment section must retain its trip duration.');
+
+const hotelPages = doc.clientText.filter((entry) => entry.text === 'Destination').map((entry) => entry.page);
+assert.ok(hotelPages.length > 0, 'The hotel table needs its destination column.');
+for (const page of hotelPages) {
+  const entries = doc.clientText.filter((entry) => entry.page === page);
+  assert.ok(entries.some((entry) => entry.text === 'Hotel'), 'The second hotel-table column must name the hotel.');
+  assert.ok(!entries.some((entry) => /^Nights\s+\d|\s\d+N$/.test(entry.text)),
+    'Hotel rows must show only the destination and hotel name, without night counts or numbers.');
+}
+for (const hotel of selections) {
+  assert.ok(doc.clientText.some((entry) => hotelPages.includes(entry.page) && entry.text === hotel.location),
+    `${hotel.location} must remain visible in the hotel table.`);
+  assert.ok(doc.clientText.some((entry) => hotelPages.includes(entry.page) && entry.text === hotel.hotelName),
+    `${hotel.hotelName} must remain visible in the hotel table.`);
+}
+
+const normalize = (value) => value.replace(/\s+/g, ' ').trim().replace(/[.!?]$/, '').toLowerCase();
+for (const [key, heading] of [['inclusions', 'YOUR PACKAGE INCLUDES'], ['exclusions', 'NOT INCLUDED IN THIS PACKAGE']]) {
+  const listPages = doc.clientText.filter((entry) => entry.text === heading).map((entry) => entry.page);
+  const expected = activityLists[key === 'inclusions' ? 'included' : 'excluded'];
+  for (const item of expected) {
+    assert.ok(doc.clientText.some((entry) => listPages.includes(entry.page) && normalize(entry.text) === normalize(item)),
+      `A configured ${key} clause did not reach the client PDF: ${item}`);
+  }
+  for (const page of listPages) {
+    const body = doc.clientText.filter((entry) => entry.page === page && entry.y >= 158 && entry.text !== '•');
+    const unique = new Set(body.map((entry) => normalize(entry.text)));
+    assert.equal(unique.size, body.length, 'The package list must not repeat the same clause.');
+    assert.ok(body.every((entry) => entry.font === 'evolventa' && entry.size >= 11),
+      'Package clauses must retain the reference font and readable text size.');
+    assert.ok(body.every((entry) => entry.y <= 696), 'Package text must stay above the footer.');
+  }
+  const image = doc.getImageProperties(art[key]);
+  assert.ok(image.width >= 2250 && image.height >= 3250,
+    'Inclusion and exclusion artwork must keep at least the existing 300 DPI resolution.');
+}
 const target = path.join(os.tmpdir(), 'chakar-client-pdf-check.pdf');
 fs.writeFileSync(target, Buffer.from(doc.output('arraybuffer')));
 if (doc.getNumberOfPages() < 10 || costs.sellingTotal <= 0) throw new Error('Client PDF is incomplete.');

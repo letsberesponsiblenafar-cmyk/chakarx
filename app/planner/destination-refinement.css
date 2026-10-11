@@ -38,5 +38,16 @@
 .destination-route-research b{color:#5e4b32}
 .destination-route-research p{margin:5px 0;font-size:12px!important}
 .destination-route-research a{display:inline-block;margin-right:14px;color:#8a682e;text-underline-offset:3px;overflow-wrap:anywhere}
+.destination-package-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.destination-package-column{min-width:0}
+.destination-package-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px}
+.destination-package-column h3{font-family:var(--serif);font-size:25px;font-weight:500;color:#4a3824;margin:0}
+.destination-package-heading .secondary-link{font-size:12px;white-space:nowrap}
+.destination-package-column .destination-option-row{align-items:start}
+.destination-package-column .destination-option-row textarea{min-height:64px}
+.destination-package-summary{margin-top:21px}
+.destination-package-summary ul{padding-left:20px;margin:12px 0 0;color:#66553e;font-size:14px;line-height:1.65}
+.destination-package-summary li+li{margin-top:8px}
+@media(max-width:760px){.destination-package-grid{grid-template-columns:1fr;gap:25px}}
 @media(max-width:760px){.journey-refinement .journey-day-main{padding:18px}.journey-refinement .journey-day-heading h3{font-size:22px}.journey-refinement .journey-day-heading{align-items:flex-start}.journey-refinement .journey-day-index{padding-top:21px}.journey-route-line{gap:9px;padding:13px}.journey-route-line strong{font-size:13px}.journey-refinement .journey-choice select{font-size:14px}.journey-refinement .journey-intro{padding:22px}.destination-place-timing .destination-editor-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:520px){.journey-refinement .journey-day{grid-template-columns:1fr}.journey-refinement .journey-day-index{display:none}.journey-refinement .journey-day-main{padding:18px 16px}.journey-refinement .journey-day-heading{gap:9px}.journey-refinement .journey-day-heading h3{font-size:23px}.journey-refinement .journey-kind{padding:5px 8px}.journey-route-line{gap:6px;padding:13px 10px}.journey-route-line>div>span{font-size:8px;letter-spacing:.035em}.journey-route-line strong{font-size:13px}.journey-time-line{font-size:10px;margin-bottom:18px}.destination-place-timing .destination-editor-grid{grid-template-columns:1fr}}

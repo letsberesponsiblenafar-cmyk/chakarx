@@ -1,4 +1,4 @@
-import { enrichDestination, type Destination, type HubRoute, type VisitWindow } from '@/lib/data';
+import { enrichDestination, packageTermKey, type Destination, type HubRoute, type VisitWindow } from '@/lib/data';
 
 const string = (value: unknown, label: string, max = 500) => {
   if (typeof value !== 'string' || value.trim().length > max) throw new Error(`${label} must be text under ${max} characters.`);
@@ -80,6 +80,12 @@ export function validateDestination(raw: unknown): Destination {
   unique(activities, 'Activity');
   const enabled_things_to_do = enabled_sightseeing ?? sightNames;
   const enabled_activities = list(d.enabled_activities ?? [], 'Enabled activities').filter((x) => activities.includes(x));
+  const default_inclusions = d.default_inclusions === undefined ? undefined : list(d.default_inclusions, 'Default inclusions');
+  const default_exclusions = d.default_exclusions === undefined ? undefined : list(d.default_exclusions, 'Default exclusions');
+  unique(default_inclusions || [], 'Default inclusion');
+  unique(default_exclusions || [], 'Default exclusion');
+  const inclusionKeys = new Set((default_inclusions || []).map(packageTermKey));
+  if ((default_exclusions || []).some((item) => inclusionKeys.has(packageTermKey(item)))) throw new Error('The same item cannot be both a default inclusion and exclusion.');
   const rawActivityCopy = d.activity_copy && typeof d.activity_copy === 'object' && !Array.isArray(d.activity_copy) ? d.activity_copy as Record<string, unknown> : {};
   const activity_copy = Object.fromEntries(activities.map((name) => [name, string(rawActivityCopy[name] ?? '', `${name} client sentence`, 500)]));
   const rawTiming = d.activity_timing && typeof d.activity_timing === 'object' ? d.activity_timing as Record<string, Record<string, unknown>> : {};
@@ -90,7 +96,7 @@ export function validateDestination(raw: unknown): Destination {
     min_days, ideal_days, max_days, min_nights, ideal_nights, max_nights,
     overnight_allowed: Boolean(d.overnight_allowed), season: string(d.season, 'Season', 80), access: string(d.access, 'Access', 80),
     source: string(d.source, 'Source', 200), description: string(d.description, 'Description', 2500), day_note: string(d.day_note ?? '', 'About this day', 2500),
-    highlights: list(d.highlights, 'Highlights'), local_sightseeing, things_to_do, activities, activity_copy, activity_timing, hub_route: hubRoute(d.hub_route), enabled_things_to_do, enabled_sightseeing, enabled_activities,
+    highlights: list(d.highlights, 'Highlights'), local_sightseeing, things_to_do, activities, activity_copy, activity_timing, hub_route: hubRoute(d.hub_route), enabled_things_to_do, enabled_sightseeing, enabled_activities, default_inclusions, default_exclusions,
     photoQuery: string(d.photoQuery, 'Photo query', 150), sites: Array.isArray(d.sites) ? d.sites as Destination['sites'] : [],
     base: Boolean(d.base), cluster: string(d.cluster, 'Cluster', 80),
     srinagar_hours: distance(d.srinagar_hours, 'Drive hours from Srinagar'),

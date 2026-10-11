@@ -2,16 +2,18 @@
 import Link from 'next/link';
 import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import type { Destination, VisitWindow } from '@/lib/data';
+import { destinationPackageDefaults, type Destination, type VisitWindow } from '@/lib/data';
 import { activitySentence, defaultDayNote, sightseeingSentence } from '@/lib/narrative';
 import '@/app/planner/destination-refinement.css';
 
 type Sight = Destination['local_sightseeing'][number];
 function newDestination(): Destination {
-  return { id: crypto.randomUUID(), name: '', tier: 'Secondary', district: '', tags: [], min_days: 1, ideal_days: 1, max_days: 3,
+  const destination: Destination = { id: crypto.randomUUID(), name: '', tier: 'Secondary', district: '', tags: [], min_days: 1, ideal_days: 1, max_days: 3,
     min_nights: 0, ideal_nights: 1, max_nights: 2, overnight_allowed: true, season: 'all', access: 'standard', source: 'Chakar destination library',
     description: '', day_note: '', highlights: [], local_sightseeing: [], things_to_do: [], activities: [], activity_copy: {}, activity_timing: {}, enabled_things_to_do: [], enabled_activities: [],
     photoQuery: '', sites: [], base: true, cluster: 'other' };
+  const defaults = destinationPackageDefaults(destination);
+  return { ...destination, default_inclusions: [...defaults.included], default_exclusions: [...defaults.excluded] };
 }
 
 const clock = (minutes?: number) => minutes === undefined ? '' : `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
@@ -35,6 +37,7 @@ export default function DestinationEditor({ initial, onSaved }: { initial?: Dest
     things_to_do: [...initial.things_to_do], activities: [...initial.activities], activity_copy: { ...(initial.activity_copy || {}) }, activity_timing: { ...(initial.activity_timing || {}) },
     enabled_sightseeing: initial.enabled_sightseeing === undefined ? undefined : [...initial.enabled_sightseeing],
     enabled_things_to_do: [...(initial.enabled_things_to_do || [])], enabled_activities: [...(initial.enabled_activities || [])],
+    default_inclusions: [...destinationPackageDefaults(initial).included], default_exclusions: [...destinationPackageDefaults(initial).excluded],
   } : newDestination());
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -93,6 +96,8 @@ export default function DestinationEditor({ initial, onSaved }: { initial?: Dest
     const destination: Destination = { ...draft, name: draft.name.trim(), district: draft.district.trim(), day_note: (draft.day_note || '').trim(),
       description: draft.description || (draft.day_note || '').trim(), photoQuery: draft.photoQuery.trim() || `${draft.name.trim()} Kashmir`,
       local_sightseeing, things_to_do, activities, activity_copy, activity_timing, enabled_sightseeing,
+      default_inclusions: (draft.default_inclusions || []).map((item) => item.trim()).filter(Boolean),
+      default_exclusions: (draft.default_exclusions || []).map((item) => item.trim()).filter(Boolean),
       enabled_things_to_do: enabled_sightseeing ?? things_to_do,
       enabled_activities: (draft.enabled_activities || []).map((item) => item.trim()).filter((item) => activities.includes(item)) };
     setSaving(true);
@@ -127,6 +132,9 @@ export default function DestinationEditor({ initial, onSaved }: { initial?: Dest
           <label className="destination-activity-duration">Activity duration (minutes)<input type="number" min="1" max="1440" step="1" value={draft.activity_timing?.[item]?.duration_minutes ?? ''} onChange={(event) => setDraft((current) => ({ ...current, activity_timing: { ...(current.activity_timing || {}), [item]: { ...(current.activity_timing?.[item] || {}), duration_minutes: event.target.value ? Number(event.target.value) : undefined } } }))} placeholder="e.g. 90"/><small>Reserved within the day’s available time when this activity is included.</small></label><details className="destination-place-timing"><summary>Visit time window</summary><VisitWindowFields value={draft.activity_timing?.[item]?.time_window} onChange={(time_window) => setDraft((current) => ({ ...current, activity_timing: { ...current.activity_timing, [item]: { ...current.activity_timing?.[item], time_window } } }))}/></details>
         </div>)}</div>
         {!draft.activities.length && <p className="destination-form-empty">No activities yet. Add one above.</p>}
+      </section>
+      <section className="destination-form-section"><div className="destination-form-section-head"><div><span className="eyebrow">CLIENT PACKAGE</span><h2>Default inclusions &amp; exclusions</h2><p>These lines appear once in the client PDF when this destination is visited. Trip-specific activity and manual choices take priority. Hotels, meals and transport are added from the quote.</p></div></div>
+        <div className="destination-package-grid">{(['default_inclusions', 'default_exclusions'] as const).map((key) => <div className="destination-package-column" key={key}><div className="destination-package-heading"><h3>{key === 'default_inclusions' ? 'Included' : 'Excluded'}</h3><button type="button" className="secondary-link" onClick={() => change(key, [...(draft[key] || []), ''])}><Plus size={15}/> Add line</button></div><div className="destination-option-list">{(draft[key] || []).map((item, index) => <div className="destination-option-row destination-option-row-simple" key={index}><textarea rows={2} aria-label={`${key === 'default_inclusions' ? 'Default inclusion' : 'Default exclusion'} ${index + 1}`} value={item} maxLength={300} onChange={(event) => change(key, (draft[key] || []).map((line, position) => position === index ? event.target.value : line))} placeholder="One clear client-facing line"/><button type="button" className="destination-row-remove" aria-label={`Remove ${key === 'default_inclusions' ? 'inclusion' : 'exclusion'} ${index + 1}`} onClick={() => change(key, (draft[key] || []).filter((_, position) => position !== index))}><Trash2 size={16}/></button></div>)}</div>{!(draft[key] || []).length && <p className="destination-form-empty">No default {key === 'default_inclusions' ? 'inclusions' : 'exclusions'}. Only the trip’s own choices will be used.</p>}</div>)}</div>
       </section>
       <details className="destination-form-section destination-advanced"><summary>Trip planning settings</summary><div className="destination-editor-grid destination-number-grid">
         {(['min_days','ideal_days','max_days','min_nights','ideal_nights','max_nights'] as const).map((key) => <label key={key}>{key.replace(/_/g, ' ')}<input type="number" min="0" max="30" value={draft[key]} onChange={(event) => change(key, Number(event.target.value))}/></label>)}
