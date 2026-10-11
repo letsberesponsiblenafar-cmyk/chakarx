@@ -57,25 +57,11 @@ export type Destination = {
   default_exclusions?: string[];
 };
 
-// Keep the shared wording short. Tickets and paid experiences are decided by
-// the trip quote, while accommodation, meals and transport remain dynamic.
-const standardDestinationPackage = {
-  included: ['Sightseeing as detailed in the day-wise itinerary.'],
-  excluded: ['Personal expenses such as laundry, shopping and tips.', 'Airfare.', 'Train tickets.'],
-};
-
 export function packageTermKey(value: string) {
   const normalized = value.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
   if (['airfare', 'flights', 'flight tickets', 'air tickets'].includes(normalized)) return 'airfare';
   if (['train tickets', 'rail tickets', 'railway tickets'].includes(normalized)) return 'train tickets';
   return normalized;
-}
-
-export function destinationPackageDefaults(record: Destination) {
-  return {
-    included: record.default_inclusions ?? standardDestinationPackage.included,
-    excluded: record.default_exclusions ?? standardDestinationPackage.excluded,
-  };
 }
 
 export type Route = { km: number; hours: number; hours_max?: number; access_minutes?: number; source: string; live_required: boolean };
@@ -92,7 +78,6 @@ export type Source = { name: string; url: string; type: string; status: string; 
 export function enrichDestination(record: Destination): Destination {
   const defaults = planningDefaults[record.name];
   const legacy = (destinationsJson as Destination[]).find((item) => item.name === record.name);
-  const packageDefaults = destinationPackageDefaults(record);
   const local_sightseeing = record.local_sightseeing.map((sight) => {
     const preset = defaults?.sights[sight.name] || {};
     return { ...preset, ...sight, client_sentence: sight.client_sentence?.trim() || preset.client_sentence || `Visit ${sight.name}.`,
@@ -120,7 +105,6 @@ export function enrichDestination(record: Destination): Destination {
   }
   const legacyNote = !record.day_note?.trim() || record.day_note === legacy?.day_note || record.day_note === legacy?.description;
   return { ...record, local_sightseeing, activity_copy, activity_timing,
-    default_inclusions: [...packageDefaults.included], default_exclusions: [...packageDefaults.excluded],
     day_note: legacyNote && defaults ? defaults.day_note : record.day_note,
     hub_route: record.hub_route || defaults?.hub,
     srinagar_km: record.srinagar_km ?? defaults?.hub.km,

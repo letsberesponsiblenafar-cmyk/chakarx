@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const os = require('node:os');
 const path = require('node:path');
+const { createHash } = require('node:crypto');
 const Module = require('node:module');
 const ts = require('typescript');
 
@@ -44,7 +45,11 @@ jspdf.jsPDF = function InspectedJsPDF(options) {
 const { createPlan, rebuildPlanFromNightSequence, setPlanDayTrip, setPlanDeparturePoint } = require('../lib/itinerary.ts');
 const { calculateCosts } = require('../lib/costing.ts');
 const { clientActivityLists } = require('../lib/activities.ts');
-const { buildClientPdf } = require('../components/ClientPdf.tsx');
+const { buildClientPdf, clientPdfArtwork } = require('../components/ClientPdf.tsx');
+const { composeVectorClientPdf } = require('../lib/pdf-composition.ts');
+const { initialPackageDefaults } = require('../lib/package-defaults.ts');
+const { PDFDocument, PDFDict, PDFName, PDFRawStream } = require('pdf-lib');
+const { PDFParse } = require('pdf-parse');
 const input = {
   name: 'QA Traveller', arrival: '2026-10-03', departure: '2026-10-10', pickup: 'Srinagar',
   adults: 6, youngAges: [7], budget: 0, hotelCategory: 'Signature', transport: 'Tempo Traveller',
@@ -70,11 +75,10 @@ const artFiles = {
   inclusions: 'client-inclusions.jpg', exclusions: 'client-exclusions.jpg', policies: 'branded-policies.jpg',
   testimonials: 'branded-testimonials.jpg', thanks: 'standard-thanks.jpg',
 };
-const art = Object.fromEntries(Object.entries(artFiles).map(([key, file]) => {
-  const ext = path.extname(file).slice(1);
-  const mime = ext === 'png' ? 'image/png' : 'image/jpeg';
-  return [key, `data:${mime};base64,${fs.readFileSync(path.join(root, 'public', 'pdf-assets', file)).toString('base64')}`];
-}));
+// The production download composes native PDF pages. Supplying no bitmap
+// backgrounds also proves its quality does not depend on raster fallbacks.
+const art = Object.fromEntries(Object.keys(artFiles).map((key) => [key, '']));
+art.vectorBackgrounds = true;
 art.brandWhite = `data:image/png;base64,${fs.readFileSync(path.join(root, 'public', 'chakar-logo-original-white.png')).toString('base64')}`;
 art.brandInk = `data:image/png;base64,${fs.readFileSync(path.join(root, 'public', 'chakar-logo-original-ink.png')).toString('base64')}`;
 const fonts = {
@@ -82,7 +86,7 @@ const fonts = {
   bold: fs.readFileSync(path.join(root, 'public', 'fonts', 'Evolventa-Bold.ttf')).toString('base64'),
   cover: fs.readFileSync(path.join(root, 'public', 'fonts', 'RedHatDisplay-400.ttf')).toString('base64'),
 };
-const activityLists = clientActivityLists(plan, {}, {});
+const activityLists = clientActivityLists(plan, {}, {}, [], [], undefined, initialPackageDefaults());
 const doc = buildClientPdf(art, plan, input, selections, costs, input.name, fonts, activityLists);
 const emptyLists = buildClientPdf(art, plan, input, selections, costs, input.name, fonts, { included: [], excluded: [] });
 const withExclusion = buildClientPdf(art, plan, input, selections, costs, input.name, fonts, { included: [], excluded: ['Airfare'] });
@@ -117,18 +121,89 @@ for (const [key, heading] of [['inclusions', 'YOUR PACKAGE INCLUDES'], ['exclusi
       `A configured ${key} clause did not reach the client PDF: ${item}`);
   }
   for (const page of listPages) {
-    const body = doc.clientText.filter((entry) => entry.page === page && entry.y >= 158 && entry.text !== '•');
+    const body = doc.clientText.filter((entry) => entry.page === page && entry.x === 58 && entry.y >= 158);
     const unique = new Set(body.map((entry) => normalize(entry.text)));
     assert.equal(unique.size, body.length, 'The package list must not repeat the same clause.');
     assert.ok(body.every((entry) => entry.font === 'evolventa' && entry.size >= 11),
       'Package clauses must retain the reference font and readable text size.');
     assert.ok(body.every((entry) => entry.y <= 696), 'Package text must stay above the footer.');
   }
-  const image = doc.getImageProperties(art[key]);
-  assert.ok(image.width >= 2250 && image.height >= 3250,
-    'Inclusion and exclusion artwork must keep at least the existing 300 DPI resolution.');
 }
-const target = path.join(os.tmpdir(), 'chakar-client-pdf-check.pdf');
-fs.writeFileSync(target, Buffer.from(doc.output('arraybuffer')));
-if (doc.getNumberOfPages() < 10 || costs.sellingTotal <= 0) throw new Error('Client PDF is incomplete.');
-process.stdout.write(JSON.stringify({ target, pages: doc.getNumberOfPages(), customerTotal: Math.round(costs.sellingTotal) }) + '\n');
+
+function nativeObjects(pdf) {
+  const objects = pdf.context.enumerateIndirectObjects().map(([, object]) => object);
+  const imageStreams = objects.filter((object) => object instanceof PDFRawStream &&
+    object.dict.get(PDFName.of('Subtype'))?.toString() === '/Image');
+  const fontNames = objects.filter((object) => object instanceof PDFDict &&
+    object.get(PDFName.of('Type'))?.toString() === '/Font')
+    .map((object) => object.get(PDFName.of('BaseFont'))?.toString() || '');
+  return {
+    imageStreams, fontNames,
+    patterns: objects.filter((object) => object instanceof PDFDict && object.has(PDFName.of('PatternType'))).length,
+    fullPageBitmaps: imageStreams.filter((object) =>
+      object.dict.lookup(PDFName.of('Width')).asNumber() >= 2250 &&
+      object.dict.lookup(PDFName.of('Height')).asNumber() >= 3250).length,
+  };
+}
+
+async function verifyFinalPdf() {
+  const directory = path.join(root, 'public', 'pdf-assets');
+  const masterBytes = new Uint8Array(fs.readFileSync(path.join(directory, 'client-master.pdf')));
+  const manifest = JSON.parse(fs.readFileSync(path.join(directory, 'client-master.json'), 'utf8'));
+  const artwork = clientPdfArtwork(doc);
+  assert.equal(artwork.length, doc.getNumberOfPages(), 'Every content page must have native artwork.');
+  assert.ok(artwork.some(({ key }) => key === `hotels${selections.length}`),
+    'The native hotel table must select only the occupied rows.');
+  const overlayBytes = doc.output('arraybuffer');
+  await assert.rejects(composeVectorClientPdf(overlayBytes, masterBytes, artwork.slice(1), manifest),
+    /does not match its content pages/, 'A missing artwork page must fail instead of shifting later backgrounds.');
+  const missingCover = { ...manifest }; delete missingCover.cover;
+  await assert.rejects(composeVectorClientPdf(overlayBytes, masterBytes, artwork, missingCover),
+    /artwork is missing: cover/, 'Missing native artwork must stop the download.');
+  const bytes = await composeVectorClientPdf(overlayBytes, masterBytes, artwork, manifest);
+  const target = path.join(os.tmpdir(), 'chakar-client-pdf-check.pdf');
+  fs.writeFileSync(target, Buffer.from(bytes));
+  const final = await PDFDocument.load(bytes);
+  const master = await PDFDocument.load(masterBytes);
+  assert.equal(final.getPageCount(), doc.getNumberOfPages(), 'Composition changed the itinerary page count.');
+  for (const page of final.getPages()) assert.deepEqual(page.getSize(), { width: 540, height: 780 });
+  const quality = nativeObjects(final);
+  const original = nativeObjects(master);
+  assert.equal(quality.fullPageBitmaps, 0, 'Native reference artwork must not be flattened into page-sized images.');
+  assert.ok(quality.fontNames.some((name) => /TheSeasons/.test(name)),
+    'Reference heading fonts must remain native PDF fonts.');
+  assert.ok(quality.patterns > 0, 'Reference table gradients must remain vector patterns.');
+  const imageHash = (image) => createHash('sha256').update(image.contents).digest('hex');
+  const finalImageHashes = new Set(quality.imageStreams.map(imageHash));
+  for (const [width, height] of [[640, 464], [994, 663]]) {
+    const photos = original.imageStreams.filter((image) =>
+      image.dict.lookup(PDFName.of('Width')).asNumber() === width &&
+      image.dict.lookup(PDFName.of('Height')).asNumber() === height);
+    assert.ok(photos.length, 'The reference landscape must remain in the native master.');
+    assert.ok(photos.some((image) => finalImageHashes.has(imageHash(image))),
+      'Original landscape bytes must be preserved without JPEG re-encoding.');
+  }
+  const parser = new PDFParse({ data: bytes });
+  let text;
+  try { text = (await parser.getText()).text; } finally { await parser.destroy(); }
+  assert.match(text, /Dear QA Traveller/);
+  assert.match(text, /1,54,770/);
+  assert.match(text, /List of Inclusions/);
+  assert.match(text, /List of Exclusions/);
+  const stale = /Dear Asna|24 sep 2026|10 Nights\s*\/\s*11 Days|Hotel Star of Kashmir|PROVISIONAL|Please note that these rates/i;
+  assert.doesNotMatch(text, stale,
+    `Mutable sample copy must not leak from the native master: ${text.match(stale)?.[0] || ''}`);
+  // October 4 is legitimately Day 2 of this QA trip. Check that sample date
+  // in the cleaned master rather than banning it from the final itinerary.
+  const masterParser = new PDFParse({ data: masterBytes });
+  let masterText;
+  try { masterText = (await masterParser.getText()).text; } finally { await masterParser.destroy(); }
+  assert.doesNotMatch(masterText, /Dear Asna|24 sep 2026|04 oct 2026|10 Nights\s*\/\s*11 Days|PROVISIONAL|Please note that these rates/i,
+    'The native master must not retain mutable client values.');
+  for (const hotel of selections) assert.ok(text.includes(hotel.hotelName), 'Hotel names must remain searchable after composition.');
+  if (final.getPageCount() < 10 || costs.sellingTotal <= 0) throw new Error('Client PDF is incomplete.');
+  process.stdout.write(JSON.stringify({ target, pages: final.getPageCount(), bytes: bytes.byteLength, customerTotal: Math.round(costs.sellingTotal),
+    nativeHeadingFonts: quality.fontNames.filter((name) => /TheSeasons/.test(name)).length,
+    vectorPatterns: quality.patterns, fullPageBitmaps: quality.fullPageBitmaps }) + '\n');
+}
+verifyFinalPdf().catch((error) => { process.stderr.write(`${error.stack || error}\n`); process.exitCode = 1; });

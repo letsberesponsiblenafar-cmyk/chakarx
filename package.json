@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "test:routes": "node tests/route-rules.mjs",
-    "test:destinations": "node tests/destination-library.cjs && node tests/destination-package-defaults.cjs",
+    "test:destinations": "node tests/destination-library.cjs && node tests/destination-package-defaults.cjs && node tests/package-defaults-store.cjs",
     "test:hotels": "node tests/hotel-suggestions.cjs",
     "test:store": "node tests/database-retry.cjs",
     "test:model": "node scripts/verify-model.mjs && node scripts/verify-recommendations.cjs",
@@ -21,6 +21,7 @@
     "lucide-react": "0.468.0",
     "next": "16.3.3",
     "openai": "7.19.0",
+    "pdf-lib": "1.17.1",
     "pdf-parse": "^2.4.5",
     "react": "19.3.0",
     "react-dom": "19.3.0"

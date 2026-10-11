@@ -11,6 +11,7 @@ import type { DayPlan, Plan, TripInput } from '@/lib/itinerary';
 import { savePlannerItinerary } from '@/lib/save-itinerary';
 import { clientActivityLists } from '@/lib/activities';
 import { quoteReadiness } from '@/lib/quote-readiness';
+import { composeVectorClientPdf, type PdfArtworkPage, type PdfMasterManifest } from '@/lib/pdf-composition';
 
 const PAGE_W = 540;
 const PAGE_H = 780;
@@ -31,8 +32,10 @@ type ArtKey = keyof typeof ART;
 type Costs = ReturnType<typeof calculateCosts>;
 type PdfHotel = HotelSelection;
 type PdfFonts = { regular: string; bold: string; cover: string };
-type PdfArt = Record<ArtKey,string> & {brandWhite?:string; brandInk?:string; hotelRows?: Record<number,string>};
+type PdfArt = Record<ArtKey,string> & {brandWhite?:string; brandInk?:string; hotelRows?: Record<number,string>; vectorBackgrounds?: boolean};
 type ActivityLists = { included: string[]; excluded: string[] };
+const pdfArtwork = new WeakMap<jsPDF, PdfArtworkPage[]>();
+export function clientPdfArtwork(doc: jsPDF): PdfArtworkPage[] { return [...(pdfArtwork.get(doc) || [])]; }
 
 function printable(value: unknown) {
   return String(value ?? '').trim().replace(/[\u2018\u2019]/g,"'").replace(/[\u2013\u2014]/g,'-').replace(/→/g,'to').replace(/≤/g,'<=');
@@ -61,47 +64,10 @@ async function imageData(path: string) {
     reader.readAsDataURL(blob);
   });
 }
-async function packageArtworkWithoutRateDisclaimer(source: string) {
-  const image = new Image();
-  image.src = source;
-  await image.decode();
-  const canvas = document.createElement('canvas');
-  canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
-  const context = canvas.getContext('2d');
-  if (!context) throw new Error('Could not prepare package artwork.');
-  context.drawImage(image, 0, 0);
-  // The supplied artwork has an old 24-hour rate disclaimer baked into its
-  // bottom margin. Replace that margin with the same blank paper texture.
-  const start = Math.floor(canvas.height * .89);
-  context.drawImage(image, 0, Math.floor(canvas.height * .78), canvas.width, canvas.height - start, 0, start, canvas.width, canvas.height - start);
-  return canvas.toDataURL('image/jpeg', .96);
-}
-async function hotelArtworkForRows(source: string, count: number) {
-  if (count >= 4) return source;
-  const image = new Image(); image.src = source; await image.decode();
-  const canvas = document.createElement('canvas'); canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
-  const context = canvas.getContext('2d'); if (!context) throw new Error('Could not prepare hotel artwork.');
-  context.drawImage(image,0,0);
-  const starts = [245,345,477,599];
-  const top = Math.round(starts[count] / PAGE_H * canvas.height);
-  const bottom = Math.round(727 / PAGE_H * canvas.height);
-  // Replace only unused table rows with an unprinted piece of the original
-  // paper. Keep the category header, filled rows, margins and page number.
-  const left = Math.round(32 / PAGE_W * canvas.width);
-  const right = Math.round(510 / PAGE_W * canvas.width);
-  const sampleLeft = Math.round(55 / PAGE_W * canvas.width);
-  const sampleRight = Math.round(475 / PAGE_W * canvas.width);
-  const stripTop = Math.round(139 / PAGE_H * canvas.height);
-  const stripHeight = Math.round(12 / PAGE_H * canvas.height);
-  for (let y = top; y < bottom; y += stripHeight) {
-    const height = Math.min(stripHeight,bottom-y);
-    context.drawImage(image,sampleLeft,stripTop,sampleRight-sampleLeft,height,left,y,right-left,height);
-  }
-  return canvas.toDataURL('image/jpeg',.97);
-}
-function artworkPage(doc: jsPDF, data: PdfArt, key: ArtKey, first = false, override?: string) {
+function artworkPage(doc: jsPDF, data: PdfArt, key: ArtKey, first = false, override?: string, hotelRows = 4) {
   if (!first) doc.addPage();
-  doc.addImage(override || data[key], key === 'cover' ? 'PNG' : 'JPEG', 0, 0, PAGE_W, PAGE_H, undefined, 'FAST');
+  pdfArtwork.get(doc)?.push({ key: key === 'hotels' ? `hotels${hotelRows}` : key });
+  if (!data.vectorBackgrounds) doc.addImage(override || data[key], key === 'cover' ? 'PNG' : 'JPEG', 0, 0, PAGE_W, PAGE_H, undefined, 'FAST');
   if (key === 'thanks') return;
   const lightArt = key === 'cover' || key === 'letter' || key === 'inclusions' || key === 'exclusions' || key === 'policies' || key === 'testimonials';
   const logo = lightArt ? data.brandWhite : data.brandInk;
@@ -184,7 +150,7 @@ function addHotelPages(doc: jsPDF, data: Record<ArtKey,string>, hotels: PdfHotel
   const rows = hotels.length ? hotels : [];
   for (let start=0; start<Math.max(1,rows.length); start+=4) {
     const visible=rows.slice(start,start+4);
-    artworkPage(doc,data,'hotels',false,(data as PdfArt).hotelRows?.[visible.length]);
+    artworkPage(doc,data,'hotels',false,(data as PdfArt).hotelRows?.[visible.length],visible.length);
     center(doc,'Destination',159,220,11,[255,255,255]);
     center(doc,'Hotel',382,220,11,[255,255,255],true);
     visible.forEach((hotel,i)=>{
@@ -232,6 +198,7 @@ function pdfHotels(plan: Plan, selections: HotelSelection[], input: TripInput): 
 
 export function buildClientPdf(data: PdfArt, plan: Plan, input: TripInput, selections: HotelSelection[], costs: Costs, customerName: string, fonts: PdfFonts, activityLists: ActivityLists = {included:[],excluded:[]}, quote?: CostModel) {
   const doc=new jsPDF({unit:'pt',format:[PAGE_W,PAGE_H],orientation:'portrait',compress:true});
+  pdfArtwork.set(doc, []);
   doc.addFileToVFS('Evolventa-Regular.ttf', fonts.regular);
   doc.addFileToVFS('Evolventa-Bold.ttf', fonts.bold);
   doc.addFileToVFS('RedHatDisplay-400.ttf', fonts.cover);
@@ -254,12 +221,22 @@ export function buildClientPdf(data: PdfArt, plan: Plan, input: TripInput, selec
   ].filter(Boolean));
   addClientList(doc,data,'exclusions',activityLists.excluded);
   (['policies','testimonials','thanks'] as const).forEach((key)=>artworkPage(doc,data,key));
+  if (data.vectorBackgrounds) {
+    const pages=clientPdfArtwork(doc);
+    pages.forEach(({key},index)=>{
+      if(key==='cover'||key==='thanks')return;
+      doc.setPage(index+1);doc.setFont('evolventa','normal');doc.setFontSize(7);
+      const dark=['letter','inclusions','exclusions','policies','testimonials'].includes(key);
+      doc.setTextColor(...(dark?[255,255,255]:[45,39,31]) as [number,number,number]);
+      doc.text(String(index+1),523,771,{align:'right'});
+    });
+  }
   return doc;
 }
 
 export default function ClientPdf() {
   const planner = usePlanner();
-  const { plan, input, hotelSelections, costModel, destinationCatalog, destinationConnection, hotelDatabase, hotelConnection, hydrated, markSavedItinerary, reset } = planner;
+  const { plan, input, hotelSelections, costModel, destinationCatalog, destinationConnection, packageDefaults, packageDefaultsConnection, hotelDatabase, hotelConnection, hydrated, markSavedItinerary, reset } = planner;
   const [downloading,setDownloading] = useState(false);
   const [saveState,setSaveState] = useState<'saving'|'saved'|'error'>('saving');
   const [saveError,setSaveError] = useState('');
@@ -286,7 +263,7 @@ export default function ClientPdf() {
   const costs = plan ? calculateCosts(plan,hotelSelections,costModel) : null;
   if (!hydrated) return <PlannerChrome title="Client-ready itinerary PDF" eyebrow="STEP 06 · CLIENT PDF"><div className="empty-panel"><FileText size={28}/><h2>Loading your itinerary PDF…</h2></div></PlannerChrome>;
   if (!plan || !costs) return <PlannerChrome title="Client-ready itinerary PDF" eyebrow="STEP 06 · CLIENT PDF"><div className="empty-panel"><FileText size={28}/><h2>Complete the itinerary first.</h2><Link className="primary-cta inline" href="/">Build Your Trip</Link></div></PlannerChrome>;
-  if (hotelConnection !== 'ready' || destinationConnection !== 'ready') return <PlannerChrome title="Client-ready itinerary PDF" eyebrow="STEP 06 · CLIENT PDF"><div className="empty-panel" role="status"><FileText size={28}/><h2>{hotelConnection === 'loading' || destinationConnection === 'loading' ? 'Loading quote data…' : 'Quote data needs attention'}</h2><p>Hotel database: {hotelConnection}. Destination library: {destinationConnection}. Resolve any connection issue before sharing a client PDF.</p><Link className="secondary-link" href="/planner/hotels">Review hotels</Link></div></PlannerChrome>;
+  if (hotelConnection !== 'ready' || destinationConnection !== 'ready' || packageDefaultsConnection !== 'ready') return <PlannerChrome title="Client-ready itinerary PDF" eyebrow="STEP 06 · CLIENT PDF"><div className="empty-panel" role="status"><FileText size={28}/><h2>{hotelConnection === 'loading' || destinationConnection === 'loading' || packageDefaultsConnection === 'loading' ? 'Loading quote data…' : 'Quote data needs attention'}</h2><p>Hotel database: {hotelConnection}. Destination library: {destinationConnection}. Shared package defaults: {packageDefaultsConnection}.</p><Link className="secondary-link" href="/library#package-defaults-heading">Review shared defaults</Link><Link className="secondary-link" href="/planner/hotels">Review hotels</Link></div></PlannerChrome>;
 
   const currentPlan=plan; const currentCosts=costs; const currentInput=input;
   const quoteIssues=quoteReadiness(currentPlan,input,hotelSelections,costModel,hotelDatabase,hotelConnection,destinationConnection);
@@ -297,16 +274,16 @@ export default function ClientPdf() {
     if (quoteIssues.length) return;
     setDownloading(true);
     try {
-      const entries=await Promise.all((Object.keys(ART) as ArtKey[]).map(async (key)=>[key,await imageData(ART[key])] as const));
-      const data=Object.fromEntries(entries) as unknown as PdfArt;
-      data.package=await packageArtworkWithoutRateDisclaimer(data.package);
-      const visibleOnLastHotelPage=hotels.length%4 || (hotels.length ? 4 : 0);
-      data.hotelRows=visibleOnLastHotelPage<4?{[visibleOnLastHotelPage]:await hotelArtworkForRows(data.hotels,visibleOnLastHotelPage)}:{};
+      const data={...ART,vectorBackgrounds:true} as PdfArt;
+      const [masterResponse,manifestResponse]=await Promise.all([fetch('/pdf-assets/client-master.pdf',{cache:'no-cache'}),fetch('/pdf-assets/client-master.json',{cache:'no-cache'})]);
+      if (!masterResponse.ok || !manifestResponse.ok) throw new Error('Could not load the original itinerary artwork. Please retry.');
+      const [masterBytes,manifest]=await Promise.all([masterResponse.arrayBuffer(),manifestResponse.json() as Promise<PdfMasterManifest>]);
       [data.brandWhite,data.brandInk]=await Promise.all([imageData('/chakar-logo-original-white.png'),imageData('/chakar-logo-original-ink.png')]);
       const [regular,bold,cover]=await Promise.all([imageData('/fonts/Evolventa-Regular.ttf'),imageData('/fonts/Evolventa-Bold.ttf'),imageData('/fonts/RedHatDisplay-400.ttf')]);
-      const { included, excluded } = clientActivityLists(currentPlan, costModel.activityCosts, costModel.activitySelections, costModel.manualInclusions, costModel.manualExclusions, destinationCatalog);
+      const { included, excluded } = clientActivityLists(currentPlan, costModel.activityCosts, costModel.activitySelections, costModel.manualInclusions, costModel.manualExclusions, destinationCatalog, packageDefaults);
       const doc=buildClientPdf(data,currentPlan,currentInput,hotelSelections,currentCosts,customerName,{regular:regular.split(',')[1],bold:bold.split(',')[1],cover:cover.split(',')[1]},{included,excluded},costModel);
-      const blob=doc.output('blob');
+      const bytes=await composeVectorClientPdf(doc.output('arraybuffer'),masterBytes,clientPdfArtwork(doc),manifest);
+      const blob=new Blob([bytes],{type:'application/pdf'});
       if (!blob || blob.size<1024) throw new Error('The PDF engine returned an empty document.');
       // The saved record is committed before offering the file, so a successful
       // download always has an editable copy in the admin workspace.
@@ -326,7 +303,7 @@ export default function ClientPdf() {
 
   return <PlannerChrome title="Client-ready itinerary PDF" eyebrow="STEP 06 · CLIENT PDF">
     <section className="pdf-hero"><div className="pdf-brand-lockup"><span className="original-logo" role="img" aria-label="Chakar Experience"/><span>DISCOVER KASHMIR · HEAVEN ON EARTH</span></div><h2>{customerName}&apos;s Kashmir journey</h2><p>The client document follows the supplied Chakar itinerary: cover and letter, tour summary, compact day-wise itinerary, package and hotel tables, tailored inclusions and exclusions, policies, testimonials and thank-you page.</p><div className={`pdf-save-state ${saveState}`} role="status">{saveState==='saving'?'Saving this client itinerary to the workspace…':saveState==='saved'?'Saved to Saved Itineraries. You can edit and download it again anytime.':<><span>Automatic save failed: {saveError}</span><button type="button" onClick={()=>void ensureSaved().catch(()=>{})}>Retry save</button></>}</div>{quoteIssues.length>0&&<div className="pdf-block-warning" role="alert"><Info size={15}/><div><b>Client download is locked until the quote is complete.</b><ul>{quoteIssues.map((issue)=><li key={issue}>{issue}</li>)}</ul></div></div>}<button className="primary-cta inline" type="button" onClick={download} disabled={downloading||quoteIssues.length>0}><Download size={17}/>{downloading?'Preparing PDF…':'Download client PDF'}</button></section>
-    <section className="pdf-preview"><div className="section-head"><div><span className="eyebrow">DOCUMENT CONTENT</span><h2>Review this itinerary</h2><p>These values are pulled from the live planner. Activity pricing controls the tailored inclusion and exclusion pages.</p></div></div><div className="pdf-review-grid"><div className="pdf-review-cover"><img src={ART.cover} alt="Discover Kashmir cover artwork"/><span className="pdf-preview-logo"><span className="original-logo" role="img" aria-label="Chakar Experience"/></span><span>Dear {customerName},</span></div><div className="pdf-review-details"><div><small>Tour summary</small><b>{currentPlan.nights} nights / {currentPlan.days} days</b><span>{date(input.arrival)} – {date(input.departure)}</span><span>{input.pickup} pick-up · {input.adults} adults · {input.youngAges.length} {input.youngAges.length===1?'child':'children'}</span></div><div><small>Package type</small><b>{input.hotelCategory} · {uiMoney(currentCosts.sellingTotal)}</b><span>{input.transport} · {input.mealPlan} · {roomSummary(hotels)}</span></div><div><small>Hotel type</small>{hotels.map((hotel)=><span key={hotel.location}>{hotel.location} · {hotel.hotelName}</span>)}</div></div></div><div className="pdf-review-days"><h3>Day-wise itinerary</h3>{currentPlan.dayPlans.map((day)=><div key={day.day}><b>Day {day.day} · {date(day.date,true)} · {dayTitle(day,input.pickup)}</b><p>{dayNarrative(day,input.pickup,costModel)}</p></div>)}</div><div className="pdf-fixed-pages"><b>Document sections</b><span>Cover letter</span><span>Tailored inclusions</span><span>{clientActivityLists(currentPlan,costModel.activityCosts,costModel.activitySelections,costModel.manualInclusions,costModel.manualExclusions,destinationCatalog).excluded.length ? 'Tailored exclusions' : 'No exclusion page needed'}</span><span>Policies</span><span>Testimonials</span><span>Thank you</span></div></section>
+    <section className="pdf-preview"><div className="section-head"><div><span className="eyebrow">DOCUMENT CONTENT</span><h2>Review this itinerary</h2><p>These values are pulled from the live planner. Activity pricing controls the tailored inclusion and exclusion pages.</p></div></div><div className="pdf-review-grid"><div className="pdf-review-cover"><img src={ART.cover} alt="Discover Kashmir cover artwork"/><span className="pdf-preview-logo"><span className="original-logo" role="img" aria-label="Chakar Experience"/></span><span>Dear {customerName},</span></div><div className="pdf-review-details"><div><small>Tour summary</small><b>{currentPlan.nights} nights / {currentPlan.days} days</b><span>{date(input.arrival)} – {date(input.departure)}</span><span>{input.pickup} pick-up · {input.adults} adults · {input.youngAges.length} {input.youngAges.length===1?'child':'children'}</span></div><div><small>Package type</small><b>{input.hotelCategory} · {uiMoney(currentCosts.sellingTotal)}</b><span>{input.transport} · {input.mealPlan} · {roomSummary(hotels)}</span></div><div><small>Hotel type</small>{hotels.map((hotel)=><span key={hotel.location}>{hotel.location} · {hotel.hotelName}</span>)}</div></div></div><div className="pdf-review-days"><h3>Day-wise itinerary</h3>{currentPlan.dayPlans.map((day)=><div key={day.day}><b>Day {day.day} · {date(day.date,true)} · {dayTitle(day,input.pickup)}</b><p>{dayNarrative(day,input.pickup,costModel)}</p></div>)}</div><div className="pdf-fixed-pages"><b>Document sections</b><span>Cover letter</span><span>Tailored inclusions</span><span>{clientActivityLists(currentPlan,costModel.activityCosts,costModel.activitySelections,costModel.manualInclusions,costModel.manualExclusions,destinationCatalog,packageDefaults).excluded.length ? 'Tailored exclusions' : 'No exclusion page needed'}</span><span>Policies</span><span>Testimonials</span><span>Thank you</span></div></section>
     <div className="next-row"><Link className="secondary-link" href="/planner/costing"><ChevronLeft size={16}/> Back to costing</Link><div className="pdf-next-actions"><Link className="secondary-link" href="/saved-itineraries"><FolderOpen size={16}/> Saved Itineraries</Link><button className="primary-cta inline" type="button" onClick={reset}>Build New</button></div></div>
   </PlannerChrome>;
 }

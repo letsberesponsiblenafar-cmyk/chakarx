@@ -1,0 +1,18 @@
+{
+  "cover": 0,
+  "letter": 1,
+  "summary": 2,
+  "daywise": 3,
+  "package": 4,
+  "hotels4": 5,
+  "inclusions": 6,
+  "exclusions": 7,
+  "policies": 8,
+  "testimonials": 9,
+  "thanks": 10,
+  "hotels0": 11,
+  "hotels1": 12,
+  "hotels2": 13,
+  "hotels3": 14,
+  "hotels": 5
+}

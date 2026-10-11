@@ -1,5 +1,6 @@
-import { destinationPackageDefaults, destinations, packageTermKey, type Destination } from '@/lib/data';
+import { destinations, packageTermKey, type Destination } from '@/lib/data';
 import type { Plan } from '@/lib/itinerary';
+import { initialPackageDefaults, type PackageDefaults } from '@/lib/package-defaults';
 
 export type TripActivity = { key: string; destination: string; name: string; available: boolean };
 
@@ -44,14 +45,14 @@ export function programmeDestinations(plan: Plan): Set<string> {
   ].filter((name): name is string => Boolean(name))));
 }
 
-function clauseIdentity(value: string, catalog: Destination[], destination?: string) {
+function clauseIdentities(value: string, catalog: Destination[], destination?: string): string[] {
   let label = value.trim();
   const separator = label.indexOf(':');
   const prefixed = separator >= 0 ? catalog.find((item) => item.name.toLowerCase() === label.slice(0, separator).trim().toLowerCase()) : undefined;
   if (prefixed) label = label.slice(separator + 1);
   const normalize = (text: string) => packageTermKey(text.replace(/\s*[—–-]\s*activity charges[.!?]?\s*$/i, ''));
   const normalized = normalize(label);
-  if (normalized === 'airfare' || normalized === 'train tickets') return normalized;
+  if (normalized === 'airfare' || normalized === 'train tickets') return [normalized];
   const matches = (name: string) => {
     const activity = normalize(name);
     const labels = activity === 'gondola ride' ? [activity, 'gondola', 'gulmarg gondola']
@@ -60,11 +61,16 @@ function clauseIdentity(value: string, catalog: Destination[], destination?: str
   };
   const matching = catalog.flatMap((item) => item.activities.filter(matches).map((name) => ({ destination: item.name, name })));
   const scopedActivity = matching.find((item) => item.destination === (prefixed?.name || destination)) || (matching.length === 1 ? matching[0] : undefined);
-  if (scopedActivity) return `${scopedActivity.destination.toLowerCase()}\u001f${normalize(scopedActivity.name)}`;
-  return prefixed ? `${prefixed.name.toLowerCase()}\u001f${normalized}` : normalized;
+  const activityKey = (activity: { destination: string; name: string }) => `${activity.destination.toLowerCase()}\u001f${normalize(activity.name)}`;
+  if (scopedActivity) return [activityKey(scopedActivity)];
+  // A common line such as "Horse riding charges" covers the known activity in
+  // multiple valleys. Keep the real quote entries separate, but do not print
+  // a broad default that contradicts any of their explicit decisions.
+  if (matching.length) return [...new Set(matching.map(activityKey))];
+  return normalized ? [prefixed ? `${prefixed.name.toLowerCase()}\u001f${normalized}` : normalized] : [];
 }
 
-export function clientActivityLists(plan: Plan, costs: Record<string, number>, selections: Record<string, boolean> = {}, manualInclusions: string[] = [], manualExclusions: string[] = [], catalog: Destination[] = destinations) {
+export function clientActivityLists(plan: Plan, costs: Record<string, number>, selections: Record<string, boolean> = {}, manualInclusions: string[] = [], manualExclusions: string[] = [], catalog: Destination[] = destinations, packageDefaults: PackageDefaults = initialPackageDefaults()) {
   const included: string[] = [];
   const excluded: string[] = [];
   const activities = tripActivities(plan, catalog, selections);
@@ -74,14 +80,14 @@ export function clientActivityLists(plan: Plan, costs: Record<string, number>, s
   const unquotedActivities = new Set<string>();
   const append = (target: string[], raw: string, destination?: string) => {
     const item = String(raw).trim();
-    const identity = clauseIdentity(item, clauseCatalog, destination);
-    if (identity && !seen.has(identity)) { target.push(item); seen.add(identity); }
+    const identities = clauseIdentities(item, clauseCatalog, destination);
+    if (identities.length && !identities.some((identity) => seen.has(identity))) { target.push(item); identities.forEach((identity) => seen.add(identity)); }
   };
   for (const activity of activities) {
     const label = `${activity.destination}: ${activity.name}`;
     if (quotedActivityCost(costs, activity, selections) !== null) append(included, label);
     else {
-      unquotedActivities.add(clauseIdentity(label, clauseCatalog));
+      clauseIdentities(label, clauseCatalog).forEach((identity) => unquotedActivities.add(identity));
       if (selections[activity.key] !== false) continue;
       // A selected visit can stay in the travel programme while its ticket or
       // arranged experience is paid separately. Do not label the visit itself
@@ -96,12 +102,11 @@ export function clientActivityLists(plan: Plan, costs: Record<string, number>, s
   }
   for (const raw of manualInclusions) append(included, raw);
   for (const raw of manualExclusions) append(excluded, raw);
-  const defaults = catalog.filter((destination) => visited.has(destination.name)).map((destination) => ({ destination: destination.name, ...destinationPackageDefaults(destination) }));
-  // Explicit quote/manual choices win. If two libraries disagree, do not
-  // promise a service whose cost another visited destination excludes.
-  for (const terms of defaults) for (const raw of terms.excluded) append(excluded, raw, terms.destination);
-  for (const terms of defaults) for (const raw of terms.included) {
-    if (!unquotedActivities.has(clauseIdentity(raw, clauseCatalog, terms.destination))) append(included, raw, terms.destination);
+  // One itinerary-wide list, independent of the destination catalogue. The
+  // explicit quote/manual choices above always take priority over defaults.
+  for (const raw of packageDefaults.excluded) append(excluded, raw);
+  for (const raw of packageDefaults.included) {
+    if (!clauseIdentities(raw, clauseCatalog).some((identity) => unquotedActivities.has(identity))) append(included, raw);
   }
   return { included, excluded };
 }

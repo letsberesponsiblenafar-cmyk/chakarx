@@ -5,6 +5,7 @@ import { hotelDatabase as importedHotels, hotelCategories, mealOptions, transpor
 import { firstHotelCandidate, roomsRequired, cnbChildren, extraBedsRequired, matchesPackageCategory, suggestedHotel } from '@/lib/hotels';
 import { stayDateWindow } from '@/lib/hotel-rate-validity';
 import { dayScheduleContext } from '@/lib/day-scheduler';
+import { initialPackageDefaults, validatePackageDefaults, type PackageDefaults } from '@/lib/package-defaults';
 
 export type HotelSelection = {
   location: string; hotelId: string; hotelName: string; category: string; starRating: number | null; address: string; roomType: string; website: string;
@@ -24,6 +25,11 @@ type PlannerContextValue = PlannerState & {
   destinationConnection: 'loading' | 'ready' | 'error';
   destinationConnectionError: string;
   refreshDestinations: (rebuildCurrent?: boolean) => Promise<void>;
+  packageDefaults: PackageDefaults;
+  packageDefaultsConnection: 'loading' | 'ready' | 'error';
+  packageDefaultsError: string;
+  refreshPackageDefaults: () => Promise<void>;
+  updatePackageDefaults: (defaults: PackageDefaults) => Promise<void>;
   hotelConnection: 'loading' | 'ready' | 'error' | 'signed-out';
   hotelConnectionError: string;
   refreshHotels: () => Promise<void>;
@@ -164,9 +170,50 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   const [destinationCatalog,setDestinationCatalog]=useState<Destination[]>([...destinations]);
   const [destinationConnection,setDestinationConnection]=useState<'loading'|'ready'|'error'>('loading');
   const [destinationConnectionError,setDestinationConnectionError]=useState('');
+  const [packageDefaults,setPackageDefaults]=useState<PackageDefaults>(initialPackageDefaults);
+  const [packageDefaultsConnection,setPackageDefaultsConnection]=useState<'loading'|'ready'|'error'>('loading');
+  const [packageDefaultsError,setPackageDefaultsError]=useState('');
+  const packageDefaultsRequest=useRef(0);
   const [hotelConnection,setHotelConnection]=useState<'loading'|'ready'|'error'|'signed-out'>('loading');
   const [hotelConnectionError,setHotelConnectionError]=useState('');
   const hotelRequest=useRef(0);
+  async function refreshPackageDefaults() {
+    const request=++packageDefaultsRequest.current;
+    setPackageDefaultsConnection('loading'); setPackageDefaultsError('');
+    try {
+      const response=await fetch('/api/package-defaults',{cache:'no-store',signal:AbortSignal.timeout(15000)});
+      const payload=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(payload.error||`Package defaults request failed (${response.status}).`);
+      const defaults=validatePackageDefaults(payload.packageDefaults);
+      if(request!==packageDefaultsRequest.current)return;
+      setPackageDefaults(defaults); setPackageDefaultsConnection('ready');
+    } catch(error) {
+      if(request!==packageDefaultsRequest.current)return;
+      // Preserve the last confirmed list while a refresh fails. Consumers use
+      // connection status to avoid saving or publishing an unconfirmed value.
+      setPackageDefaultsConnection('error');
+      setPackageDefaultsError(error instanceof Error?error.message:'Could not load package defaults.');
+    }
+  }
+  async function updatePackageDefaults(next: PackageDefaults) {
+    const defaults=validatePackageDefaults(next);
+    const request=++packageDefaultsRequest.current;
+    setPackageDefaultsConnection('loading'); setPackageDefaultsError('');
+    try {
+      const response=await fetch('/api/package-defaults',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(defaults),signal:AbortSignal.timeout(15000)});
+      const payload=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(payload.error||`Could not save package defaults (${response.status}).`);
+      const saved=validatePackageDefaults(payload.packageDefaults);
+      if(request!==packageDefaultsRequest.current)return;
+      setPackageDefaults(saved); setPackageDefaultsConnection('ready');
+    } catch(error) {
+      if(request===packageDefaultsRequest.current){
+        setPackageDefaultsConnection('error');
+        setPackageDefaultsError(error instanceof Error?error.message:'Could not save package defaults.');
+      }
+      throw error;
+    }
+  }
   async function refreshDestinations(rebuildCurrent = false) {
     setDestinationConnection('loading'); setDestinationConnectionError('');
     try {
@@ -223,7 +270,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     setMounted(true);
     // Login is public and has no session yet. The full navigation after sign-in
     // remounts this provider and loads the hotel master with the new cookie.
-    if(window.location.pathname!=='/login') { void refreshHotels(); void refreshDestinations(); }
+    if(window.location.pathname!=='/login') { void refreshHotels(); void refreshDestinations(); void refreshPackageDefaults(); }
   }, []);
   const scheduledPlan = useMemo(() => state.plan ? reschedulePlan(state.plan, state.costModel) : null,
     [state.plan, state.costModel.activityCosts, state.costModel.activitySelections, destinationCatalog]);
@@ -236,6 +283,11 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     destinationConnection,
     destinationConnectionError,
     refreshDestinations,
+    packageDefaults,
+    packageDefaultsConnection,
+    packageDefaultsError,
+    refreshPackageDefaults,
+    updatePackageDefaults,
     hotelConnection,
     hotelConnectionError,
     refreshHotels,
@@ -436,7 +488,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       setState((s) => reconcilePlannerState({ ...s, ...snapshot, costModel: { ...defaultCost, ...snapshot.costModel, activitySelections: snapshot.costModel?.activitySelections || {}, manualInclusions: Array.isArray(snapshot.costModel?.manualInclusions) ? snapshot.costModel.manualInclusions : [], manualExclusions: Array.isArray(snapshot.costModel?.manualExclusions) ? snapshot.costModel.manualExclusions : [], transportIsCustom: snapshot.costModel?.transportIsCustom === true || (Boolean(snapshot.input?.transport) && !transportOptions.includes(snapshot.input.transport)) }, hotelDatabase: s.hotelDatabase, savedItineraryId: id }));
     },
     markSavedItinerary(id) { setState((s) => ({ ...s, savedItineraryId: id })); },
-  }), [state, scheduledState, mounted, hotelConnection, hotelConnectionError, destinationCatalog, destinationConnection, destinationConnectionError]);
+  }), [state, scheduledState, mounted, hotelConnection, hotelConnectionError, destinationCatalog, destinationConnection, destinationConnectionError, packageDefaults, packageDefaultsConnection, packageDefaultsError]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

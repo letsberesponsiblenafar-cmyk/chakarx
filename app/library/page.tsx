@@ -6,6 +6,7 @@ import { ChevronRight, MapPin, Moon, Plus, Search, Sparkles, Sun } from 'lucide-
 import { type Destination } from '@/lib/data';
 import { usePlanner } from '@/components/PlannerProvider';
 import { defaultDayNote } from '@/lib/narrative';
+import PackageDefaultsEditor from '@/components/PackageDefaultsEditor';
 
 const destinationUrl = (destination: Destination) => `/library/${encodeURIComponent(destination.id || destination.name)}`;
 
@@ -43,5 +44,6 @@ export default function LibraryPage() {
         <div className="card-footer-rich"><span><Sparkles size={15}/> {destination.local_sightseeing.length} sights</span><span>Open guide <ChevronRight size={15}/></span></div>
       </Link>)}</div>
     </section>
+    <PackageDefaultsEditor/>
   </main></AppShell>;
 }
