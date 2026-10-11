@@ -1,9 +1,10 @@
 'use client';
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { createPlan, retargetDay, rebuildPlanFromNightSequence, setPlanDayTrip, setPlanDeparturePoint, ROUTE_VERSION, type Plan, type TripInput } from '@/lib/itinerary';
+import { createPlan, reschedulePlan, retargetDay, rebuildPlanFromNightSequence, setPlanDayTrip, setPlanDeparturePoint, ROUTE_VERSION, type Plan, type TripInput } from '@/lib/itinerary';
 import { hotelDatabase as importedHotels, hotelCategories, mealOptions, transportOptions, travelStyles, interests, destinations, destinationByName, replaceDestinationCatalog, type Destination, type Hotel } from '@/lib/data';
 import { firstHotelCandidate, roomsRequired, cnbChildren, extraBedsRequired, matchesPackageCategory, suggestedHotel } from '@/lib/hotels';
 import { stayDateWindow } from '@/lib/hotel-rate-validity';
+import { dayScheduleContext } from '@/lib/day-scheduler';
 
 export type HotelSelection = {
   location: string; hotelId: string; hotelName: string; category: string; starRating: number | null; address: string; roomType: string; website: string;
@@ -150,7 +151,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       if(!Array.isArray(payload.destinations))throw new Error('Destination database returned an invalid response.');
       const catalog=payload.destinations as Destination[];
       replaceDestinationCatalog(catalog);
-      setDestinationCatalog([...catalog]);
+      setDestinationCatalog([...destinations]);
       if (rebuildCurrent) setState((current) => {
         if (!current.plan) return current;
         try {
@@ -201,8 +202,11 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   }, []);
   useEffect(() => { if (mounted) { try { const {hotelDatabase: _privateRates, ...saved}=state; localStorage.setItem(STORAGE, JSON.stringify(saved)); } catch { /* ignore storage errors */ } } }, [state, mounted]);
 
+  const scheduledPlan = useMemo(() => state.plan ? reschedulePlan(state.plan, state.costModel) : null,
+    [state.plan, state.costModel.activityCosts, state.costModel.activitySelections, destinationCatalog]);
   const value = useMemo<PlannerContextValue>(() => ({
     ...state,
+    plan: scheduledPlan,
     hydrated: mounted,
     destinationCatalog,
     destinationConnection,
@@ -224,7 +228,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       setState((s) => {
         if (!s.plan) return s;
         try {
-          const nextPlan = retargetDay(s.plan, day, destination);
+          const nextPlan = retargetDay(reschedulePlan(s.plan, s.costModel), day, destination);
           // A destination change must refresh the auto-generated title/about copy.
           // Any operator custom copy for that day is intentionally cleared so the
           // destination's own intelligence description becomes the new baseline.
@@ -239,19 +243,23 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     setDayTrip(day, destination) {
       setState((s) => {
         if (!s.plan) return s;
-        try { return { ...s, plan: setPlanDayTrip(s.plan, day, destination) }; }
+        try { return { ...s, plan: setPlanDayTrip(reschedulePlan(s.plan, s.costModel), day, destination) }; }
         catch { return s; }
       });
     },
     setDeparturePoint(destination) {
       setState((s) => {
         if (!s.plan) return s;
-        try { return { ...s, plan: setPlanDeparturePoint(s.plan, destination) }; }
+        try { return { ...s, plan: setPlanDeparturePoint(reschedulePlan(s.plan, s.costModel), destination) }; }
         catch { return s; }
       });
     },
     setDayContent(day, patch) {
-      setState((s) => s.plan ? { ...s, plan: { ...s.plan, dayPlans: s.plan.dayPlans.map((d) => d.day === day ? { ...d, customTitle: patch.title ?? d.customTitle, customAbout: patch.about ?? d.customAbout } : d) } } : s);
+      setState((s) => {
+        if (!s.plan) return s;
+        const plan = reschedulePlan(s.plan, s.costModel);
+        return { ...s, plan: { ...plan, dayPlans: plan.dayPlans.map((d) => d.day === day ? { ...d, customTitle: patch.title ?? d.customTitle, customAbout: patch.about ?? d.customAbout, customAboutContext: patch.about !== undefined ? dayScheduleContext(d) : d.customAboutContext } : d) } };
+      });
     },
     setStayAllocation(entries) {
       setState((s) => {
@@ -269,7 +277,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
           for (let i = 0; i < row.nights; i++) sequence.push(row.location);
         }
         try {
-          const nextPlan = rebuildPlanFromNightSequence(s.plan, sequence);
+          const nextPlan = rebuildPlanFromNightSequence(reschedulePlan(s.plan, s.costModel), sequence);
           const nextHotels = syncHotelSelections(nextPlan, s.hotelSelections, s.hotelDatabase, s.input);
           return { ...s, plan: nextPlan, hotelSelections: nextHotels };
         } catch { return s; }
@@ -280,7 +288,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
         if (!s.plan || sequence.length !== s.plan.nights) return s;
         if (sequence.some((name) => { const d = destinationByName(name); return !d || !d.overnight_allowed; })) return s;
         try {
-          const nextPlan = rebuildPlanFromNightSequence(s.plan, sequence);
+          const nextPlan = rebuildPlanFromNightSequence(reschedulePlan(s.plan, s.costModel), sequence);
           const nextHotels = syncHotelSelections(nextPlan, s.hotelSelections, s.hotelDatabase, s.input);
           return { ...s, plan: nextPlan, hotelSelections: nextHotels };
         } catch { return s; }
@@ -293,7 +301,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
         const sequence = s.plan.dayPlans.slice(0, s.plan.nights).map((d) => d.stay);
         sequence.push(lastStay);
         try {
-          const nextPlan = rebuildPlanFromNightSequence(s.plan, sequence);
+          const nextPlan = rebuildPlanFromNightSequence(reschedulePlan(s.plan, s.costModel), sequence);
           const nextInput = { ...s.input, departure: shiftDate(s.input.departure, 1) };
           nextPlan.input = nextInput;
           const nextHotels = syncHotelSelections(nextPlan, s.hotelSelections, s.hotelDatabase, nextInput);
@@ -308,7 +316,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
         const removeIndex = day >= s.plan.days ? sequence.length - 1 : Math.min(sequence.length - 1, day - 1);
         sequence.splice(removeIndex, 1);
         try {
-          const nextPlan = rebuildPlanFromNightSequence(s.plan, sequence);
+          const nextPlan = rebuildPlanFromNightSequence(reschedulePlan(s.plan, s.costModel), sequence);
           const nextInput = { ...s.input, departure: shiftDate(s.input.departure, -1) };
           nextPlan.input = nextInput;
           const nextHotels = syncHotelSelections(nextPlan, s.hotelSelections, s.hotelDatabase, nextInput);
@@ -396,7 +404,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       setState((s) => ({ ...s, ...snapshot, costModel: { ...defaultCost, ...snapshot.costModel, activitySelections: snapshot.costModel?.activitySelections || {}, manualInclusions: Array.isArray(snapshot.costModel?.manualInclusions) ? snapshot.costModel.manualInclusions : [], manualExclusions: Array.isArray(snapshot.costModel?.manualExclusions) ? snapshot.costModel.manualExclusions : [], transportIsCustom: snapshot.costModel?.transportIsCustom === true || (Boolean(snapshot.input?.transport) && !transportOptions.includes(snapshot.input.transport)) }, hotelDatabase: s.hotelDatabase, savedItineraryId: id }));
     },
     markSavedItinerary(id) { setState((s) => ({ ...s, savedItineraryId: id })); },
-  }), [state, mounted, hotelConnection, hotelConnectionError, destinationCatalog, destinationConnection, destinationConnectionError]);
+  }), [state, scheduledPlan, mounted, hotelConnection, hotelConnectionError, destinationCatalog, destinationConnection, destinationConnectionError]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

@@ -1,0 +1,3337 @@
+{
+  "Srinagar": {
+    "hub": {
+      "km": 0,
+      "hours": 0,
+      "hours_max": 0,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Srinagar city centre",
+      "access_mode": "road",
+      "via": [],
+      "source_urls": [
+        "https://srinagar.nic.in/places-of-interest/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Hub reference only; city sightseeing travel is budgeted per stop. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Discover Srinagar through its lakeside setting, garden terraces and historic neighbourhoods.",
+    "sights": {
+      "Dal Lake & Boulevard": {
+        "client_sentence": "Walk along the Dal Lake Boulevard for views of the lake, houseboats and Zabarwan mountains.",
+        "visit_minutes": 45,
+        "transfer_minutes": 15,
+        "arrival_suitable": true,
+        "cluster": "dal-waterfront"
+      },
+      "Shankaracharya Temple": {
+        "client_sentence": "Visit Shankaracharya Temple and its hilltop viewpoint overlooking Srinagar and Dal Lake.",
+        "visit_minutes": 60,
+        "transfer_minutes": 35,
+        "arrival_suitable": false,
+        "cluster": "shankaracharya-hill"
+      },
+      "Pari Mahal": {
+        "client_sentence": "Explore the terraces of Pari Mahal for elevated views across Dal Lake and the city.",
+        "visit_minutes": 45,
+        "transfer_minutes": 25,
+        "arrival_suitable": true,
+        "cluster": "zabarwan-gardens"
+      },
+      "Nishat Bagh": {
+        "client_sentence": "Stroll through Nishat Bagh's terraced lawns and water channels beside Dal Lake.",
+        "visit_minutes": 45,
+        "transfer_minutes": 20,
+        "arrival_suitable": true,
+        "cluster": "east-dal-gardens"
+      },
+      "Shalimar Bagh": {
+        "client_sentence": "Explore Shalimar Bagh's Mughal terraces, chinar-lined paths and flowing water channels.",
+        "visit_minutes": 45,
+        "transfer_minutes": 20,
+        "arrival_suitable": true,
+        "cluster": "east-dal-gardens"
+      },
+      "Chashme Shahi": {
+        "client_sentence": "Visit Chashme Shahi to see its spring-fed terraces and garden setting in the Zabarwan foothills.",
+        "visit_minutes": 30,
+        "transfer_minutes": 15,
+        "arrival_suitable": true,
+        "cluster": "zabarwan-gardens"
+      },
+      "Hazratbal Shrine": {
+        "client_sentence": "Visit Hazratbal Shrine beside Dal Lake and take in its peaceful lakefront setting.",
+        "visit_minutes": 35,
+        "transfer_minutes": 20,
+        "arrival_suitable": true,
+        "cluster": "north-dal"
+      },
+      "Nigeen Lake": {
+        "client_sentence": "Pause beside Nigeen Lake for views of its quieter waterfront and traditional houseboats.",
+        "visit_minutes": 35,
+        "transfer_minutes": 15,
+        "arrival_suitable": true,
+        "cluster": "nigeen-hazratbal"
+      },
+      "Old Srinagar & Shah-e-Hamadan area": {
+        "client_sentence": "Explore the old-city lanes around Shah-e-Hamadan, passing traditional buildings, markets and the Jhelum riverfront.",
+        "visit_minutes": 75,
+        "transfer_minutes": 25,
+        "arrival_suitable": false,
+        "cluster": "old-srinagar"
+      },
+      "Floating Market / lake trading areas": {
+        "client_sentence": "Visit the floating trading areas in the early morning to see the lake's distinctive waterside commerce.",
+        "visit_minutes": 60,
+        "transfer_minutes": 15,
+        "arrival_suitable": false,
+        "cluster": "dal-early-market",
+        "time_window": {
+          "start": 360,
+          "end": 480
+        },
+        "requires_activity": "Sunrise or sunset shikara ride"
+      }
+    },
+    "activities": {
+      "Sunrise or sunset shikara ride": {
+        "client_sentence": "Enjoy a shikara ride on Dal Lake, passing traditional houseboats against the Zabarwan mountain backdrop.",
+        "duration_minutes": 60,
+        "sight_names": [],
+        "cluster": "dal-early-market"
+      },
+      "Dal Lake photography": {
+        "client_sentence": "Photograph Dal Lake's houseboats, shikaras and mountain-framed waterfront.",
+        "duration_minutes": 60
+      },
+      "Old-city heritage walk": {
+        "client_sentence": "Follow a heritage walk through Srinagar's old-city lanes and historic riverfront.",
+        "duration_minutes": 90
+      },
+      "Kashmiri food and kahwa experience": {
+        "client_sentence": "Enjoy the arranged Kashmiri food and kahwa experience, sampling the region's distinctive flavours.",
+        "duration_minutes": 60
+      },
+      "Garden hopping and chinar photography": {
+        "client_sentence": "Explore the selected garden circuit with time to photograph its chinar trees and water channels.",
+        "duration_minutes": 60
+      },
+      "Bird and wetland watching where locally accessible": {
+        "client_sentence": "Observe birds and wetland scenery at the selected Srinagar viewing areas.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Gulmarg": {
+    "hub": {
+      "km": 60,
+      "hours": 2,
+      "hours_max": 2.75,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Gulmarg resort",
+      "access_mode": "road",
+      "via": [
+        "Tangmarg"
+      ],
+      "source_urls": [
+        "https://baramulla.nic.in/tourist-place/gulmarg/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "District text gives 54 and 60 km from different starting points; use a rounded city reference and conservative driving allowance. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Explore Gulmarg beneath the Pir Panjal peaks, with meadow walks and mountain experiences arranged around the day's journey.",
+    "sights": {
+      "Gulmarg Meadow": {
+        "client_sentence": "Walk through Gulmarg's central meadow for views of the forested slopes and Pir Panjal peaks.",
+        "visit_minutes": 50,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "gulmarg-centre"
+      },
+      "Gulmarg Gondola": {
+        "client_sentence": "Enjoy the Gulmarg Gondola journey into the mountain scenery above the resort.",
+        "visit_minutes": 180,
+        "transfer_minutes": 20,
+        "arrival_suitable": false,
+        "cluster": "gondola",
+        "requires_activity": "Gondola ride"
+      },
+      "Kongdori": {
+        "client_sentence": "Explore Kongdori's alpine meadow and mountain viewpoints during the arranged Gondola excursion.",
+        "visit_minutes": 45,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "gondola",
+        "requires_activity": "Gondola ride"
+      },
+      "Apharwat / upper mountain area": {
+        "client_sentence": "Continue to the upper Apharwat mountain area for panoramic views across the high peaks.",
+        "visit_minutes": 60,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "gondola",
+        "requires_activity": "Gondola ride"
+      },
+      "Alpather Lake": {
+        "client_sentence": "Follow the dedicated alpine trek to Alpather Lake beneath the Apharwat peaks.",
+        "visit_minutes": 360,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "alpather-trek"
+      },
+      "St. Mary's Church": {
+        "client_sentence": "Visit St. Mary's Church, a historic stone landmark close to Gulmarg's central meadow.",
+        "visit_minutes": 25,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "gulmarg-centre"
+      },
+      "Maharani Temple": {
+        "client_sentence": "Visit the Maharani Temple on its small rise above Gulmarg's meadow.",
+        "visit_minutes": 25,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "gulmarg-centre"
+      },
+      "Strawberry Valley": {
+        "client_sentence": "Explore Strawberry Valley's orchard-side landscape and open rural views.",
+        "visit_minutes": 60,
+        "transfer_minutes": 35,
+        "arrival_suitable": false,
+        "cluster": "strawberry-valley"
+      },
+      "Khilanmarg": {
+        "client_sentence": "Follow the meadow trail toward Khilanmarg for broad views of the surrounding mountains.",
+        "visit_minutes": 180,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "khilanmarg-trail"
+      }
+    },
+    "activities": {
+      "Gondola ride": {
+        "client_sentence": "Enjoy the Gulmarg Gondola ride for alpine scenery above the resort.",
+        "duration_minutes": 240,
+        "sight_names": [
+          "Gulmarg Gondola",
+          "Kongdori",
+          "Apharwat / upper mountain area"
+        ],
+        "cluster": "gondola"
+      },
+      "Skiing and snowboarding in winter": {
+        "client_sentence": "Enjoy the arranged skiing or snowboarding session on Gulmarg's winter slopes.",
+        "duration_minutes": 180
+      },
+      "Summer meadow walks": {
+        "client_sentence": "Follow a summer meadow walk through Gulmarg's open landscape.",
+        "duration_minutes": 60,
+        "sight_names": [
+          "Gulmarg Meadow"
+        ],
+        "cluster": "gulmarg-centre"
+      },
+      "Horse riding where locally available": {
+        "client_sentence": "Enjoy the arranged pony ride along the selected Gulmarg route.",
+        "duration_minutes": 120,
+        "sight_names": [
+          "Strawberry Valley"
+        ],
+        "cluster": "strawberry-valley"
+      },
+      "Photography and mountain viewing": {
+        "client_sentence": "Pause at selected Gulmarg viewpoints for mountain photography.",
+        "duration_minutes": 60
+      },
+      "Golf at the Gulmarg golf course area": {
+        "client_sentence": "Enjoy the arranged golf session against Gulmarg's mountain backdrop.",
+        "duration_minutes": 180
+      }
+    }
+  },
+  "Pahalgam": {
+    "hub": {
+      "km": 95,
+      "hours": 3,
+      "hours_max": 3.75,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Pahalgam town",
+      "access_mode": "road",
+      "via": [
+        "Pampore",
+        "Bijbehara",
+        "Anantnag"
+      ],
+      "source_urls": [
+        "https://anantnag.nic.in/tourist-place/pahalgam/",
+        "https://censusindia.gov.in/nada/index.php/catalog/490/download/1608/DH_2011_0114_PART_A_DCHB_ANANTNAG.pdf"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Rounded city route estimate; official page gives 96 km from the airport, a different origin. Local valley excursions need additional travel time. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Discover the Lidder Valley through Pahalgam's riverside scenery, wooded slopes and surrounding mountain valleys.",
+    "sights": {
+      "Lidder River & Pahalgam town": {
+        "client_sentence": "Walk beside the Lidder River through Pahalgam town, with pine-covered slopes rising above the valley.",
+        "visit_minutes": 45,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "pahalgam-town"
+      },
+      "Aru Valley": {
+        "client_sentence": "Explore Aru Valley's open meadow and village setting beneath forested mountain slopes.",
+        "visit_minutes": 75,
+        "transfer_minutes": 75,
+        "arrival_suitable": false,
+        "cluster": "aru-valley"
+      },
+      "Betaab Valley": {
+        "client_sentence": "Visit Betaab Valley for its riverside lawns, pine-framed views and surrounding mountains.",
+        "visit_minutes": 60,
+        "transfer_minutes": 45,
+        "arrival_suitable": false,
+        "cluster": "betaab-chandanwari"
+      },
+      "Chandanwari": {
+        "client_sentence": "Continue along the valley road to Chandanwari for views of the upper river and mountain landscape.",
+        "visit_minutes": 60,
+        "transfer_minutes": 60,
+        "arrival_suitable": false,
+        "cluster": "betaab-chandanwari"
+      },
+      "Baisaran Valley": {
+        "client_sentence": "Follow the arranged walking or pony excursion to Baisaran's forest-ringed meadow.",
+        "visit_minutes": 210,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "baisaran-trail"
+      },
+      "Mamleshwar Temple": {
+        "client_sentence": "Visit Mamleshwar Temple, a historic shrine near Pahalgam town and the Lidder River.",
+        "visit_minutes": 30,
+        "transfer_minutes": 15,
+        "arrival_suitable": true,
+        "cluster": "pahalgam-town"
+      },
+      "Pahalgam Golf Course": {
+        "client_sentence": "Pause at the Pahalgam Golf Course area for views across its open landscape toward the surrounding peaks.",
+        "visit_minutes": 35,
+        "transfer_minutes": 15,
+        "arrival_suitable": true,
+        "cluster": "pahalgam-town"
+      },
+      "Pahalgam market & riverside walks": {
+        "client_sentence": "Browse Pahalgam's market and enjoy a short riverside walk through the town.",
+        "visit_minutes": 45,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "pahalgam-town"
+      }
+    },
+    "activities": {
+      "Horse riding where regulated and available": {
+        "client_sentence": "Enjoy the arranged pony excursion through Pahalgam's meadow and forest landscape.",
+        "duration_minutes": 120,
+        "sight_names": [
+          "Baisaran Valley"
+        ],
+        "cluster": "baisaran-trail"
+      },
+      "Riverfront photography": {
+        "client_sentence": "Photograph the Lidder River against Pahalgam's pine-covered slopes.",
+        "duration_minutes": 60
+      },
+      "Nature walks and short hikes": {
+        "client_sentence": "Follow the selected short nature walk through Pahalgam's riverside or forest paths.",
+        "duration_minutes": 180
+      },
+      "Trekking from Aru / Pahalgam trails": {
+        "client_sentence": "Follow the arranged trekking programme from the Aru or Pahalgam trailhead.",
+        "duration_minutes": 300,
+        "sight_names": [
+          "Aru Valley"
+        ],
+        "cluster": "aru-valley"
+      },
+      "Picnic and meadow time": {
+        "client_sentence": "Enjoy the arranged picnic in the selected Pahalgam meadow setting.",
+        "duration_minutes": 60
+      },
+      "Winter snow play where conditions allow": {
+        "client_sentence": "Enjoy the arranged winter snow session in the selected Pahalgam snow area.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Sonamarg": {
+    "hub": {
+      "km": 87,
+      "hours": 3,
+      "hours_max": 3.75,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Sonamarg town",
+      "access_mode": "road",
+      "via": [
+        "Ganderbal",
+        "Kangan",
+        "Gagangeer"
+      ],
+      "source_urls": [
+        "https://ganderbal.nic.in/tourist-place/sonamarg/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "District publishes 87 km and under 3 hours from Srinagar, versus 102 km from the airport. Planner uses 3 hours plus an upper allowance. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Explore Sonamarg's mountain valley, where open meadows meet the flowing Sindh River.",
+    "sights": {
+      "Sonamarg Meadow": {
+        "client_sentence": "Walk across Sonamarg's meadow for views of the high mountain valley and surrounding peaks.",
+        "visit_minutes": 45,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "sonamarg-centre"
+      },
+      "Thajiwas Glacier area": {
+        "client_sentence": "Follow the arranged trail excursion toward Thajiwas for glacier-valley views and alpine scenery.",
+        "visit_minutes": 180,
+        "transfer_minutes": 15,
+        "arrival_suitable": false,
+        "cluster": "thajiwas-trail"
+      },
+      "Baltal Valley": {
+        "client_sentence": "Visit Baltal Valley for its mountain-framed meadow and views along the Sindh corridor.",
+        "visit_minutes": 50,
+        "transfer_minutes": 75,
+        "arrival_suitable": false,
+        "cluster": "baltal-zojila"
+      },
+      "Zero Point / higher snow area": {
+        "client_sentence": "Follow the arranged high-mountain excursion to the selected Zero Point snow area.",
+        "visit_minutes": 90,
+        "transfer_minutes": 180,
+        "arrival_suitable": false,
+        "cluster": "zojila-excursion"
+      },
+      "Sindh River": {
+        "client_sentence": "Pause beside the Sindh River for views of flowing water beneath Sonamarg's mountains.",
+        "visit_minutes": 35,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "sonamarg-centre"
+      },
+      "Gagangeer": {
+        "client_sentence": "Stop at Gagangeer for riverside scenery and views along the Sindh Valley.",
+        "visit_minutes": 30,
+        "transfer_minutes": 20,
+        "arrival_suitable": true,
+        "cluster": "gagangeer-route"
+      },
+      "Zoji La approach": {
+        "client_sentence": "Explore the Zoji La approach viewpoints for views of the mountain road and valley below.",
+        "visit_minutes": 45,
+        "transfer_minutes": 150,
+        "arrival_suitable": false,
+        "cluster": "baltal-zojila"
+      }
+    },
+    "activities": {
+      "Snow play in season": {
+        "client_sentence": "Enjoy the arranged snow-play session in the selected Sonamarg snow area.",
+        "duration_minutes": 60
+      },
+      "Pony riding where locally available": {
+        "client_sentence": "Enjoy the arranged pony ride along the selected Sonamarg route.",
+        "duration_minutes": 120,
+        "sight_names": [
+          "Thajiwas Glacier area"
+        ],
+        "cluster": "thajiwas-trail"
+      },
+      "River and mountain photography": {
+        "client_sentence": "Photograph the Sindh River and mountain landscape around Sonamarg.",
+        "duration_minutes": 60
+      },
+      "Short valley walks": {
+        "client_sentence": "Follow the selected valley walk through Sonamarg's meadow and riverside scenery.",
+        "duration_minutes": 60
+      },
+      "Seasonal rafting where officially operated": {
+        "client_sentence": "Enjoy the arranged rafting session on the selected Sindh River stretch.",
+        "duration_minutes": 120
+      },
+      "Trekking and alpine excursions": {
+        "client_sentence": "Follow the arranged alpine trekking programme from Sonamarg.",
+        "duration_minutes": 300,
+        "sight_names": [
+          "Thajiwas Glacier area"
+        ],
+        "cluster": "thajiwas-trail"
+      }
+    }
+  },
+  "Gurez": {
+    "hub": {
+      "km": 130,
+      "hours": 6,
+      "hours_max": 7.5,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Dawar, Gurez",
+      "access_mode": "road",
+      "via": [
+        "Sumbal",
+        "Bandipora",
+        "Razdan Pass"
+      ],
+      "source_urls": [
+        "https://bandipore.nic.in/tourist-place/gurez-valley/",
+        "https://jandktourism.jk.gov.in/Destinations.html"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Rounded city-to-Dawar mountain-road estimate. The district page has a copied 74.5 km airport line which is not used. This is a substantial transfer. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Discover Gurez through its riverside villages, traditional homes and dramatic mountain setting.",
+    "sights": {
+      "Dawar": {
+        "client_sentence": "Explore Dawar's village streets and local market in the heart of Gurez Valley.",
+        "visit_minutes": 45,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "dawar"
+      },
+      "Kishanganga River": {
+        "client_sentence": "Walk beside the Kishanganga River for views of Gurez's fields, villages and mountain slopes.",
+        "visit_minutes": 45,
+        "transfer_minutes": 15,
+        "arrival_suitable": true,
+        "cluster": "dawar-river"
+      },
+      "Habba Khatoon Peak & viewpoint area": {
+        "client_sentence": "Visit the Habba Khatoon viewpoint to admire the distinctive peak above the valley.",
+        "visit_minutes": 45,
+        "transfer_minutes": 25,
+        "arrival_suitable": true,
+        "cluster": "habba-khatoon"
+      },
+      "Habba Khatoon Waterfall area": {
+        "client_sentence": "Walk to the Habba Khatoon waterfall area for stream-side scenery below the mountain.",
+        "visit_minutes": 60,
+        "transfer_minutes": 25,
+        "arrival_suitable": false,
+        "cluster": "habba-khatoon"
+      },
+      "Tulail Valley": {
+        "client_sentence": "Explore the selected Tulail villages and valley viewpoints beyond Dawar.",
+        "visit_minutes": 120,
+        "transfer_minutes": 180,
+        "arrival_suitable": false,
+        "cluster": "tulail-excursion"
+      },
+      "Razdan Pass viewpoints": {
+        "client_sentence": "Pause at the Razdan Pass viewpoints along the journey for views over the mountain ranges.",
+        "visit_minutes": 30,
+        "transfer_minutes": 0,
+        "arrival_suitable": true,
+        "cluster": "razdan-route"
+      },
+      "Gurez village circuit": {
+        "client_sentence": "Explore Gurez's selected villages to see timber homes, fields and everyday valley life.",
+        "visit_minutes": 90,
+        "transfer_minutes": 60,
+        "arrival_suitable": false,
+        "cluster": "gurez-villages"
+      },
+      "Kanzalwan / mountain river landscapes": {
+        "client_sentence": "Pause near Kanzalwan for views of the Kishanganga corridor and surrounding mountains.",
+        "visit_minutes": 45,
+        "transfer_minutes": 60,
+        "arrival_suitable": false,
+        "cluster": "kanzalwan-route"
+      }
+    },
+    "activities": {
+      "Village walks": {
+        "client_sentence": "Explore the selected villages around Gurez, walking past local homes and rural landscapes.",
+        "duration_minutes": 90
+      },
+      "Camping where permitted and arranged": {
+        "client_sentence": "Stay at the arranged Gurez camp as part of the dedicated outdoor programme.",
+        "duration_minutes": 60
+      },
+      "Angling only where locally permitted": {
+        "client_sentence": "Enjoy the arranged angling session on the selected Gurez fishing stretch.",
+        "duration_minutes": 120
+      },
+      "Landscape photography": {
+        "client_sentence": "Capture Gurez's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Short hikes and longer treks": {
+        "client_sentence": "Follow the selected short walking route through Gurez's scenic surroundings.",
+        "duration_minutes": 180
+      },
+      "Local food and homestay experiences": {
+        "client_sentence": "Enjoy the arranged local meal and homestay experience in Gurez.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Doodhpathri": {
+    "hub": {
+      "km": 45,
+      "hours": 2,
+      "hours_max": 2.75,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Doodhpathri meadow parking",
+      "access_mode": "road",
+      "via": [
+        "Budgam",
+        "Khansahib"
+      ],
+      "source_urls": [
+        "https://budgam.nic.in/places-of-interest/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "District publishes approximately 42 km from Srinagar; rounded reference varies by city pickup and approach. River access needs extra local walking or arranged pony time. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Explore Doodhpathri's open pastures, pine-fringed slopes and flowing mountain streams.",
+    "sights": {
+      "Doodhpathri Meadow": {
+        "client_sentence": "Walk across Doodhpathri's meadow, framed by pine forests and gentle mountain slopes.",
+        "visit_minutes": 60,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "doodhpathri-centre"
+      },
+      "Shaliganga River": {
+        "client_sentence": "Follow the riverside path to the Shaliganga for views of clear water flowing through the meadow landscape.",
+        "visit_minutes": 75,
+        "transfer_minutes": 30,
+        "arrival_suitable": false,
+        "cluster": "shaliganga"
+      },
+      "Tangnar meadow area": {
+        "client_sentence": "Explore Tangnar's open pasture and forest-edge scenery on the Doodhpathri approach.",
+        "visit_minutes": 40,
+        "transfer_minutes": 20,
+        "arrival_suitable": true,
+        "cluster": "tangnar-route"
+      },
+      "Forest viewpoints": {
+        "client_sentence": "Pause at the forest viewpoints for views across Doodhpathri's wooded slopes and meadow edges.",
+        "visit_minutes": 45,
+        "transfer_minutes": 30,
+        "arrival_suitable": true,
+        "cluster": "doodhpathri-forest"
+      },
+      "Local village and shepherd landscapes": {
+        "client_sentence": "Visit the selected village and shepherd landscapes for a closer look at the area's pastoral setting.",
+        "visit_minutes": 60,
+        "transfer_minutes": 35,
+        "arrival_suitable": false,
+        "cluster": "doodhpathri-villages"
+      }
+    },
+    "activities": {
+      "Horse riding where available": {
+        "client_sentence": "Enjoy the arranged pony ride along the selected Doodhpathri route.",
+        "duration_minutes": 120
+      },
+      "Nature photography": {
+        "client_sentence": "Capture Doodhpathri's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Short hikes": {
+        "client_sentence": "Follow the selected short walking route through Doodhpathri's scenic surroundings.",
+        "duration_minutes": 180
+      },
+      "Family picnic": {
+        "client_sentence": "Enjoy the arranged picnic and outdoor time at the selected Doodhpathri setting.",
+        "duration_minutes": 60
+      },
+      "Bird and landscape watching": {
+        "client_sentence": "Observe selected meadow birdlife and the surrounding Doodhpathri landscapes.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Yusmarg": {
+    "hub": {
+      "km": 53,
+      "hours": 2,
+      "hours_max": 2.75,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Yusmarg meadow parking",
+      "access_mode": "road",
+      "via": [
+        "Charar-e-Sharief"
+      ],
+      "source_urls": [
+        "https://budgam.nic.in/tourist-place/yusmarg/",
+        "https://jandktourism.jk.gov.in/Destinations.html"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "District publishes 53 km and under 2 hours via Charar-e-Sharief. Nilnag and Sang-e-Safed are walking excursions. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Discover Yusmarg's meadows and forest scenery through the walks selected for this day.",
+    "sights": {
+      "Yusmarg Meadow": {
+        "client_sentence": "Walk through Yusmarg's meadow beneath its ring of pine-covered hills.",
+        "visit_minutes": 60,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "yusmarg-centre"
+      },
+      "Doodh Ganga": {
+        "client_sentence": "Follow the forest path toward the Doodh Ganga for riverside views and a short nature walk.",
+        "visit_minutes": 120,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "doodhganga-trail"
+      },
+      "Nilnag Lake": {
+        "client_sentence": "Follow the dedicated forest walk to Nilnag Lake and return through the pine woodland.",
+        "visit_minutes": 210,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "nilnag-trail"
+      },
+      "Sang-e-Safed area": {
+        "client_sentence": "Follow the dedicated mountain trail toward Sang-e-Safed's remote meadow landscape.",
+        "visit_minutes": 480,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "sang-e-safed-trek",
+        "requires_activity": "Trekking"
+      },
+      "Charar-e-Sharief": {
+        "client_sentence": "Visit Charar-e-Sharief for its shrine setting and the town's cultural character.",
+        "visit_minutes": 45,
+        "transfer_minutes": 30,
+        "arrival_suitable": true,
+        "cluster": "charar-route"
+      },
+      "Pakherpora side villages": {
+        "client_sentence": "Explore the selected Pakherpora-side villages for rural scenery and cultural stops.",
+        "visit_minutes": 90,
+        "transfer_minutes": 90,
+        "arrival_suitable": false,
+        "cluster": "pakherpora-excursion"
+      }
+    },
+    "activities": {
+      "Horse riding where available": {
+        "client_sentence": "Enjoy the arranged pony ride along the selected Yusmarg route.",
+        "duration_minutes": 120
+      },
+      "Nature walks": {
+        "client_sentence": "Follow the selected nature walk through Yusmarg's green surroundings.",
+        "duration_minutes": 60,
+        "sight_names": [
+          "Doodh Ganga",
+          "Nilnag Lake"
+        ],
+        "cluster": "yusmarg-trails"
+      },
+      "Trekking": {
+        "client_sentence": "Follow the arranged trekking route through Yusmarg's mountain landscape.",
+        "duration_minutes": 300,
+        "sight_names": [
+          "Sang-e-Safed area"
+        ],
+        "cluster": "sang-e-safed-trek"
+      },
+      "Photography": {
+        "client_sentence": "Capture Yusmarg's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Picnic and relaxation": {
+        "client_sentence": "Enjoy the arranged picnic and outdoor time at the selected Yusmarg setting.",
+        "duration_minutes": 60
+      },
+      "Village and cultural visits": {
+        "client_sentence": "Explore the selected Yusmarg-area villages and cultural stops.",
+        "duration_minutes": 90
+      }
+    }
+  },
+  "Aharbal": {
+    "hub": {
+      "km": 75,
+      "hours": 2.5,
+      "hours_max": 3.25,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Aharbal waterfall parking",
+      "access_mode": "road",
+      "via": [
+        "Pulwama",
+        "Shopian"
+      ],
+      "source_urls": [
+        "https://kulgam.nic.in/tourism/",
+        "https://jandktourism.jk.gov.in/Destinations.html"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Rounded city road estimate to waterfall access; trail-country excursions toward Kounsarnag are separate multi-day walks. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Explore Aharbal's waterfall landscape and the wooded valley of the Veshaw River.",
+    "sights": {
+      "Aharbal Waterfall": {
+        "client_sentence": "Visit Aharbal Waterfall from the designated viewing paths above the Veshaw gorge.",
+        "visit_minutes": 60,
+        "transfer_minutes": 15,
+        "arrival_suitable": true,
+        "cluster": "aharbal-falls"
+      },
+      "Veshaw River": {
+        "client_sentence": "Walk along the selected Veshaw River viewpoint paths for views of its wooded banks.",
+        "visit_minutes": 50,
+        "transfer_minutes": 20,
+        "arrival_suitable": true,
+        "cluster": "aharbal-river"
+      },
+      "Aharbal meadow and picnic areas": {
+        "client_sentence": "Explore Aharbal's meadow and picnic landscape beneath the pine-covered slopes.",
+        "visit_minutes": 60,
+        "transfer_minutes": 15,
+        "arrival_suitable": true,
+        "cluster": "aharbal-centre"
+      },
+      "Kounsarnag trail country": {
+        "client_sentence": "Follow the dedicated trekking stage into the mountain country toward Kounsarnag.",
+        "visit_minutes": 480,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "kounsarnag-trek",
+        "requires_activity": "Trekking"
+      }
+    },
+    "activities": {
+      "Photography": {
+        "client_sentence": "Capture Aharbal's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Short hikes": {
+        "client_sentence": "Follow the selected short walking route through Aharbal's scenic surroundings.",
+        "duration_minutes": 180
+      },
+      "Trekking": {
+        "client_sentence": "Follow the arranged trekking route through Aharbal's mountain landscape.",
+        "duration_minutes": 300,
+        "sight_names": [
+          "Kounsarnag trail country"
+        ],
+        "cluster": "kounsarnag-trek"
+      },
+      "Picnicking": {
+        "client_sentence": "Enjoy the arranged picnic and outdoor time at the selected Aharbal setting.",
+        "duration_minutes": 60
+      },
+      "Nature walks": {
+        "client_sentence": "Follow the selected nature walk through Aharbal's green surroundings.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Kokernag": {
+    "hub": {
+      "km": 85,
+      "hours": 2.75,
+      "hours_max": 3.5,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Kokernag garden entrance",
+      "access_mode": "road",
+      "via": [
+        "Anantnag",
+        "Achabal"
+      ],
+      "source_urls": [
+        "https://anantnag.nic.in/tourist-place/kokernag/",
+        "https://jandktourism.jk.gov.in/Destinations.html"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Rounded city road estimate; Daksum needs additional travel time. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Discover Kokernag's spring-fed gardens and the green landscapes of the Breng Valley.",
+    "sights": {
+      "Kokernag Springs": {
+        "client_sentence": "Visit Kokernag's bubbling springs and the landscaped paths surrounding them.",
+        "visit_minutes": 45,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "kokernag-garden"
+      },
+      "Kokernag Botanical Garden": {
+        "client_sentence": "Stroll through Kokernag Botanical Garden among its lawns, flowers and mature trees.",
+        "visit_minutes": 60,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "kokernag-garden"
+      },
+      "Trout Fish Farm area": {
+        "client_sentence": "Visit the arranged trout-farm viewing area to learn about the valley's cold-water fish culture.",
+        "visit_minutes": 35,
+        "transfer_minutes": 15,
+        "arrival_suitable": true,
+        "cluster": "kokernag-farm"
+      },
+      "Kokernag forest and stream walks": {
+        "client_sentence": "Walk beside Kokernag's streams and forest margins for a closer view of the valley landscape.",
+        "visit_minutes": 60,
+        "transfer_minutes": 20,
+        "arrival_suitable": true,
+        "cluster": "kokernag-forest"
+      },
+      "Daksum excursion": {
+        "client_sentence": "Continue to Daksum for a forest-and-river excursion in the upper Breng Valley.",
+        "visit_minutes": 90,
+        "transfer_minutes": 90,
+        "arrival_suitable": false,
+        "cluster": "daksum-excursion"
+      }
+    },
+    "activities": {
+      "Garden walks": {
+        "client_sentence": "Stroll through the selected garden paths at Kokernag.",
+        "duration_minutes": 60
+      },
+      "Photography": {
+        "client_sentence": "Capture Kokernag's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Picnic": {
+        "client_sentence": "Enjoy the arranged picnic and outdoor time at the selected Kokernag setting.",
+        "duration_minutes": 60
+      },
+      "Nature walks": {
+        "client_sentence": "Follow the selected nature walk through Kokernag's green surroundings.",
+        "duration_minutes": 60
+      },
+      "Short scenic drives": {
+        "client_sentence": "Follow the selected scenic drive through Kokernag, pausing at the arranged viewpoints.",
+        "duration_minutes": 180
+      }
+    }
+  },
+  "Achabal": {
+    "hub": {
+      "km": 65,
+      "hours": 2.25,
+      "hours_max": 3,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Achabal garden entrance",
+      "access_mode": "road",
+      "via": [
+        "Anantnag"
+      ],
+      "source_urls": [
+        "https://anantnag.nic.in/tourist-place/achabal/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "District text mixes 58 km city, 67 km airport and an inconsistent road line; the rounded city estimate distinguishes these endpoints. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Explore Achabal's spring-fed Mughal garden and its graceful historic landscape.",
+    "sights": {
+      "Achabal Mughal Garden": {
+        "client_sentence": "Explore Achabal's Mughal garden through its chinar-lined paths, terraces and cascading channels.",
+        "visit_minutes": 60,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "achabal-garden"
+      },
+      "Achabal Spring": {
+        "client_sentence": "Visit Achabal Spring at the foot of the garden's wooded hillside.",
+        "visit_minutes": 25,
+        "transfer_minutes": 5,
+        "arrival_suitable": true,
+        "cluster": "achabal-garden"
+      },
+      "Historic garden pavilions and channels": {
+        "client_sentence": "Examine Achabal's historic pavilions and water channels as you walk through the garden.",
+        "visit_minutes": 35,
+        "transfer_minutes": 5,
+        "arrival_suitable": true,
+        "cluster": "achabal-garden"
+      }
+    },
+    "activities": {
+      "Garden photography": {
+        "client_sentence": "Capture Achabal's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Heritage walk": {
+        "client_sentence": "Explore Achabal's heritage features during the arranged cultural visit.",
+        "duration_minutes": 90
+      },
+      "Picnic and relaxation": {
+        "client_sentence": "Enjoy the arranged picnic and outdoor time at the selected Achabal setting.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Daksum": {
+    "hub": {
+      "km": 100,
+      "hours": 3.25,
+      "hours_max": 4,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Daksum village",
+      "access_mode": "road",
+      "via": [
+        "Anantnag",
+        "Kokernag"
+      ],
+      "source_urls": [
+        "https://jandktourism.jk.gov.in/Destinations.html"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Rounded city road estimate on the Anantnag-Kokernag-Daksum corridor. Sinthan Top is a separate mountain-road extension. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Explore Daksum's forested valley and mountain streams on the Breng Valley route.",
+    "sights": {
+      "Daksum Forests": {
+        "client_sentence": "Walk through the selected Daksum forest paths among tall conifers and valley greenery.",
+        "visit_minutes": 75,
+        "transfer_minutes": 15,
+        "arrival_suitable": false,
+        "cluster": "daksum-forest"
+      },
+      "Bringhi River / stream landscapes": {
+        "client_sentence": "Pause beside the Bringhi River for views of the stream and its forested banks.",
+        "visit_minutes": 45,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "daksum-river"
+      },
+      "Daksum meadow areas": {
+        "client_sentence": "Explore Daksum's meadow clearings beneath the surrounding mountain slopes.",
+        "visit_minutes": 60,
+        "transfer_minutes": 20,
+        "arrival_suitable": true,
+        "cluster": "daksum-centre"
+      },
+      "Kokernag circuit": {
+        "client_sentence": "Visit the selected Kokernag spring-and-garden stops along the valley route.",
+        "visit_minutes": 90,
+        "transfer_minutes": 90,
+        "arrival_suitable": false,
+        "cluster": "kokernag-route"
+      },
+      "Sinthan approach landscapes": {
+        "client_sentence": "Follow the lower Sinthan approach for mountain-road viewpoints above Daksum.",
+        "visit_minutes": 60,
+        "transfer_minutes": 90,
+        "arrival_suitable": false,
+        "cluster": "sinthan-approach"
+      }
+    },
+    "activities": {
+      "Forest walks": {
+        "client_sentence": "Follow the selected nature walk through Daksum's green surroundings.",
+        "duration_minutes": 90
+      },
+      "Landscape photography": {
+        "client_sentence": "Capture Daksum's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Picnic": {
+        "client_sentence": "Enjoy the arranged picnic and outdoor time at the selected Daksum setting.",
+        "duration_minutes": 60
+      },
+      "Birdwatching": {
+        "client_sentence": "Observe birdlife from the selected quiet viewing areas around Daksum.",
+        "duration_minutes": 60
+      },
+      "Short hikes": {
+        "client_sentence": "Follow the selected short walking route through Daksum's scenic surroundings.",
+        "duration_minutes": 180
+      }
+    }
+  },
+  "Verinag": {
+    "hub": {
+      "km": 85,
+      "hours": 2.75,
+      "hours_max": 3.5,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Verinag spring entrance",
+      "access_mode": "road",
+      "via": [
+        "Bijbehara",
+        "Qazigund"
+      ],
+      "source_urls": [
+        "https://anantnag.nic.in/tourist-place/verinag/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "District gives 26 km from Anantnag and 85 km from the airport; city route is a rounded estimate with a distinct origin. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Discover Verinag's historic spring complex and garden at the southern end of the Kashmir Valley.",
+    "sights": {
+      "Verinag Spring": {
+        "client_sentence": "Visit Verinag Spring to see its deep-blue water enclosed by the historic octagonal basin.",
+        "visit_minutes": 40,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "verinag-complex"
+      },
+      "Verinag Mughal Garden": {
+        "client_sentence": "Stroll through Verinag's Mughal garden beside the spring channels.",
+        "visit_minutes": 45,
+        "transfer_minutes": 5,
+        "arrival_suitable": true,
+        "cluster": "verinag-complex"
+      },
+      "Spring canals and masonry works": {
+        "client_sentence": "Explore the carved masonry, arched colonnade and channels around the spring complex.",
+        "visit_minutes": 35,
+        "transfer_minutes": 5,
+        "arrival_suitable": true,
+        "cluster": "verinag-complex"
+      }
+    },
+    "activities": {
+      "Heritage photography": {
+        "client_sentence": "Explore Verinag's heritage features during the arranged cultural visit.",
+        "duration_minutes": 60
+      },
+      "Garden walk": {
+        "client_sentence": "Stroll through the selected garden paths at Verinag.",
+        "duration_minutes": 60
+      },
+      "Scenic drive and picnic": {
+        "client_sentence": "Enjoy the arranged picnic and outdoor time at the selected Verinag setting.",
+        "duration_minutes": 180
+      }
+    }
+  },
+  "Sinthan Top": {
+    "hub": {
+      "km": 135,
+      "hours": 4.5,
+      "hours_max": 5.5,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Sinthan Top road summit",
+      "access_mode": "road",
+      "via": [
+        "Anantnag",
+        "Kokernag",
+        "Daksum"
+      ],
+      "source_urls": [
+        "https://kishtwar.nic.in/tourist-place/sinthan-top/",
+        "https://jandktourism.jk.gov.in/Destinations.html"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Tourism describes a 32 km steep climb from Daksum; district gives 135.5 km from the airport. Estimate ends at the road summit and excludes hikes. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Journey into the high mountain landscape around Sinthan Top for a scenic pass visit.",
+    "sights": {
+      "Sinthan Top viewpoint": {
+        "client_sentence": "Pause at the Sinthan Top viewpoint for wide views across the surrounding mountain ranges.",
+        "visit_minutes": 45,
+        "transfer_minutes": 10,
+        "arrival_suitable": false,
+        "cluster": "sinthan-summit"
+      },
+      "High mountain meadows": {
+        "client_sentence": "Walk through the selected high-meadow area near Sinthan Top for alpine scenery.",
+        "visit_minutes": 60,
+        "transfer_minutes": 15,
+        "arrival_suitable": false,
+        "cluster": "sinthan-summit"
+      },
+      "Sinthan road viewpoints": {
+        "client_sentence": "Stop at the selected Sinthan road viewpoints to photograph the mountain slopes and valleys.",
+        "visit_minutes": 45,
+        "transfer_minutes": 30,
+        "arrival_suitable": false,
+        "cluster": "sinthan-road"
+      }
+    },
+    "activities": {
+      "Landscape photography": {
+        "client_sentence": "Capture Sinthan Top's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Snow play in season": {
+        "client_sentence": "Enjoy the arranged snow-play session in the selected Sinthan Top snow area.",
+        "duration_minutes": 60
+      },
+      "Scenic drive": {
+        "client_sentence": "Follow the selected scenic drive through Sinthan Top, pausing at the arranged viewpoints.",
+        "duration_minutes": 180
+      },
+      "Short walks": {
+        "client_sentence": "Follow the selected short walking route through Sinthan Top's scenic surroundings.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Naranag": {
+    "hub": {
+      "km": 55,
+      "hours": 2,
+      "hours_max": 2.75,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Naranag village and temple trailhead",
+      "access_mode": "road",
+      "via": [
+        "Ganderbal",
+        "Kangan",
+        "Wangath"
+      ],
+      "source_urls": [
+        "https://ganderbal.nic.in/",
+        "https://jandktourism.jk.gov.in/Destinations.html"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Rounded city road estimate to the village temples only. Gangabal/Nundkol are major uphill treks beyond the road endpoint. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Explore Naranag's stone temple remains and stream-side village at the foot of the Harmukh mountains.",
+    "sights": {
+      "Naranag Temple Ruins": {
+        "client_sentence": "Explore the Naranag temple ruins and carved stone remains beside the village.",
+        "visit_minutes": 50,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "naranag-temples"
+      },
+      "Wangath Temple complex": {
+        "client_sentence": "Walk through the Wangath temple complex to see its historic courtyards and stone architecture.",
+        "visit_minutes": 45,
+        "transfer_minutes": 5,
+        "arrival_suitable": true,
+        "cluster": "naranag-temples"
+      },
+      "Naranag spring and stream": {
+        "client_sentence": "Pause beside Naranag's spring and stream in the village's wooded mountain setting.",
+        "visit_minutes": 40,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "naranag-stream"
+      },
+      "Gangbal / Nundkol trek approach": {
+        "client_sentence": "Follow the dedicated trekking route beyond Naranag toward the Gangabal and Nundkol lake country.",
+        "visit_minutes": 480,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "gangabal-trek",
+        "requires_activity": "Trekking to Gangbal/Nundkol"
+      },
+      "Kangan Valley viewpoints": {
+        "client_sentence": "Stop at selected Kangan Valley viewpoints along the route for river and mountain views.",
+        "visit_minutes": 30,
+        "transfer_minutes": 15,
+        "arrival_suitable": true,
+        "cluster": "kangan-route"
+      }
+    },
+    "activities": {
+      "Trekking to Gangbal/Nundkol": {
+        "client_sentence": "Follow the arranged trekking route through Naranag's mountain landscape.",
+        "duration_minutes": 300,
+        "sight_names": [
+          "Gangbal / Nundkol trek approach"
+        ],
+        "cluster": "gangabal-trek"
+      },
+      "Heritage photography": {
+        "client_sentence": "Explore Naranag's heritage features during the arranged cultural visit.",
+        "duration_minutes": 60
+      },
+      "Nature walks": {
+        "client_sentence": "Follow the selected nature walk through Naranag's green surroundings.",
+        "duration_minutes": 60
+      },
+      "Camping on permitted trek routes": {
+        "client_sentence": "Stay at the arranged Naranag camp as part of the dedicated outdoor programme.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Wular Lake": {
+    "hub": {
+      "km": 65,
+      "hours": 2,
+      "hours_max": 2.75,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Wular Vantage Park, Bandipora side",
+      "access_mode": "road",
+      "via": [
+        "Sumbal",
+        "Bandipora"
+      ],
+      "source_urls": [
+        "https://bandipore.nic.in/tourist-place/wullar/",
+        "https://bandipore.nic.in/wucma/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Reference is a visitor viewpoint, not the geometric lake centre; lake-centre distances are not road mileage. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Discover Wular's broad waters and shoreline landscapes from the selected visitor stops.",
+    "sights": {
+      "Wular Lake shoreline": {
+        "client_sentence": "Walk along the selected Wular shoreline paths for broad views across the lake.",
+        "visit_minutes": 60,
+        "transfer_minutes": 15,
+        "arrival_suitable": true,
+        "cluster": "wular-shore"
+      },
+      "Wular wetland villages": {
+        "client_sentence": "Explore the selected wetland villages to see the lake's connection with rural life.",
+        "visit_minutes": 75,
+        "transfer_minutes": 45,
+        "arrival_suitable": false,
+        "cluster": "wular-villages"
+      },
+      "Lake viewpoints near Bandipora": {
+        "client_sentence": "Pause at the Bandipora-side viewpoints for panoramas of Wular and the surrounding mountains.",
+        "visit_minutes": 45,
+        "transfer_minutes": 25,
+        "arrival_suitable": true,
+        "cluster": "wular-vantage"
+      }
+    },
+    "activities": {
+      "Landscape photography": {
+        "client_sentence": "Capture Wular Lake's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Birdwatching": {
+        "client_sentence": "Observe birdlife from the selected quiet viewing areas around Wular Lake.",
+        "duration_minutes": 60
+      },
+      "Village exploration": {
+        "client_sentence": "Explore the selected villages around Wular Lake, walking past local homes and rural landscapes.",
+        "duration_minutes": 90
+      },
+      "Picnic and scenic stops": {
+        "client_sentence": "Enjoy the arranged picnic and outdoor time at the selected Wular Lake setting.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Manasbal Lake": {
+    "hub": {
+      "km": 30,
+      "hours": 1.25,
+      "hours_max": 1.75,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Manasbal lakefront garden, Safapora",
+      "access_mode": "road",
+      "via": [
+        "Ganderbal",
+        "Safapora"
+      ],
+      "source_urls": [
+        "https://ganderbal.nic.in/tourist-place/mansbal-lake/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "District publishes about 30 km from Srinagar and 43 km from the airport. Conservative city driving allowance. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Explore the garden-fringed shores of Manasbal and the surrounding Safapora landscape.",
+    "sights": {
+      "Manasbal Lake": {
+        "client_sentence": "Walk beside Manasbal Lake for views across the water toward the surrounding hills.",
+        "visit_minutes": 50,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "manasbal-lakefront"
+      },
+      "Manasbal Garden": {
+        "client_sentence": "Stroll through the Manasbal lakefront garden and landscaped paths.",
+        "visit_minutes": 45,
+        "transfer_minutes": 5,
+        "arrival_suitable": true,
+        "cluster": "manasbal-lakefront"
+      },
+      "Mughal-era lakefront remains": {
+        "client_sentence": "Explore the Mughal-era remains along Manasbal's garden-fringed waterfront.",
+        "visit_minutes": 35,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "manasbal-lakefront"
+      },
+      "Lake birdlife": {
+        "client_sentence": "Observe the lake's birdlife from the selected quiet shoreline stops.",
+        "visit_minutes": 60,
+        "transfer_minutes": 15,
+        "arrival_suitable": false,
+        "cluster": "manasbal-birding"
+      }
+    },
+    "activities": {
+      "Birdwatching": {
+        "client_sentence": "Observe birdlife from the selected quiet viewing areas around Manasbal Lake.",
+        "duration_minutes": 60
+      },
+      "Photography": {
+        "client_sentence": "Capture Manasbal Lake's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Scenic picnic": {
+        "client_sentence": "Enjoy the arranged picnic and outdoor time at the selected Manasbal Lake setting.",
+        "duration_minutes": 60
+      },
+      "Local boat experience where permitted": {
+        "client_sentence": "Enjoy the arranged boat excursion on Manasbal Lake.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Nigeen Lake": {
+    "hub": {
+      "km": 8,
+      "hours": 0.5,
+      "hours_max": 0.75,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Nigeen lakefront",
+      "access_mode": "road",
+      "via": [
+        "Srinagar city"
+      ],
+      "source_urls": [
+        "https://srinagar.nic.in/places-of-interest/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Local city estimate to the lakefront; boarding and boat rides are separately timed. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Discover the quieter waters of Nigeen and its houseboat-lined waterfront.",
+    "sights": {
+      "Nigeen Lake": {
+        "client_sentence": "Walk beside Nigeen Lake for views of calm water and the mountain-framed shoreline.",
+        "visit_minutes": 45,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "nigeen-waterfront"
+      },
+      "Nigeen houseboat belt": {
+        "client_sentence": "Explore the selected houseboat waterfront for a closer view of Srinagar's floating homes.",
+        "visit_minutes": 45,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "nigeen-waterfront"
+      },
+      "Hazratbal lakeside view": {
+        "client_sentence": "Pause at the Hazratbal lakeside viewpoint for shrine and water views.",
+        "visit_minutes": 35,
+        "transfer_minutes": 20,
+        "arrival_suitable": true,
+        "cluster": "hazratbal"
+      },
+      "Nigeen to Dal water corridor": {
+        "client_sentence": "Explore the Nigeen-to-Dal water corridor during the arranged boat excursion.",
+        "visit_minutes": 90,
+        "transfer_minutes": 15,
+        "arrival_suitable": false,
+        "cluster": "nigeen-dal-water",
+        "requires_activity": "Shikara ride"
+      }
+    },
+    "activities": {
+      "Shikara ride": {
+        "client_sentence": "Enjoy the arranged shikara ride on Nigeen Lake.",
+        "duration_minutes": 60,
+        "sight_names": [
+          "Nigeen to Dal water corridor"
+        ],
+        "cluster": "nigeen-dal-water"
+      },
+      "Sunrise/sunset photography": {
+        "client_sentence": "Photograph Nigeen Lake in the soft light of the selected sunrise session.",
+        "duration_minutes": 60
+      },
+      "Houseboat stay": {
+        "client_sentence": "Enjoy the arranged houseboat stay on Nigeen Lake.",
+        "duration_minutes": 60
+      },
+      "Bird and lake watching": {
+        "client_sentence": "Observe birdlife from the selected quiet viewing areas around Nigeen Lake.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Lolab Valley": {
+    "hub": {
+      "km": 114,
+      "hours": 4,
+      "hours_max": 5,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Chandigam / central Lolab",
+      "access_mode": "road",
+      "via": [
+        "Sopore",
+        "Kupwara"
+      ],
+      "source_urls": [
+        "https://kupwara.nic.in/tourist-place/lolab/",
+        "https://kupwara.nic.in/gallery/lolab-gate/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "District gives 114 km and four hours to the valley. Villages cover a large area; Machil is a separate long extension. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Explore Lolab's orchards, rural settlements and forest-fringed valley scenery.",
+    "sights": {
+      "Lolab Valley meadows": {
+        "client_sentence": "Explore Lolab's meadow landscapes beneath the surrounding forested slopes.",
+        "visit_minutes": 75,
+        "transfer_minutes": 20,
+        "arrival_suitable": true,
+        "cluster": "lolab-centre"
+      },
+      "Chandigam area": {
+        "client_sentence": "Visit Chandigam for its village setting and green valley surroundings.",
+        "visit_minutes": 60,
+        "transfer_minutes": 30,
+        "arrival_suitable": true,
+        "cluster": "chandigam"
+      },
+      "Kalaroos area": {
+        "client_sentence": "Explore the selected Kalaroos village and cave-approach viewpoints.",
+        "visit_minutes": 90,
+        "transfer_minutes": 60,
+        "arrival_suitable": false,
+        "cluster": "kalaroos"
+      },
+      "Lolab orchards and village roads": {
+        "client_sentence": "Follow Lolab's village roads past orchards, fields and traditional homes.",
+        "visit_minutes": 90,
+        "transfer_minutes": 45,
+        "arrival_suitable": false,
+        "cluster": "lolab-villages"
+      },
+      "Machil side approach": {
+        "client_sentence": "Follow the separately arranged Machil-side excursion into the mountain-road landscape beyond Lolab.",
+        "visit_minutes": 120,
+        "transfer_minutes": 240,
+        "arrival_suitable": false,
+        "cluster": "machil-extension"
+      }
+    },
+    "activities": {
+      "Village walks": {
+        "client_sentence": "Explore the selected villages around Lolab Valley, walking past local homes and rural landscapes.",
+        "duration_minutes": 90
+      },
+      "Landscape photography": {
+        "client_sentence": "Capture Lolab Valley's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Short hikes": {
+        "client_sentence": "Follow the selected short walking route through Lolab Valley's scenic surroundings.",
+        "duration_minutes": 180
+      },
+      "Camping where arranged": {
+        "client_sentence": "Stay at the arranged Lolab Valley camp as part of the dedicated outdoor programme.",
+        "duration_minutes": 60
+      },
+      "Rural food experiences": {
+        "client_sentence": "Enjoy the arranged local food experience in Lolab Valley.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Bangus Valley": {
+    "hub": {
+      "km": 130,
+      "hours": 5,
+      "hours_max": 6.5,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Bangus meadow approach via Handwara",
+      "access_mode": "road",
+      "via": [
+        "Sopore",
+        "Handwara",
+        "Rajwar"
+      ],
+      "source_urls": [
+        "https://kupwara.nic.in/tourist-place/tourist-places-bungusvalley/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Approximate Handwara-side approach; district confirms geography and road access but no exact city figure. Final roadhead and meadow walking depend on the approach. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Explore Bangus's broad mountain pastures and stream-fed grazing landscapes.",
+    "sights": {
+      "Bungus main meadow": {
+        "client_sentence": "Walk through the main Bangus meadow for views across its broad grazing landscape.",
+        "visit_minutes": 90,
+        "transfer_minutes": 30,
+        "arrival_suitable": false,
+        "cluster": "bodh-bangus"
+      },
+      "Twin Bungus landscapes": {
+        "client_sentence": "Explore the selected links between the larger and smaller Bangus meadow areas.",
+        "visit_minutes": 150,
+        "transfer_minutes": 60,
+        "arrival_suitable": false,
+        "cluster": "twin-bangus"
+      },
+      "Bungus stream and grazing areas": {
+        "client_sentence": "Pause beside Bangus's streams and grazing grounds for pastoral views and photography.",
+        "visit_minutes": 60,
+        "transfer_minutes": 25,
+        "arrival_suitable": false,
+        "cluster": "bangus-stream"
+      },
+      "Handwara-Kupwara approach villages": {
+        "client_sentence": "Stop in selected Handwara-Kupwara approach villages for views of rural north Kashmir.",
+        "visit_minutes": 60,
+        "transfer_minutes": 30,
+        "arrival_suitable": true,
+        "cluster": "handwara-route"
+      }
+    },
+    "activities": {
+      "Trekking": {
+        "client_sentence": "Follow the arranged trekking route through Bangus Valley's mountain landscape.",
+        "duration_minutes": 300
+      },
+      "Camping where arranged": {
+        "client_sentence": "Stay at the arranged Bangus Valley camp as part of the dedicated outdoor programme.",
+        "duration_minutes": 60
+      },
+      "Horse riding where available": {
+        "client_sentence": "Enjoy the arranged pony ride along the selected Bangus Valley route.",
+        "duration_minutes": 120
+      },
+      "Landscape photography": {
+        "client_sentence": "Capture Bangus Valley's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Village walks": {
+        "client_sentence": "Explore the selected villages around Bangus Valley, walking past local homes and rural landscapes.",
+        "duration_minutes": 90
+      }
+    }
+  },
+  "Watlab": {
+    "hub": {
+      "km": 60,
+      "hours": 2,
+      "hours_max": 2.75,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Watlab hill access",
+      "access_mode": "road",
+      "via": [
+        "Sopore"
+      ],
+      "source_urls": [
+        "https://jandktourism.jk.gov.in/Destinations.html",
+        "https://bandipore.nic.in/wucma/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Rounded city road estimate to the Watlab side of Wular; hilltop walking is additional. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Discover Watlab's hilltop setting above the broad Wular basin.",
+    "sights": {
+      "Watlab Hill viewpoint": {
+        "client_sentence": "Walk to the Watlab hill viewpoint for an elevated view across Wular Lake.",
+        "visit_minutes": 60,
+        "transfer_minutes": 15,
+        "arrival_suitable": false,
+        "cluster": "watlab-hill"
+      },
+      "Wular Lake panorama": {
+        "client_sentence": "Pause at the selected Wular panorama stops below Watlab for lake and wetland views.",
+        "visit_minutes": 40,
+        "transfer_minutes": 20,
+        "arrival_suitable": true,
+        "cluster": "watlab-lake"
+      },
+      "Watlab village surroundings": {
+        "client_sentence": "Explore Watlab's village surroundings and orchard-lined rural paths.",
+        "visit_minutes": 60,
+        "transfer_minutes": 25,
+        "arrival_suitable": true,
+        "cluster": "watlab-village"
+      }
+    },
+    "activities": {
+      "Landscape photography": {
+        "client_sentence": "Capture Watlab's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Birdwatching": {
+        "client_sentence": "Observe birdlife from the selected quiet viewing areas around Watlab.",
+        "duration_minutes": 60
+      },
+      "Scenic picnic": {
+        "client_sentence": "Enjoy the arranged picnic and outdoor time at the selected Watlab setting.",
+        "duration_minutes": 60
+      },
+      "Village walk": {
+        "client_sentence": "Explore the selected villages around Watlab, walking past local homes and rural landscapes.",
+        "duration_minutes": 90
+      }
+    }
+  },
+  "Tosa Maidan": {
+    "hub": {
+      "km": 65,
+      "hours": 3,
+      "hours_max": 4,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Tosa Maidan lower meadow approach",
+      "access_mode": "road",
+      "via": [
+        "Magam",
+        "Khag",
+        "Sitharan"
+      ],
+      "source_urls": [
+        "https://budgam.nic.in/tourist-place/tosamaidan/",
+        "https://jandktourism.jk.gov.in/Destinations.html"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "District mentions about 50 km via Magam and Khag; approach distance is not treated as the entire meadow drive. Estimate adds local ascent time. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Explore Tosa Maidan's open upland pastures and forested mountain margins.",
+    "sights": {
+      "Tosa Maidan meadow": {
+        "client_sentence": "Walk across Tosa Maidan's broad meadow for views of its open upland landscape.",
+        "visit_minutes": 90,
+        "transfer_minutes": 20,
+        "arrival_suitable": false,
+        "cluster": "tosa-meadow"
+      },
+      "Forest and ridge viewpoints": {
+        "client_sentence": "Follow the selected forest-edge paths to viewpoints over the meadow and surrounding ridges.",
+        "visit_minutes": 120,
+        "transfer_minutes": 20,
+        "arrival_suitable": false,
+        "cluster": "tosa-ridges"
+      },
+      "Pastoral summer settlements": {
+        "client_sentence": "Explore the selected summer pastoral settlements to see the meadow's traditional grazing life.",
+        "visit_minutes": 75,
+        "transfer_minutes": 30,
+        "arrival_suitable": false,
+        "cluster": "tosa-pastoral"
+      },
+      "Approach valleys toward Budgam": {
+        "client_sentence": "Pause along the Budgam approach valleys for rural scenery and forested hillside views.",
+        "visit_minutes": 45,
+        "transfer_minutes": 20,
+        "arrival_suitable": true,
+        "cluster": "budgam-route"
+      }
+    },
+    "activities": {
+      "Trekking": {
+        "client_sentence": "Follow the arranged trekking route through Tosa Maidan's mountain landscape.",
+        "duration_minutes": 300
+      },
+      "Camping where arranged": {
+        "client_sentence": "Stay at the arranged Tosa Maidan camp as part of the dedicated outdoor programme.",
+        "duration_minutes": 60
+      },
+      "Landscape photography": {
+        "client_sentence": "Capture Tosa Maidan's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Picnic": {
+        "client_sentence": "Enjoy the arranged picnic and outdoor time at the selected Tosa Maidan setting.",
+        "duration_minutes": 60
+      },
+      "Village and pastoral life observation": {
+        "client_sentence": "Explore selected Tosa Maidan pastoral settlements and learn about summer grazing life.",
+        "duration_minutes": 90
+      }
+    }
+  },
+  "Peer Ki Gali": {
+    "hub": {
+      "km": 90,
+      "hours": 3.5,
+      "hours_max": 4.5,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Peer Ki Gali pass shrine",
+      "access_mode": "road",
+      "via": [
+        "Pulwama",
+        "Shopian",
+        "Hirpora"
+      ],
+      "source_urls": [
+        "https://jandktourism.jk.gov.in/Destinations.html",
+        "https://shopian.nic.in/places-of-interest/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Rounded city road estimate to the pass; an out-and-back pass visit unless an onward route is selected. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Follow the Mughal Road into the mountain landscape of Peer Ki Gali.",
+    "sights": {
+      "Peer Ki Gali pass": {
+        "client_sentence": "Pause at Peer Ki Gali pass for views across the Pir Panjal mountain landscape.",
+        "visit_minutes": 45,
+        "transfer_minutes": 10,
+        "arrival_suitable": false,
+        "cluster": "peer-ki-gali"
+      },
+      "Peer Ki Gali shrine": {
+        "client_sentence": "Visit the Peer Ki Gali shrine beside the historic mountain route.",
+        "visit_minutes": 30,
+        "transfer_minutes": 5,
+        "arrival_suitable": false,
+        "cluster": "peer-ki-gali"
+      },
+      "Mughal Road viewpoints": {
+        "client_sentence": "Stop at selected Mughal Road viewpoints for views of wooded slopes and mountain valleys.",
+        "visit_minutes": 45,
+        "transfer_minutes": 30,
+        "arrival_suitable": false,
+        "cluster": "mughal-road"
+      }
+    },
+    "activities": {
+      "Scenic drive": {
+        "client_sentence": "Follow the selected scenic drive through Peer Ki Gali, pausing at the arranged viewpoints.",
+        "duration_minutes": 180
+      },
+      "Photography": {
+        "client_sentence": "Capture Peer Ki Gali's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Picnic and short walks": {
+        "client_sentence": "Follow the selected short walking route through Peer Ki Gali's scenic surroundings.",
+        "duration_minutes": 60
+      },
+      "Heritage stop": {
+        "client_sentence": "Explore Peer Ki Gali's heritage features during the arranged cultural visit.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Mughal Road": {
+    "hub": {
+      "km": 125,
+      "hours": 5,
+      "hours_max": 6.5,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Bafliaz, far end of the scenic road section",
+      "access_mode": "road",
+      "via": [
+        "Shopian",
+        "Hirpora",
+        "Peer Ki Gali"
+      ],
+      "source_urls": [
+        "https://jandktourism.jk.gov.in/Destinations.html",
+        "https://shopian.nic.in/history/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Reference covers the road through Peer Ki Gali to Bafliaz, not merely the pass. Full out-and-back crossing is too long for a normal city sightseeing day. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Discover the historic Mughal Road through its forested approaches, mountain pass and valley viewpoints.",
+    "sights": {
+      "Peer Ki Gali": {
+        "client_sentence": "Pause at Peer Ki Gali to explore the pass setting and shrine beside the Mughal Road.",
+        "visit_minutes": 60,
+        "transfer_minutes": 10,
+        "arrival_suitable": false,
+        "cluster": "peer-ki-gali"
+      },
+      "Hirpora / Shopian-side meadows": {
+        "client_sentence": "Explore the Hirpora and Shopian-side meadow viewpoints along the forested approach.",
+        "visit_minutes": 60,
+        "transfer_minutes": 30,
+        "arrival_suitable": false,
+        "cluster": "hirpora-route"
+      },
+      "Buffliaz side landscapes": {
+        "client_sentence": "Continue toward Bafliaz for views of the mountain road descending into the valley.",
+        "visit_minutes": 60,
+        "transfer_minutes": 120,
+        "arrival_suitable": false,
+        "cluster": "bafliaz-route"
+      },
+      "Mughal Road viewpoints": {
+        "client_sentence": "Stop at selected viewpoints along the Mughal Road for photographs of its dramatic slopes and valleys.",
+        "visit_minutes": 60,
+        "transfer_minutes": 30,
+        "arrival_suitable": false,
+        "cluster": "mughal-road"
+      }
+    },
+    "activities": {
+      "Scenic driving": {
+        "client_sentence": "Follow the selected scenic drive through Mughal Road, pausing at the arranged viewpoints.",
+        "duration_minutes": 180
+      },
+      "Landscape photography": {
+        "client_sentence": "Capture Mughal Road's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Short walks": {
+        "client_sentence": "Follow the selected short walking route through Mughal Road's scenic surroundings.",
+        "duration_minutes": 60
+      },
+      "Roadside picnic": {
+        "client_sentence": "Enjoy the arranged picnic and outdoor time at the selected Mughal Road setting.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Warwan Valley": {
+    "hub": {
+      "km": 165,
+      "hours": 7,
+      "hours_max": 9,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Inshan, Warwan Valley",
+      "access_mode": "road",
+      "via": [
+        "Anantnag",
+        "Kokernag",
+        "Vailoo",
+        "Margan Pass"
+      ],
+      "source_urls": [
+        "https://kishtwar.nic.in/places-of-interest/",
+        "https://jkplanning.gov.in/pdf/ABDP%202023.pdf",
+        "https://jandktourism.jk.gov.in/Destinations.html"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Sources describe Inshan road access over Margan Pass and a broad 150 km Srinagar figure; 165 km is a conservative route estimate. Marwah and remote settlements are separate expedition legs. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Explore Warwan's remote river valley through the villages and mountain stages selected for this journey.",
+    "sights": {
+      "Warwan Valley floor": {
+        "client_sentence": "Explore selected Warwan valley-floor paths beside fields, settlements and mountain streams.",
+        "visit_minutes": 90,
+        "transfer_minutes": 30,
+        "arrival_suitable": false,
+        "cluster": "inshan-valley"
+      },
+      "Marwah valley": {
+        "client_sentence": "Follow the separately staged journey into the Marwah valley landscape.",
+        "visit_minutes": 480,
+        "transfer_minutes": 240,
+        "arrival_suitable": false,
+        "cluster": "marwah-expedition",
+        "requires_activity": "Expedition-style road travel"
+      },
+      "Margan Pass approaches": {
+        "client_sentence": "Pause at selected Margan Pass approach viewpoints for views of the high mountain corridor.",
+        "visit_minutes": 60,
+        "transfer_minutes": 30,
+        "arrival_suitable": false,
+        "cluster": "margan-route"
+      },
+      "River and village corridors": {
+        "client_sentence": "Explore the selected river-and-village corridor around the day's Warwan base.",
+        "visit_minutes": 90,
+        "transfer_minutes": 60,
+        "arrival_suitable": false,
+        "cluster": "warwan-villages"
+      },
+      "Alpine meadow and trek country": {
+        "client_sentence": "Follow the dedicated trekking stage into Warwan's alpine meadow country.",
+        "visit_minutes": 480,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "warwan-trek",
+        "requires_activity": "Multi-day trekking"
+      }
+    },
+    "activities": {
+      "Multi-day trekking": {
+        "client_sentence": "Follow the staged trekking programme through Warwan Valley's mountain landscape.",
+        "duration_minutes": 480,
+        "sight_names": [
+          "Alpine meadow and trek country"
+        ],
+        "cluster": "warwan-trek"
+      },
+      "Camping where permitted and arranged": {
+        "client_sentence": "Stay at the arranged Warwan Valley camp as part of the dedicated outdoor programme.",
+        "duration_minutes": 60
+      },
+      "Landscape photography": {
+        "client_sentence": "Capture Warwan Valley's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Village walks": {
+        "client_sentence": "Explore the selected villages around Warwan Valley, walking past local homes and rural landscapes.",
+        "duration_minutes": 90
+      },
+      "Expedition-style road travel": {
+        "client_sentence": "Follow the arranged mountain-road expedition into Warwan's remote valley settlements.",
+        "duration_minutes": 180,
+        "sight_names": [
+          "Marwah valley"
+        ],
+        "cluster": "marwah-expedition"
+      }
+    }
+  },
+  "Chatpal": {
+    "hub": {
+      "km": 90,
+      "hours": 3,
+      "hours_max": 4,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Chatpal stream-side village approach",
+      "access_mode": "road",
+      "via": [
+        "Anantnag",
+        "Achabal",
+        "Chitergul"
+      ],
+      "source_urls": [
+        "https://jandktourism.jk.gov.in/Destinations.html"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Tourism identifies Chatbal/Chatpal in Chitergul-Shangas, 32 km south of Anantnag and about 20 km from Achabal. City figure is rounded. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Discover Chatpal's stream-side meadows and wooded slopes in the south Kashmir countryside.",
+    "sights": {
+      "Chatpal meadow": {
+        "client_sentence": "Walk through Chatpal's meadow beneath the surrounding forested slopes.",
+        "visit_minutes": 60,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "chatpal-centre"
+      },
+      "Chatpal stream": {
+        "client_sentence": "Pause beside Chatpal's stream for views of its clear water and green valley banks.",
+        "visit_minutes": 45,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "chatpal-stream"
+      },
+      "Forest walking trails": {
+        "client_sentence": "Follow the selected forest trail among Chatpal's wooded hillsides.",
+        "visit_minutes": 120,
+        "transfer_minutes": 15,
+        "arrival_suitable": false,
+        "cluster": "chatpal-forest"
+      },
+      "Village and orchard landscapes": {
+        "client_sentence": "Explore the selected village and orchard paths for rural south Kashmir scenery.",
+        "visit_minutes": 75,
+        "transfer_minutes": 30,
+        "arrival_suitable": false,
+        "cluster": "chatpal-villages"
+      }
+    },
+    "activities": {
+      "Nature walks": {
+        "client_sentence": "Follow the selected nature walk through Chatpal's green surroundings.",
+        "duration_minutes": 60
+      },
+      "Trekking": {
+        "client_sentence": "Follow the arranged trekking route through Chatpal's mountain landscape.",
+        "duration_minutes": 300
+      },
+      "Landscape photography": {
+        "client_sentence": "Capture Chatpal's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Picnic": {
+        "client_sentence": "Enjoy the arranged picnic and outdoor time at the selected Chatpal setting.",
+        "duration_minutes": 60
+      },
+      "Village exploration": {
+        "client_sentence": "Explore the selected villages around Chatpal, walking past local homes and rural landscapes.",
+        "duration_minutes": 90
+      }
+    }
+  },
+  "Tulail Valley": {
+    "hub": {
+      "km": 160,
+      "hours": 7,
+      "hours_max": 9,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Badugam, lower Tulail Valley",
+      "access_mode": "road",
+      "via": [
+        "Bandipora",
+        "Razdan Pass",
+        "Dawar"
+      ],
+      "source_urls": [
+        "https://bandipore.nic.in/tourist-place/gurez-valley/",
+        "https://jandktourism.jk.gov.in/Destinations.html"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Reference is lower Tulail/Badugam, not every upper-valley village; additional mountain-road time follows the long Dawar transfer. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Explore Tulail's mountain villages and the upper Kishanganga valley beyond Dawar.",
+    "sights": {
+      "Tulail Valley villages": {
+        "client_sentence": "Explore selected Tulail villages to see traditional timber homes and mountain farming landscapes.",
+        "visit_minutes": 120,
+        "transfer_minutes": 60,
+        "arrival_suitable": false,
+        "cluster": "tulail-villages"
+      },
+      "Kishanganga river corridor": {
+        "client_sentence": "Pause along the Kishanganga corridor for views of the valley floor and surrounding peaks.",
+        "visit_minutes": 60,
+        "transfer_minutes": 30,
+        "arrival_suitable": true,
+        "cluster": "tulail-river"
+      },
+      "Alpine meadows": {
+        "client_sentence": "Follow the dedicated walking excursion into the selected alpine meadow area above Tulail.",
+        "visit_minutes": 240,
+        "transfer_minutes": 60,
+        "arrival_suitable": false,
+        "cluster": "tulail-meadow",
+        "requires_activity": "Trekking"
+      },
+      "Mountain road viewpoints": {
+        "client_sentence": "Stop at selected mountain-road viewpoints for wide views of the Tulail landscape.",
+        "visit_minutes": 60,
+        "transfer_minutes": 60,
+        "arrival_suitable": false,
+        "cluster": "tulail-road"
+      }
+    },
+    "activities": {
+      "Trekking": {
+        "client_sentence": "Follow the arranged trekking route through Tulail Valley's mountain landscape.",
+        "duration_minutes": 300,
+        "sight_names": [
+          "Alpine meadows"
+        ],
+        "cluster": "tulail-meadow"
+      },
+      "Village walks": {
+        "client_sentence": "Explore the selected villages around Tulail Valley, walking past local homes and rural landscapes.",
+        "duration_minutes": 90
+      },
+      "Camping where arranged": {
+        "client_sentence": "Stay at the arranged Tulail Valley camp as part of the dedicated outdoor programme.",
+        "duration_minutes": 60
+      },
+      "Landscape photography": {
+        "client_sentence": "Capture Tulail Valley's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Fishing only where locally permitted": {
+        "client_sentence": "Enjoy the arranged angling session on the selected Tulail Valley fishing stretch.",
+        "duration_minutes": 120
+      }
+    }
+  },
+  "Baltal": {
+    "hub": {
+      "km": 102,
+      "hours": 3.75,
+      "hours_max": 4.5,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Baltal base camp roadhead",
+      "access_mode": "road",
+      "via": [
+        "Ganderbal",
+        "Kangan",
+        "Sonamarg"
+      ],
+      "source_urls": [
+        "https://ganderbal.nic.in/tourist-place/sonamarg/",
+        "https://jksasb.nic.in/how_to_reach.html"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "District places Baltal about 15 km east of Sonamarg; estimate ends at the base camp. Holy Cave walking is separately planned pilgrimage travel. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Discover Baltal's mountain valley and riverside meadow beneath the Zoji La approaches.",
+    "sights": {
+      "Baltal Meadow": {
+        "client_sentence": "Walk through Baltal's meadow for views of its surrounding mountain valley.",
+        "visit_minutes": 60,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "baltal-meadow"
+      },
+      "Sindh River corridor": {
+        "client_sentence": "Pause beside the Sindh River corridor near Baltal for flowing-water and mountain views.",
+        "visit_minutes": 45,
+        "transfer_minutes": 15,
+        "arrival_suitable": true,
+        "cluster": "baltal-river"
+      },
+      "Zoji La views": {
+        "client_sentence": "Stop at the selected Zoji La viewpoints above the valley for views of the mountain road.",
+        "visit_minutes": 45,
+        "transfer_minutes": 90,
+        "arrival_suitable": false,
+        "cluster": "zojila-approach"
+      },
+      "Amarnath route base area": {
+        "client_sentence": "Visit the arranged Amarnath base area to see the pilgrimage route's mountain setting.",
+        "visit_minutes": 45,
+        "transfer_minutes": 20,
+        "arrival_suitable": false,
+        "cluster": "baltal-pilgrimage"
+      }
+    },
+    "activities": {
+      "Mountain photography": {
+        "client_sentence": "Capture Baltal's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Pilgrimage support travel in season": {
+        "client_sentence": "Follow the arranged pilgrimage transfer and base-camp programme at Baltal.",
+        "duration_minutes": 60
+      },
+      "Short hikes": {
+        "client_sentence": "Follow the selected short walking route through Baltal's scenic surroundings.",
+        "duration_minutes": 180
+      },
+      "Camping where arranged": {
+        "client_sentence": "Stay at the arranged Baltal camp as part of the dedicated outdoor programme.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Mattan": {
+    "hub": {
+      "km": 65,
+      "hours": 2,
+      "hours_max": 2.75,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Mattan temple and springs",
+      "access_mode": "road",
+      "via": [
+        "Anantnag"
+      ],
+      "source_urls": [
+        "https://anantnag.nic.in/places-of-interest/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "District locates Mattan about 8 km from Anantnag; hub figure is a rounded city road estimate. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Explore Mattan's sacred spring complex and the surrounding south Kashmir countryside.",
+    "sights": {
+      "Mattan Temple complex": {
+        "client_sentence": "Visit Mattan's temple complex to explore its sacred spring-side setting.",
+        "visit_minutes": 40,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "mattan-complex"
+      },
+      "Mattan sacred springs": {
+        "client_sentence": "Pause beside Mattan's sacred springs and view the clear pools within the complex.",
+        "visit_minutes": 30,
+        "transfer_minutes": 5,
+        "arrival_suitable": true,
+        "cluster": "mattan-complex"
+      },
+      "South Kashmir countryside": {
+        "client_sentence": "Stop at selected viewpoints around Mattan for views of fields, orchards and the valley.",
+        "visit_minutes": 40,
+        "transfer_minutes": 20,
+        "arrival_suitable": true,
+        "cluster": "mattan-countryside"
+      }
+    },
+    "activities": {
+      "Heritage photography": {
+        "client_sentence": "Explore Mattan's heritage features during the arranged cultural visit.",
+        "duration_minutes": 60
+      },
+      "Cultural visit": {
+        "client_sentence": "Explore Mattan's heritage features during the arranged cultural visit.",
+        "duration_minutes": 60
+      },
+      "Scenic drive": {
+        "client_sentence": "Follow the selected scenic drive through Mattan, pausing at the arranged viewpoints.",
+        "duration_minutes": 180
+      }
+    }
+  },
+  "Martand Sun Temple": {
+    "hub": {
+      "km": 67,
+      "hours": 2.25,
+      "hours_max": 3,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Martand temple ruins, Kehribal",
+      "access_mode": "road",
+      "via": [
+        "Anantnag",
+        "Mattan"
+      ],
+      "source_urls": [
+        "https://anantnag.nic.in/places-of-interest/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "District places ruins around 10 km from Anantnag; road estimate ends at the archaeological site, distinct from Mattan temple. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Discover the monumental stone remains of the Martand Sun Temple above the Kashmir Valley.",
+    "sights": {
+      "Martand Sun Temple ruins": {
+        "client_sentence": "Explore the Martand Sun Temple ruins through the monumental stone court and central shrine remains.",
+        "visit_minutes": 60,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "martand-ruins"
+      },
+      "Temple hill viewpoints": {
+        "client_sentence": "Pause at the temple hill viewpoints for wide views across the Kashmir Valley.",
+        "visit_minutes": 30,
+        "transfer_minutes": 5,
+        "arrival_suitable": true,
+        "cluster": "martand-ruins"
+      },
+      "Architectural details and colonnades": {
+        "client_sentence": "Examine the surviving colonnades and carved architectural details around the temple court.",
+        "visit_minutes": 45,
+        "transfer_minutes": 5,
+        "arrival_suitable": true,
+        "cluster": "martand-ruins"
+      }
+    },
+    "activities": {
+      "Heritage photography": {
+        "client_sentence": "Explore Martand Sun Temple's heritage features during the arranged cultural visit.",
+        "duration_minutes": 60
+      },
+      "Architecture walk": {
+        "client_sentence": "Explore Martand Sun Temple's heritage features during the arranged cultural visit.",
+        "duration_minutes": 60
+      },
+      "Scenic countryside stop": {
+        "client_sentence": "Pause in the countryside around Martand Sun Temple for valley views and photographs.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Panzath Nag": {
+    "hub": {
+      "km": 80,
+      "hours": 2.25,
+      "hours_max": 3,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Panzath spring, Qazigund",
+      "access_mode": "road",
+      "via": [
+        "Bijbehara",
+        "Qazigund"
+      ],
+      "source_urls": [
+        "https://swachh.jk.gov.in/the-guardians-of-panzath-nag-where-tradition-meets-swachh-bharat/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Government confirms Panzath village in Qazigund; mileage and hours are city route estimates, not a published timetable. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Explore the spring-fed landscape around Panzath village near Qazigund.",
+    "sights": {
+      "Panzath Nag spring": {
+        "client_sentence": "Visit Panzath Nag spring to see its clear water and spring-fed village landscape.",
+        "visit_minutes": 40,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "panzath-spring"
+      },
+      "Village surroundings": {
+        "client_sentence": "Walk through selected lanes around Panzath for a view of the village's rural setting.",
+        "visit_minutes": 50,
+        "transfer_minutes": 15,
+        "arrival_suitable": true,
+        "cluster": "panzath-village"
+      },
+      "South Kashmir orchard country": {
+        "client_sentence": "Pause among the selected orchard-country viewpoints near Qazigund.",
+        "visit_minutes": 45,
+        "transfer_minutes": 25,
+        "arrival_suitable": true,
+        "cluster": "qazigund-orchards"
+      }
+    },
+    "activities": {
+      "Photography": {
+        "client_sentence": "Capture Panzath Nag's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Scenic drive": {
+        "client_sentence": "Follow the selected scenic drive through Panzath Nag, pausing at the arranged viewpoints.",
+        "duration_minutes": 180
+      },
+      "Village exploration": {
+        "client_sentence": "Explore the selected villages around Panzath Nag, walking past local homes and rural landscapes.",
+        "duration_minutes": 90
+      }
+    }
+  },
+  "Wasaknag": {
+    "hub": {
+      "km": 85,
+      "hours": 2.75,
+      "hours_max": 3.5,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Vasak Nag spring, Kund",
+      "access_mode": "road",
+      "via": [
+        "Qazigund",
+        "Kund"
+      ],
+      "source_urls": [
+        "https://kulgam.nic.in/tourism/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Kulgam district identifies Vasak Nag at Kund, Devsar; existing library district text is broader. Rounded city estimate to spring access. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Discover the cold-water spring and rural landscape around Vasak Nag in the Kund area.",
+    "sights": {
+      "Wasaknag spring area": {
+        "client_sentence": "Visit the Vasak Nag spring area to see the cold-water source in its Kund valley setting.",
+        "visit_minutes": 45,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "vasak-spring"
+      },
+      "Village countryside": {
+        "client_sentence": "Explore selected village paths around the spring for views of fields and traditional homes.",
+        "visit_minutes": 60,
+        "transfer_minutes": 20,
+        "arrival_suitable": true,
+        "cluster": "kund-village"
+      },
+      "South Kashmir mountain backdrop": {
+        "client_sentence": "Pause at selected viewpoints for views of the south Kashmir mountain backdrop.",
+        "visit_minutes": 40,
+        "transfer_minutes": 25,
+        "arrival_suitable": true,
+        "cluster": "kund-viewpoints"
+      }
+    },
+    "activities": {
+      "Photography": {
+        "client_sentence": "Capture Wasaknag's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Village walk": {
+        "client_sentence": "Explore the selected villages around Wasaknag, walking past local homes and rural landscapes.",
+        "duration_minutes": 90
+      },
+      "Scenic drive": {
+        "client_sentence": "Follow the selected scenic drive through Wasaknag, pausing at the arranged viewpoints.",
+        "duration_minutes": 180
+      }
+    }
+  },
+  "Aru Valley": {
+    "hub": {
+      "km": 108,
+      "hours": 3.75,
+      "hours_max": 4.5,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Aru village roadhead",
+      "access_mode": "road",
+      "via": [
+        "Anantnag",
+        "Pahalgam"
+      ],
+      "source_urls": [
+        "https://censusindia.gov.in/nada/index.php/catalog/490/download/1608/DH_2011_0114_PART_A_DCHB_ANANTNAG.pdf",
+        "https://anantnag.nic.in/tourist-place/pahalgam/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Includes valley road beyond Pahalgam; Lidderwat and higher routes require separate walking from Aru. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Explore Aru's meadow, village lanes and forested valley at the roadhead above Pahalgam.",
+    "sights": {
+      "Aru Meadow": {
+        "client_sentence": "Walk across Aru Meadow for views of the village and its wooded mountain slopes.",
+        "visit_minutes": 60,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "aru-centre"
+      },
+      "Aru River / stream": {
+        "client_sentence": "Pause beside Aru's river and streams for views of flowing water and the valley landscape.",
+        "visit_minutes": 45,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "aru-river"
+      },
+      "Forest trails and trek gateways": {
+        "client_sentence": "Follow the selected forest trail from Aru into the valley's woodland and trekking gateways.",
+        "visit_minutes": 150,
+        "transfer_minutes": 15,
+        "arrival_suitable": false,
+        "cluster": "aru-trail"
+      }
+    },
+    "activities": {
+      "Trekking": {
+        "client_sentence": "Follow the arranged trekking route through Aru Valley's mountain landscape.",
+        "duration_minutes": 300
+      },
+      "Horse riding where available": {
+        "client_sentence": "Enjoy the arranged pony ride along the selected Aru Valley route.",
+        "duration_minutes": 120
+      },
+      "Nature walks": {
+        "client_sentence": "Follow the selected nature walk through Aru Valley's green surroundings.",
+        "duration_minutes": 60
+      },
+      "Photography": {
+        "client_sentence": "Capture Aru Valley's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Picnic": {
+        "client_sentence": "Enjoy the arranged picnic and outdoor time at the selected Aru Valley setting.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Betaab Valley": {
+    "hub": {
+      "km": 102,
+      "hours": 3.5,
+      "hours_max": 4.25,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Betaab Valley entrance",
+      "access_mode": "road",
+      "via": [
+        "Anantnag",
+        "Pahalgam"
+      ],
+      "source_urls": [
+        "https://censusindia.gov.in/nada/index.php/catalog/490/download/1608/DH_2011_0114_PART_A_DCHB_ANANTNAG.pdf",
+        "https://anantnag.nic.in/tourist-place/pahalgam/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Includes local road beyond Pahalgam; park entry and riverside walking have separate visit time. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Discover Betaab Valley's riverside lawns and pine-framed mountain scenery.",
+    "sights": {
+      "Betaab Valley meadow": {
+        "client_sentence": "Walk through Betaab Valley's meadow and landscaped riverside grounds.",
+        "visit_minutes": 60,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "betaab-park"
+      },
+      "Lidder river corridor": {
+        "client_sentence": "Follow the selected riverside paths for views along the Lidder corridor.",
+        "visit_minutes": 45,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "betaab-river"
+      },
+      "Pine and mountain viewpoints": {
+        "client_sentence": "Pause at the pine-and-mountain viewpoints around Betaab Valley for photographs.",
+        "visit_minutes": 45,
+        "transfer_minutes": 15,
+        "arrival_suitable": true,
+        "cluster": "betaab-views"
+      }
+    },
+    "activities": {
+      "Photography": {
+        "client_sentence": "Capture Betaab Valley's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Picnic": {
+        "client_sentence": "Enjoy the arranged picnic and outdoor time at the selected Betaab Valley setting.",
+        "duration_minutes": 60
+      },
+      "Short walks": {
+        "client_sentence": "Follow the selected short walking route through Betaab Valley's scenic surroundings.",
+        "duration_minutes": 60
+      },
+      "Family leisure": {
+        "client_sentence": "Enjoy the arranged picnic and outdoor time at the selected Betaab Valley setting.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Chandanwari": {
+    "hub": {
+      "km": 111,
+      "hours": 4,
+      "hours_max": 4.75,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Chandanwari roadhead",
+      "access_mode": "road",
+      "via": [
+        "Anantnag",
+        "Pahalgam"
+      ],
+      "source_urls": [
+        "https://censusindia.gov.in/nada/index.php/catalog/490/download/1608/DH_2011_0114_PART_A_DCHB_ANANTNAG.pdf",
+        "https://www.pib.gov.in/newsite/PrintRelease.aspx?lang=2&reg=48&relid=138139"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Official guidance gives approximately 16 km and one hour from Pahalgam. Pissu Top and Sheshnag are walking routes beyond the roadhead. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Explore Chandanwari's mountain river landscape at the end of the Pahalgam valley road.",
+    "sights": {
+      "Chandanwari valley": {
+        "client_sentence": "Explore Chandanwari's valley setting beside the mountain river and trailhead.",
+        "visit_minutes": 60,
+        "transfer_minutes": 10,
+        "arrival_suitable": false,
+        "cluster": "chandanwari-centre"
+      },
+      "Pissu Top approach": {
+        "client_sentence": "Follow the separately arranged walking stage toward the Pissu Top approach.",
+        "visit_minutes": 240,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "pissu-trail",
+        "requires_activity": "Trekking"
+      },
+      "Seasonal snow and river landscapes": {
+        "client_sentence": "Pause at the selected river and seasonal snow viewpoints around Chandanwari.",
+        "visit_minutes": 60,
+        "transfer_minutes": 15,
+        "arrival_suitable": false,
+        "cluster": "chandanwari-centre"
+      }
+    },
+    "activities": {
+      "Trekking": {
+        "client_sentence": "Follow the arranged trekking route through Chandanwari's mountain landscape.",
+        "duration_minutes": 300,
+        "sight_names": [
+          "Pissu Top approach"
+        ],
+        "cluster": "pissu-trail"
+      },
+      "Snow play in season": {
+        "client_sentence": "Enjoy the arranged snow-play session in the selected Chandanwari snow area.",
+        "duration_minutes": 60
+      },
+      "Landscape photography": {
+        "client_sentence": "Capture Chandanwari's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Pilgrimage route travel in season": {
+        "client_sentence": "Follow the arranged pilgrimage route programme from Chandanwari.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Lidderwat": {
+    "hub": {
+      "km": 108,
+      "hours": 3.75,
+      "hours_max": 4.5,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Aru village trailhead",
+      "access_mode": "trek",
+      "via": [
+        "Anantnag",
+        "Pahalgam",
+        "Aru"
+      ],
+      "source_urls": [
+        "https://anantnag.nic.in/tourist-place/lidderwat/",
+        "https://censusindia.gov.in/nada/index.php/catalog/490/download/1608/DH_2011_0114_PART_A_DCHB_ANANTNAG.pdf"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Road ends at Aru. trail_hours is a conservative one-way walking estimate to Lidderwat; requires a dedicated trek. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates.",
+      "trail_hours": 5
+    },
+    "day_note": "Follow the dedicated trekking programme into Lidderwat's upper-valley meadows and river scenery.",
+    "sights": {
+      "Lidderwat meadows": {
+        "client_sentence": "Explore Lidderwat's alpine meadows during the scheduled trekking stage.",
+        "visit_minutes": 180,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "lidderwat-trek",
+        "requires_activity": "Multi-day trekking"
+      },
+      "Lidder River upper valley": {
+        "client_sentence": "Follow the upper Lidder valley trail beside the river and its mountain-framed confluences.",
+        "visit_minutes": 180,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "lidderwat-trek",
+        "requires_activity": "Multi-day trekking"
+      },
+      "High-altitude trek country": {
+        "client_sentence": "Continue along the selected high-country trekking stage above Lidderwat.",
+        "visit_minutes": 480,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "lidderwat-high-country",
+        "requires_activity": "Multi-day trekking"
+      }
+    },
+    "activities": {
+      "Multi-day trekking": {
+        "client_sentence": "Follow the staged trekking programme through Lidderwat's mountain landscape.",
+        "duration_minutes": 480,
+        "sight_names": [
+          "Lidderwat meadows",
+          "Lidder River upper valley",
+          "High-altitude trek country"
+        ],
+        "cluster": "lidderwat-trek"
+      },
+      "Camping": {
+        "client_sentence": "Stay at the arranged Lidderwat camp as part of the dedicated outdoor programme.",
+        "duration_minutes": 60
+      },
+      "Landscape photography": {
+        "client_sentence": "Capture Lidderwat's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Tulian Lake": {
+    "hub": {
+      "km": 95,
+      "hours": 3,
+      "hours_max": 3.75,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Pahalgam trek starting area",
+      "access_mode": "trek",
+      "via": [
+        "Anantnag",
+        "Pahalgam"
+      ],
+      "source_urls": [
+        "https://censusindia.gov.in/nada/index.php/catalog/490/download/1608/DH_2011_0114_PART_A_DCHB_ANANTNAG.pdf"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Road ends at Pahalgam, not the lake. trail_hours is a conservative one-way high-altitude approach estimate; dedicated trek required. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates.",
+      "trail_hours": 7
+    },
+    "day_note": "Follow the dedicated mountain trekking programme toward Tulian Lake and its alpine basin.",
+    "sights": {
+      "Tulian Lake": {
+        "client_sentence": "Reach Tulian Lake on the dedicated trekking stage and explore its mountain-ringed shoreline.",
+        "visit_minutes": 480,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "tulian-trek",
+        "requires_activity": "Trekking"
+      },
+      "Tulian Pass / mountain approach": {
+        "client_sentence": "Follow the selected mountain approach toward Tulian through forest and alpine terrain.",
+        "visit_minutes": 480,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "tulian-trek",
+        "requires_activity": "Trekking"
+      }
+    },
+    "activities": {
+      "Trekking": {
+        "client_sentence": "Follow the arranged trekking route through Tulian Lake's mountain landscape.",
+        "duration_minutes": 480,
+        "sight_names": [
+          "Tulian Lake",
+          "Tulian Pass / mountain approach"
+        ],
+        "cluster": "tulian-lake-trek"
+      },
+      "High-altitude photography": {
+        "client_sentence": "Capture Tulian Lake's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Camping on permitted routes": {
+        "client_sentence": "Stay at the arranged Tulian Lake camp as part of the dedicated outdoor programme.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Kausar Nag": {
+    "hub": {
+      "km": 75,
+      "hours": 2.5,
+      "hours_max": 3.25,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Aharbal trailhead",
+      "access_mode": "trek",
+      "via": [
+        "Pulwama",
+        "Shopian",
+        "Aharbal"
+      ],
+      "source_urls": [
+        "https://kulgam.nic.in/tourism/",
+        "https://shopian.nic.in/places-of-interest/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Road ends at Aharbal. District describes three-day trek via Kungwattan and Mahinag; trail_hours is cumulative one-way walking over stages. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates.",
+      "trail_hours": 16
+    },
+    "day_note": "Follow the staged trekking programme through the Pir Panjal toward the alpine basin of Kausar Nag.",
+    "sights": {
+      "Kausar Nag Lake": {
+        "client_sentence": "Reach Kausar Nag on the dedicated trek and explore the lake's rugged alpine basin.",
+        "visit_minutes": 480,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "kausar-trek",
+        "requires_activity": "Multi-day trekking"
+      },
+      "Kausar Nag trek landscapes": {
+        "client_sentence": "Follow the staged trail through Kungwattan and Mahinag toward the Kausar Nag mountain landscape.",
+        "visit_minutes": 480,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "kausar-trek",
+        "requires_activity": "Multi-day trekking"
+      }
+    },
+    "activities": {
+      "Multi-day trekking": {
+        "client_sentence": "Follow the staged trekking programme through Kausar Nag's mountain landscape.",
+        "duration_minutes": 480,
+        "sight_names": [
+          "Kausar Nag Lake",
+          "Kausar Nag trek landscapes"
+        ],
+        "cluster": "kausar-nag-trek"
+      },
+      "Camping on permitted routes": {
+        "client_sentence": "Stay at the arranged Kausar Nag camp as part of the dedicated outdoor programme.",
+        "duration_minutes": 60
+      },
+      "Landscape photography": {
+        "client_sentence": "Capture Kausar Nag's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Gangabal Lake": {
+    "hub": {
+      "km": 55,
+      "hours": 2,
+      "hours_max": 2.75,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Naranag trailhead",
+      "access_mode": "trek",
+      "via": [
+        "Ganderbal",
+        "Kangan",
+        "Naranag"
+      ],
+      "source_urls": [
+        "https://ganderbal.nic.in/",
+        "https://jandktourism.jk.gov.in/Destinations.html",
+        "https://censusindia.gov.in/nada/index.php/catalog/501/download/1652/DH_2011_0111_PART_B_DCHB_GANDERBAL.pdf"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Road ends at Naranag. trail_hours is a conservative one-way ascent; Gangabal/Nundkol need dedicated staged trekking time. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates.",
+      "trail_hours": 8
+    },
+    "day_note": "Follow the dedicated Harmukh trekking programme toward Gangabal and its neighbouring alpine lakes.",
+    "sights": {
+      "Gangabal Lake": {
+        "client_sentence": "Reach Gangabal Lake during the dedicated trekking stage beneath Mount Harmukh.",
+        "visit_minutes": 480,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "gangabal-trek",
+        "requires_activity": "Trekking"
+      },
+      "Nundkol Lake": {
+        "client_sentence": "Explore Nundkol Lake as part of the arranged high-altitude lake trekking circuit.",
+        "visit_minutes": 240,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "gangabal-trek",
+        "requires_activity": "Trekking"
+      },
+      "Harmukh mountain views": {
+        "client_sentence": "Pause along the alpine route for views of Mount Harmukh above the lake basin.",
+        "visit_minutes": 90,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "gangabal-trek",
+        "requires_activity": "Trekking"
+      }
+    },
+    "activities": {
+      "Trekking": {
+        "client_sentence": "Follow the arranged trekking route through Gangabal Lake's mountain landscape.",
+        "duration_minutes": 480,
+        "sight_names": [
+          "Gangabal Lake",
+          "Nundkol Lake",
+          "Harmukh mountain views"
+        ],
+        "cluster": "gangabal-lake-trek"
+      },
+      "Camping on permitted routes": {
+        "client_sentence": "Stay at the arranged Gangabal Lake camp as part of the dedicated outdoor programme.",
+        "duration_minutes": 60
+      },
+      "Alpine photography": {
+        "client_sentence": "Capture Gangabal Lake's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Sheshnag": {
+    "hub": {
+      "km": 111,
+      "hours": 4,
+      "hours_max": 4.75,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Chandanwari pilgrimage roadhead",
+      "access_mode": "pilgrimage",
+      "via": [
+        "Anantnag",
+        "Pahalgam",
+        "Chandanwari"
+      ],
+      "source_urls": [
+        "https://www.pib.gov.in/newsite/PrintRelease.aspx?lang=2&reg=48&relid=138139",
+        "https://jksasb.nic.in/yatra.html"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Road ends at Chandanwari. Official guidance gives 12 km and six hours on foot to Sheshnag; walking time is one way, requiring a pilgrimage/trek stage. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates.",
+      "trail_hours": 6
+    },
+    "day_note": "Follow the planned pilgrimage trekking stage into Sheshnag's high mountain landscape.",
+    "sights": {
+      "Sheshnag Lake": {
+        "client_sentence": "Reach Sheshnag Lake on the scheduled pilgrimage trekking stage and take in its high mountain setting.",
+        "visit_minutes": 360,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "sheshnag-trek",
+        "requires_activity": "Pilgrimage trekking"
+      },
+      "Amarnath trail landscapes": {
+        "client_sentence": "Follow the arranged Amarnath trail stage through mountain valleys and river-fed landscapes.",
+        "visit_minutes": 360,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "sheshnag-trek",
+        "requires_activity": "Pilgrimage trekking"
+      },
+      "High-altitude camping area": {
+        "client_sentence": "Settle into the arranged high-altitude camp during the Sheshnag pilgrimage stage.",
+        "visit_minutes": 60,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "sheshnag-camp",
+        "requires_activity": "Seasonal camping"
+      }
+    },
+    "activities": {
+      "Pilgrimage trekking": {
+        "client_sentence": "Follow the arranged pilgrimage trekking stage through the high mountain route.",
+        "duration_minutes": 480,
+        "sight_names": [
+          "Sheshnag Lake",
+          "Amarnath trail landscapes"
+        ],
+        "cluster": "sheshnag-trek"
+      },
+      "Landscape photography": {
+        "client_sentence": "Capture Sheshnag's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Seasonal camping": {
+        "client_sentence": "Stay at the arranged Sheshnag camp as part of the dedicated outdoor programme.",
+        "duration_minutes": 60,
+        "sight_names": [
+          "High-altitude camping area"
+        ],
+        "cluster": "sheshnag-camp"
+      }
+    }
+  },
+  "Amarnath Cave": {
+    "hub": {
+      "km": 102,
+      "hours": 3.75,
+      "hours_max": 4.5,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Baltal pilgrimage roadhead",
+      "access_mode": "pilgrimage",
+      "via": [
+        "Ganderbal",
+        "Kangan",
+        "Sonamarg",
+        "Baltal"
+      ],
+      "source_urls": [
+        "https://www.jksasb.nic.in/how_to_reach.html",
+        "https://jksasb.nic.in/onlineservices/jammu_baltal.html"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Road ends at Baltal. Shrine Board describes roughly 14 km steep walking route; trail_hours is a conservative one-way allowance. Pahalgam route is a different multi-stage plan. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates.",
+      "trail_hours": 7
+    },
+    "day_note": "Follow the arranged pilgrimage programme toward the Holy Cave of Shri Amarnathji.",
+    "sights": {
+      "Amarnath Cave": {
+        "client_sentence": "Visit the Holy Cave of Shri Amarnathji during the arranged pilgrimage stage.",
+        "visit_minutes": 480,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "amarnath-pilgrimage",
+        "requires_activity": "Pilgrimage trekking"
+      },
+      "Pilgrimage route landscapes": {
+        "client_sentence": "Follow the designated pilgrimage route through its high mountain valley landscape.",
+        "visit_minutes": 480,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "amarnath-pilgrimage",
+        "requires_activity": "Pilgrimage trekking"
+      },
+      "Seasonal base camps": {
+        "client_sentence": "Visit the arranged seasonal base camp as part of the pilgrimage programme.",
+        "visit_minutes": 60,
+        "transfer_minutes": 0,
+        "arrival_suitable": false,
+        "cluster": "amarnath-base"
+      }
+    },
+    "activities": {
+      "Pilgrimage trekking": {
+        "client_sentence": "Follow the arranged pilgrimage trekking stage through the high mountain route.",
+        "duration_minutes": 480,
+        "sight_names": [
+          "Amarnath Cave",
+          "Pilgrimage route landscapes"
+        ],
+        "cluster": "amarnath-pilgrimage"
+      },
+      "Pony support where officially available": {
+        "client_sentence": "Use the arranged pony service on the designated pilgrimage stage.",
+        "duration_minutes": 360
+      },
+      "Helicopter services where officially offered and available": {
+        "client_sentence": "Use the booked helicopter service on the selected pilgrimage sector, followed by the arranged onward programme.",
+        "duration_minutes": 180
+      }
+    }
+  },
+  "Badamwari": {
+    "hub": {
+      "km": 8,
+      "hours": 0.5,
+      "hours_max": 0.75,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Badamwari garden entrance",
+      "access_mode": "road",
+      "via": [
+        "Srinagar old city"
+      ],
+      "source_urls": [
+        "https://srinagar.nic.in/places-of-interest/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Approximate city-centre local drive; blossom viewing uses the selected seasonal programme. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Discover Badamwari's historic garden landscape beneath Hari Parbat.",
+    "sights": {
+      "Badamwari Garden": {
+        "client_sentence": "Stroll through Badamwari Garden to explore its paths, planting and historic garden setting.",
+        "visit_minutes": 60,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "badamwari-garden"
+      },
+      "Hari Parbat foothills": {
+        "client_sentence": "Pause at Hari Parbat foothill viewpoints for views of the historic hill and surrounding neighbourhoods.",
+        "visit_minutes": 40,
+        "transfer_minutes": 15,
+        "arrival_suitable": true,
+        "cluster": "hari-parbat"
+      },
+      "Spring blossom landscapes": {
+        "client_sentence": "Explore the selected spring blossom areas for close views of the seasonal flowers.",
+        "visit_minutes": 45,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "badamwari-blossom"
+      }
+    },
+    "activities": {
+      "Spring photography": {
+        "client_sentence": "Capture Badamwari's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Garden walk": {
+        "client_sentence": "Stroll through the selected garden paths at Badamwari.",
+        "duration_minutes": 60
+      },
+      "Heritage sightseeing": {
+        "client_sentence": "Explore Badamwari's heritage features during the arranged cultural visit.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Tulip Garden": {
+    "hub": {
+      "km": 10,
+      "hours": 0.5,
+      "hours_max": 1,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Indira Gandhi Memorial Tulip Garden entrance",
+      "access_mode": "road",
+      "via": [
+        "Boulevard",
+        "Zabarwan foothills"
+      ],
+      "source_urls": [
+        "https://srinagar.nic.in/tourist-places/",
+        "https://srinagar.nic.in/places-of-interest/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Approximate city-centre drive to a seasonal garden; library seasonal availability controls selection. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Explore the seasonal flower terraces at the foot of the Zabarwan range.",
+    "sights": {
+      "Indira Gandhi Memorial Tulip Garden": {
+        "client_sentence": "Walk through the Indira Gandhi Memorial Tulip Garden to see the seasonal flower terraces beneath the Zabarwan mountains.",
+        "visit_minutes": 90,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "tulip-garden"
+      },
+      "Dal Lake viewpoints": {
+        "client_sentence": "Pause at the nearby Dal Lake viewpoints for water and mountain panoramas.",
+        "visit_minutes": 35,
+        "transfer_minutes": 15,
+        "arrival_suitable": true,
+        "cluster": "east-dal"
+      },
+      "Zabarwan foothill landscape": {
+        "client_sentence": "Explore selected Zabarwan foothill viewpoints around the garden approach.",
+        "visit_minutes": 45,
+        "transfer_minutes": 20,
+        "arrival_suitable": true,
+        "cluster": "zabarwan-foothills"
+      }
+    },
+    "activities": {
+      "Flower photography": {
+        "client_sentence": "Capture Tulip Garden's distinctive scenery during the selected photography stops.",
+        "duration_minutes": 60
+      },
+      "Garden walk": {
+        "client_sentence": "Stroll through the selected garden paths at Tulip Garden.",
+        "duration_minutes": 60
+      },
+      "Seasonal sightseeing": {
+        "client_sentence": "Explore the selected seasonal sights around Tulip Garden.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Mughal Gardens Cluster": {
+    "hub": {
+      "km": 12,
+      "hours": 0.75,
+      "hours_max": 1.25,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Nishat Bagh, garden circuit reference",
+      "access_mode": "road",
+      "via": [
+        "Dal Lake Boulevard"
+      ],
+      "source_urls": [
+        "https://srinagar.nic.in/places-of-interest/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Reference reaches the first garden; full circuit movement is allocated per stop. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Discover Srinagar's garden heritage through the terraced landscapes along the Dal Lake circuit.",
+    "sights": {
+      "Nishat Bagh": {
+        "client_sentence": "Explore Nishat Bagh's terraced lawns and water channels beside Dal Lake.",
+        "visit_minutes": 45,
+        "transfer_minutes": 15,
+        "arrival_suitable": true,
+        "cluster": "east-dal-gardens"
+      },
+      "Shalimar Bagh": {
+        "client_sentence": "Stroll through Shalimar Bagh among mature chinars, formal terraces and flowing channels.",
+        "visit_minutes": 45,
+        "transfer_minutes": 20,
+        "arrival_suitable": true,
+        "cluster": "east-dal-gardens"
+      },
+      "Chashme Shahi": {
+        "client_sentence": "Visit Chashme Shahi for its spring-fed terraces in the Zabarwan foothills.",
+        "visit_minutes": 30,
+        "transfer_minutes": 25,
+        "arrival_suitable": true,
+        "cluster": "zabarwan-gardens"
+      },
+      "Pari Mahal": {
+        "client_sentence": "Explore Pari Mahal's historic terraces for elevated views across Dal Lake.",
+        "visit_minutes": 45,
+        "transfer_minutes": 15,
+        "arrival_suitable": true,
+        "cluster": "zabarwan-gardens"
+      }
+    },
+    "activities": {
+      "Heritage photography": {
+        "client_sentence": "Explore Mughal Gardens Cluster's heritage features during the arranged cultural visit.",
+        "duration_minutes": 60
+      },
+      "Garden walk": {
+        "client_sentence": "Stroll through the selected garden paths at Mughal Gardens Cluster.",
+        "duration_minutes": 60
+      },
+      "Shikara add-on": {
+        "client_sentence": "Enjoy the arranged shikara excursion on Dal Lake after the selected garden visits.",
+        "duration_minutes": 60
+      },
+      "Architecture and landscape study": {
+        "client_sentence": "Explore the Mughal gardens' architectural details, terraces and designed water channels.",
+        "duration_minutes": 60
+      }
+    }
+  },
+  "Dal Lake": {
+    "hub": {
+      "km": 5,
+      "hours": 0.25,
+      "hours_max": 0.5,
+      "reference_point": "Srinagar city centre",
+      "road_endpoint": "Dal Lake Boulevard boarding area",
+      "access_mode": "road",
+      "via": [
+        "Srinagar city"
+      ],
+      "source_urls": [
+        "https://srinagar.nic.in/places-of-interest/"
+      ],
+      "reviewed_at": "2026-10-11",
+      "basis": "planning-estimate",
+      "note": "Approximate city-centre drive to waterfront; boat routes and early market access have separate duration. Road km and drive hours are one way. Upper hours allow ordinary route variation; they are not live traffic predictions. Sight transfer minutes are additional local movement; visit/activity minutes are editorial planning estimates."
+    },
+    "day_note": "Explore Dal Lake's waterfront and the lake experiences selected for this day.",
+    "sights": {
+      "Dal Lake waterfront": {
+        "client_sentence": "Walk along Dal Lake's waterfront for views of houseboats, shikaras and the Zabarwan mountains.",
+        "visit_minutes": 45,
+        "transfer_minutes": 10,
+        "arrival_suitable": true,
+        "cluster": "dal-waterfront"
+      },
+      "Shikara routes": {
+        "client_sentence": "Explore Dal Lake's water routes during the arranged shikara excursion.",
+        "visit_minutes": 60,
+        "transfer_minutes": 10,
+        "arrival_suitable": false,
+        "cluster": "dal-shikara",
+        "requires_activity": "Shikara ride"
+      },
+      "Floating Market / vegetable market": {
+        "client_sentence": "Visit the floating vegetable market during the arranged early-morning lake excursion.",
+        "visit_minutes": 90,
+        "transfer_minutes": 15,
+        "arrival_suitable": false,
+        "cluster": "dal-early-market",
+        "requires_activity": "Floating market visit",
+        "time_window": {
+          "start": 360,
+          "end": 480
+        }
+      },
+      "Nehru Park and lake islands": {
+        "client_sentence": "Visit the selected Nehru Park and lake-island stops during the arranged boat excursion.",
+        "visit_minutes": 60,
+        "transfer_minutes": 10,
+        "arrival_suitable": false,
+        "cluster": "dal-islands",
+        "requires_activity": "Shikara ride"
+      },
+      "Lotus and floating garden areas": {
+        "client_sentence": "Explore selected lotus and floating-garden waterways during the arranged seasonal lake excursion.",
+        "visit_minutes": 60,
+        "transfer_minutes": 15,
+        "arrival_suitable": false,
+        "cluster": "dal-floating-gardens",
+        "requires_activity": "Shikara ride"
+      }
+    },
+    "activities": {
+      "Shikara ride": {
+        "client_sentence": "Enjoy the arranged shikara ride on Dal Lake.",
+        "duration_minutes": 60,
+        "sight_names": [
+          "Shikara routes",
+          "Nehru Park and lake islands",
+          "Lotus and floating garden areas"
+        ],
+        "cluster": "dal-shikara"
+      },
+      "Floating market visit": {
+        "client_sentence": "Visit Dal Lake's floating market during the arranged early-morning boat excursion.",
+        "duration_minutes": 90,
+        "sight_names": [
+          "Floating Market / vegetable market"
+        ],
+        "cluster": "dal-early-market",
+        "time_window": {
+          "start": 360,
+          "end": 480
+        }
+      },
+      "Sunrise photography": {
+        "client_sentence": "Photograph Dal Lake in the soft light of the selected sunrise session.",
+        "duration_minutes": 60,
+        "time_window": {
+          "start": 360,
+          "end": 480
+        }
+      },
+      "Sunset photography": {
+        "client_sentence": "Photograph Dal Lake during the selected sunset session.",
+        "duration_minutes": 60
+      },
+      "Lake birdwatching": {
+        "client_sentence": "Observe birdlife from the selected quiet viewing areas around Dal Lake.",
+        "duration_minutes": 60
+      }
+    }
+  }
+}

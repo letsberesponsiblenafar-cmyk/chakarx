@@ -20,7 +20,8 @@ for (const ext of ['.ts', '.tsx']) require.extensions[ext] = function (module, f
 const { createPlan, rebuildPlanFromNightSequence, retargetDay, setPlanDayTrip } = require('../lib/itinerary.ts');
 const { calculateCosts } = require('../lib/costing.ts');
 const { itinerarySnapshot } = require('../components/PlannerProvider.tsx');
-const { dayNarrative, dayTitle } = require('../lib/narrative.ts');
+const { dayNarrative, dayTitle, sightseeingSentence } = require('../lib/narrative.ts');
+const { destinationByName } = require('../lib/data.ts');
 const { tripDuration, departureForNights } = require('../lib/trip-dates.ts');
 const input = (days) => ({
   name: 'Route QA', arrival: '2026-10-03', departure: `2026-10-${String(days + 2).padStart(2,'0')}`, arrivalTime: '06:00',
@@ -93,16 +94,21 @@ const arrivalAtPahalgam = onePahalgamNight.dayPlans[2];
 const departureFromPahalgam = onePahalgamNight.dayPlans[3];
 const arrivalStops = arrivalAtPahalgam.blocks.filter((block) => block.destination === 'Pahalgam' && block.kind !== 'free-time').map((block) => block.name);
 const morningStops = departureFromPahalgam.blocks.filter((block) => block.destination === 'Pahalgam' && block.kind !== 'free-time').map((block) => block.name);
-assert.ok(arrivalStops.length <= 1, 'A long transfer into a one-night stop should have at most one easy sight');
+assert.ok(arrivalStops.length >= 1 && arrivalStops.length <= 2, 'A long transfer into a one-night stop should have one or two easy nearby sights');
+assert.ok(arrivalStops.every((name) => destinationByName('Pahalgam').local_sightseeing.find((sight) => sight.name === name)?.arrival_suitable === true), 'A long transfer must leave major valley excursions for another day');
 assert.ok(morningStops.length >= 1, 'A one-night stop needs sightseeing before the onward drive');
 assert.ok(morningStops.every((name) => !arrivalStops.includes(name)), 'The departure morning must show new sights');
-for (const name of morningStops) assert.ok(dayNarrative(departureFromPahalgam, 'Srinagar').includes(name));
+for (const name of morningStops) assert.ok(dayNarrative(departureFromPahalgam, 'Srinagar').includes(sightseeingSentence(destinationByName('Pahalgam').local_sightseeing.find((sight) => sight.name === name))), `The return morning missed the authored sentence for ${name}`);
 
 const pahalgamDayTrip = short.dayPlans.find((day) => day.dayTripDestination === 'Pahalgam');
 const dayTripSights = pahalgamDayTrip.blocks.find((block) => block.destination === 'Pahalgam' && block.sights)?.sights || [];
-for (const name of ['Aru Valley','Betaab Valley','Chandanwari']) {
-  assert.ok(dayTripSights.includes(name), `The one-day Pahalgam excursion missed ${name}`);
-  assert.ok(dayNarrative(pahalgamDayTrip, 'Srinagar').includes(name), `About this day missed ${name}`);
+assert.ok(dayTripSights.length >= 2, 'A Pahalgam day visit must provide a meaningful sightseeing programme within its round-trip drive time');
+for (const name of dayTripSights) {
+  assert.ok(dayNarrative(pahalgamDayTrip, 'Srinagar').includes(sightseeingSentence(destinationByName('Pahalgam').local_sightseeing.find((sight) => sight.name === name))), `About this day missed the authored sentence for ${name}`);
+}
+assert.ok(pahalgamDayTrip.timing.driveMinutes + pahalgamDayTrip.timing.serviceMinutes + pahalgamDayTrip.timing.scheduledMinutes <= pahalgamDayTrip.timing.availableMinutes, 'A day visit must fit its complete drive, visit and service budget');
+for (const name of ['Aru Valley','Betaab Valley','Chandanwari'].filter((name) => !dayTripSights.includes(name))) {
+  assert.ok(!dayNarrative(pahalgamDayTrip, 'Srinagar').includes(name), `The client copy must not promise the unscheduled ${name}`);
 }
 
 let repeatedSrinagar = rebuildPlanFromNightSequence(createPlan(input(8)), ['Srinagar','Gulmarg','Srinagar','Pahalgam','Srinagar','Srinagar','Srinagar']);
@@ -110,7 +116,7 @@ for (const day of [1,3,5,6,7]) repeatedSrinagar = setPlanDayTrip(repeatedSrinaga
 const allSrinagarStops = repeatedSrinagar.dayPlans.flatMap((day) => day.blocks.filter((block) => block.destination === 'Srinagar' && block.kind !== 'free-time' && block.kind !== 'departure').map((block) => block.name));
 assert.equal(allSrinagarStops.length, new Set(allSrinagarStops).size, 'Separated Srinagar days must not repeat a planned stop');
 for (const name of allSrinagarStops) {
-  const marker = name === 'Dal Lake & Boulevard' ? 'Boulevard Road' : name;
+  const marker = sightseeingSentence(destinationByName('Srinagar').local_sightseeing.find((sight) => sight.name === name));
   const mentions = repeatedSrinagar.dayPlans.filter((day) => day.label !== 'Departure day' && dayNarrative(day, 'Srinagar').includes(marker)).length;
   assert.equal(mentions, 1, `${name} should appear in only one About this day section`);
 }

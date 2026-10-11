@@ -31,6 +31,7 @@ export function quoteReadiness(
   destinationConnection: string,
 ) {
   const issues: string[] = [];
+  for (const day of plan.dayPlans) for (const issue of day.timing?.issues || []) issues.push(`Day ${day.day}: ${issue}`);
   if (planInputsNeedRefresh(plan, input)) issues.push('Rebuild the itinerary after changing trip details.');
   if (hotelConnection !== 'ready') issues.push('Load the hotel database before sharing a quote.');
   if (destinationConnection !== 'ready') issues.push('Load the destination library before sharing a quote.');
@@ -58,6 +59,15 @@ export function quoteReadiness(
     if (!activity.available && activitySelected(activity, model.activitySelections, model.activityCosts)) issues.push(`${activity.destination}: ${activity.name} is no longer enabled in the destination library; review it.`);
     if (activitySelected(activity, model.activitySelections, model.activityCosts) && quotedActivityCost(model.activityCosts, activity, model.activitySelections) === null) {
       issues.push(`Enter the group price for ${activity.destination}: ${activity.name}, or untick it.`);
+    }
+    if (quotedActivityCost(model.activityCosts, activity, model.activitySelections) !== null &&
+      plan.dayPlans.every((day) => day.scheduledActivities !== undefined) &&
+      !plan.dayPlans.some((day) => day.scheduledActivities?.some((scheduled) => scheduled.key === activity.key))) {
+      issues.push(`${activity.destination}: ${activity.name} is priced but has no time in the itinerary. Adjust the journey or remove it.`);
+    }
+    if (/houseboat stay/i.test(activity.name) && quotedActivityCost(model.activityCosts, activity, model.activitySelections) !== null &&
+      !hotels.some((hotel) => hotel.location === activity.destination && /houseboat/i.test(`${hotel.hotelName} ${hotel.roomType}`))) {
+      issues.push('Houseboat stay is included as an activity, but no houseboat hotel is selected. Select the houseboat or remove the activity.');
     }
   }
   return [...new Set(issues)];

@@ -1,5 +1,5 @@
 import 'server-only';
-import { destinations, type Destination } from '@/lib/data';
+import { destinations, enrichDestination, type Destination } from '@/lib/data';
 
 type Row = { id: string; record: Destination };
 const url = process.env.SUPABASE_URL?.replace(/\/$/, '');
@@ -23,7 +23,7 @@ async function call(path: string, init: RequestInit = {}) {
 export async function listDestinations(): Promise<Destination[]> {
   const rows = await call('?select=id,record&limit=1000') as Row[];
   const byId = new Map<string,Destination>(destinations.map((d) => [d.id || d.name, { ...d, id: d.id || d.name }]));
-  for (const row of rows) byId.set(row.id, { ...row.record, id: row.id });
+  for (const row of rows) byId.set(row.id, enrichDestination({ ...row.record, id: row.id }));
   return [...byId.values()];
 }
 

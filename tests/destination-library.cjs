@@ -16,7 +16,7 @@ for (const ext of ['.ts', '.tsx']) require.extensions[ext] = function (module, f
 };
 
 const { destinations, enabledSightseeing, replaceDestinationCatalog, routeByName } = require('../lib/data.ts');
-const { createPlan, rebuildPlanFromNightSequence, retargetDay, setPlanDayTrip } = require('../lib/itinerary.ts');
+const { createPlan, rebuildPlanFromNightSequence, reschedulePlan, retargetDay, setPlanDayTrip } = require('../lib/itinerary.ts');
 const { dayNarrative, activitySentence, sightseeingSentence } = require('../lib/narrative.ts');
 const { validateDestination } = require('../lib/destination-validation.ts');
 const { tripActivities, quotedActivityCost, clientActivityLists } = require('../lib/activities.ts');
@@ -27,7 +27,7 @@ const original = [...destinations];
 try {
   const srinagar = original.find((item) => item.name === 'Srinagar');
   const edited = validateDestination({ ...srinagar, id: 'Srinagar', day_note: 'Enjoy a curated Srinagar waterfront walk.',
-    local_sightseeing: srinagar.local_sightseeing.map((sight) => sight.name === 'Dal Lake & Boulevard' ? { ...sight, client_sentence: 'Walk beside Dal Lake and its traditional houseboats.' } : sight),
+    local_sightseeing: srinagar.local_sightseeing.map((sight) => ({ ...sight, requires_activity: '', ...(sight.name === 'Dal Lake & Boulevard' ? { client_sentence: 'Walk beside Dal Lake and its traditional houseboats.' } : {}) })),
     things_to_do: ['Unrelated legacy text'], enabled_sightseeing: ['Dal Lake & Boulevard'], activities: ['Shikara ride'],
     activity_copy: { 'Shikara ride': 'Enjoy a private shikara cruise on Dal Lake.' }, enabled_activities: [] });
   assert.deepEqual(edited.things_to_do, edited.local_sightseeing.map((sight) => sight.name), 'Things to Do must come from the editable sightseeing records.');
@@ -83,9 +83,17 @@ try {
   assert.equal(after.activities, 3000);
   assert.ok(clientActivityLists(plan, { [selectedShikara.key]: 3000 }, { [selectedShikara.key]: true }).included.includes('Srinagar: Shikara ride'));
   assert.equal(Math.round(after.sellingTotal - before.sellingTotal), 3465, 'A ticked group activity cost should enter markup and GST once.');
-  copy = dayNarrative(plan.dayPlans.find((day) => day.stay === 'Srinagar'), input.pickup, { activityCosts: { [shikara.key]: 3000 }, activitySelections: { [shikara.key]: true } });
+  const shikaraQuote = { activityCosts: { [shikara.key]: 3000 }, activitySelections: { [shikara.key]: true } };
+  const withShikara = reschedulePlan(plan, shikaraQuote);
+  const shikaraDays = withShikara.dayPlans.filter((day) => day.scheduledActivities.some((activity) => activity.key === shikara.key));
+  assert.equal(shikaraDays.length, 1, 'A selected and priced activity must be scheduled exactly once.');
+  copy = dayNarrative(shikaraDays[0], input.pickup, shikaraQuote);
   assert.match(copy, /Enjoy a private shikara cruise on Dal Lake/);
-  assert.doesNotMatch(dayNarrative(plan.dayPlans.find((day) => day.stay === 'Srinagar'), input.pickup, { activityCosts: { [shikara.key]: 3000 }, activitySelections: { [shikara.key]: false } }), /shikara ride/i);
+  assert.equal(withShikara.dayPlans.filter((day) => dayNarrative(day, input.pickup, shikaraQuote).includes('Enjoy a private shikara cruise on Dal Lake')).length, 1, 'An included activity sentence must occur on its scheduled day only.');
+  const removedQuote = { activityCosts: { [shikara.key]: 3000 }, activitySelections: { [shikara.key]: false } };
+  const removedShikara = reschedulePlan(withShikara, removedQuote);
+  assert.ok(removedShikara.dayPlans.every((day) => !day.scheduledActivities.some((activity) => activity.key === shikara.key)), 'Unticking the activity must release its reserved time on every day.');
+  for (const day of removedShikara.dayPlans) assert.doesNotMatch(dayNarrative(day, input.pickup, removedQuote), /private shikara cruise|shikara ride/i);
   assert.equal(activitySentence('Take the Gondola'), 'Enjoy a gondola ride.');
   assert.equal(activitySentence('Enjoy Take the Gondola'), 'Enjoy a gondola ride.');
   assert.equal(activitySentence('Old-city heritage walk'), 'Take a heritage walk through the old city.');
@@ -104,5 +112,29 @@ try {
   const viaSrinagar = rebuildPlanFromNightSequence(plan, ['Srinagar', 'Gulmarg', 'Pahalgam', 'Pahalgam', 'Srinagar']);
   assert.deepEqual(viaSrinagar.dayPlans[2].drive.via, ['Srinagar']);
   assert.equal(viaSrinagar.dayPlans[2].drive.hours, routeByName('Gulmarg', 'Srinagar').hours + 3.2);
+
+  const gondolaSight = { name: 'Gulmarg Gondola', description: '', client_sentence: 'Ride the Gulmarg Gondola.', tags: ['nature'], visit_minutes: 90, transfer_minutes: 0, requires_activity: 'Gondola ride', arrival_suitable: false };
+  const gulmarg = original.find((item) => item.name === 'Gulmarg');
+  const gondolaDestination = validateDestination({ ...gulmarg, id: 'Gulmarg', local_sightseeing: [gondolaSight], enabled_sightseeing: [gondolaSight.name],
+    activities: ['Gondola ride'], enabled_activities: ['Gondola ride'], activity_copy: { 'Gondola ride': 'Enjoy the Gulmarg Gondola and the views from Kongdori.' },
+    activity_timing: { 'Gondola ride': { duration_minutes: 120, sight_names: [gondolaSight.name] } } });
+  replaceDestinationCatalog(original.map((item) => item.name === 'Gulmarg' ? gondolaDestination : item));
+  const gondolaKey = 'Gulmarg\u001fGondola ride';
+  const gondolaQuote = { activityCosts: { [gondolaKey]: 4500 }, activitySelections: { [gondolaKey]: true } };
+  const gondolaPlan = reschedulePlan(createPlan(input), gondolaQuote);
+  const gondolaDay = gondolaPlan.dayPlans.find((day) => day.scheduledActivities.some((activity) => activity.key === gondolaKey));
+  assert.ok(gondolaDay, 'The included Gondola must reserve time in Gulmarg.');
+  assert.ok(gondolaDay.blocks.some((block) => block.name === gondolaSight.name), 'A priced dependency must permit its linked sightseeing.');
+  const gondolaCopy = dayNarrative(gondolaDay, input.pickup, gondolaQuote);
+  assert.match(gondolaCopy, /Kongdori/, 'Client copy must not hide a mountain station covered by its scheduled activity.');
+  assert.equal((gondolaCopy.match(/Gulmarg Gondola/g) || []).length, 1, 'The authored linked activity must describe the shared sight once.');
+  const noGondola = reschedulePlan(gondolaPlan, { activityCosts: {}, activitySelections: { [gondolaKey]: false } });
+  assert.ok(noGondola.dayPlans.every((day) => !day.blocks.some((block) => block.name === gondolaSight.name)), 'Removing the Gondola must remove its dependent sightseeing.');
+
+  const departureDay = { ...gondolaPlan.dayPlans.at(-1), stay: 'Srinagar', from: 'Srinagar', to: 'Srinagar', transfer: false,
+    departureTime: '18:00', primaryVisitFor: [], scheduledActivities: [], blocks: [{ name: 'Shalimar Bagh', destination: 'Srinagar', kind: 'sightseeing' }] };
+  const departureCopy = dayNarrative(departureDay, input.pickup);
+  assert.ok(departureCopy.indexOf('Shalimar Bagh') >= 0 && departureCopy.indexOf('Shalimar Bagh') < departureCopy.indexOf('departure point'), 'Scheduled final-day sightseeing must appear before the departure transfer.');
+  assert.match(dayNarrative({ ...departureDay, stay: 'Gulmarg', from: 'Gulmarg', timing: { startMinutes: 390 }, blocks: [] }, input.pickup), /^Check out early/, 'Checkout wording follows the required hotel departure time, not just the flight time.');
 } finally { replaceDestinationCatalog(original); }
 console.log('Destination edits, activity switches, new routes and client-safe day copy passed.');

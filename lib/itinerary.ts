@@ -1,16 +1,20 @@
-import { destinationByName, destinations, enabledSightseeing, hotelCategories, interests, mealOptions, routeByName, transportOptions, travelStyles } from '@/lib/data';
+import { destinationByName, destinations, replaceDestinationCatalog, hotelCategories, interests, mealOptions, routeByName, transportOptions, travelStyles } from '@/lib/data';
 import type { Destination, Route, Site, Hotel } from '@/lib/data';
 import { firstHotelCandidate, roomsRequired, cnbChildren, extraBedsRequired } from '@/lib/hotels';
-import { destinationPriority, recommendationWeight, routeDecision, routeRule, sightseeingRule, isGurezAllowed, shouldPreferOffbeat, destinationAccessFlags, engineRules } from '@/lib/intelligence';
+import { destinationPriority, recommendationWeight, routeDecision, routeRule, isGurezAllowed, shouldPreferOffbeat, destinationAccessFlags, engineRules } from '@/lib/intelligence';
+import { seasonMatches } from '@/lib/seasons';
 import { priceTrip } from '@/lib/pricing';
+import { scheduleDayPlans, type ScheduleQuote } from '@/lib/day-scheduler';
 
 export type TripInput = {
   name: string; arrival: string; departure: string; arrivalTime?: string; departureTime?: string; pickup: string; adults: number; youngAges: number[]; budget: number;
   hotelCategory: string; transport: string; mealPlan: string; style: typeof travelStyles[number]; interests: string[];
 };
 export type RouteLeg = Route & { from: string; to: string; via?: string[]; known: boolean; preference: 'PREFERRED' | 'ALLOWED' | 'AVOID' | 'NOT_ALLOWED'; vehicleDaysCharged: number; rationale: string; preferredAlternative?: string };
-export type DayBlock = { name: string; description: string; reason: string; tags: string[]; destination?: string; sights?: string[]; source?: string; conditional?: boolean; kind?: 'sightseeing' | 'arrival' | 'transfer' | 'departure' | 'custom' | 'free-time'; intelligence?: { status: 'STANDARD' | 'OPTIONAL' | 'CONDITIONAL' | 'EXTRA' | 'EXCLUDED' | 'SEASONAL' | 'LIVE_CHECK'; extraCost?: boolean; note?: string } };
-export type DayPlan = { day: number; date: string; label: string; from: string; to: string; stay: string; transfer: boolean; drive: RouteLeg; blocks: DayBlock[]; notes: string[]; departureTime?: string; dayTripDestination?: string | null; primaryVisitFor?: string[]; customTitle?: string; customAbout?: string };
+export type DayBlock = { name: string; description: string; startMinute?: number; reason: string; tags: string[]; destination?: string; sights?: string[]; source?: string; conditional?: boolean; kind?: 'sightseeing' | 'arrival' | 'transfer' | 'departure' | 'custom' | 'free-time'; intelligence?: { status: 'STANDARD' | 'OPTIONAL' | 'CONDITIONAL' | 'EXTRA' | 'EXCLUDED' | 'SEASONAL' | 'LIVE_CHECK'; extraCost?: boolean; note?: string } };
+export type ScheduledActivity = { key: string; destination: string; name: string; minutes: number };
+export type DayTiming = { startMinutes: number; endMinutes: number; availableMinutes: number; driveMinutes: number; serviceMinutes: number; scheduledMinutes: number; remainingMinutes: number; issues: string[] };
+export type DayPlan = { day: number; date: string; label: string; from: string; to: string; stay: string; transfer: boolean; drive: RouteLeg; blocks: DayBlock[]; notes: string[]; arrivalTime?: string; departureTime?: string; dayTripDestination?: string | null; primaryVisitFor?: string[]; customTitle?: string; customAbout?: string; customAboutContext?: string; previousCustomAbout?: string; scheduledActivities?: ScheduledActivity[]; timing?: DayTiming };
 export type Stay = { name: string; nights: number; destination: Destination };
 export type HotelCandidate = Hotel;
 export type HotelPlan = { location: string; nights: number; candidate: HotelCandidate | null };
@@ -20,8 +24,7 @@ export type Plan = {
   hotelPlans: HotelPlan[]; evaluation: { budgetFit: string; season: string; capacity: string; route: string; dataConfidence: string; alerts: string[]; ruleTrace: string[]; exclusions: string[] };
 };
 
-type PlanningStyle = TripInput['style'];
-export const ROUTE_VERSION = 'kashmir-hub-2026-10-10-library-sights';
+export const ROUTE_VERSION = 'kashmir-timed-library-2026-10-11';
 const transportRates: Record<string, number> = { Sedan: 3400, Ertiga: 4200, Innova: 5200, 'Tempo Traveller': 7600 };
 
 function daysBetween(a: string, b: string) {
@@ -56,25 +59,34 @@ export function seasonForDate(date: string) {
 }
 function monthNumber(date: string) { return new Date(`${date}T12:00:00`).getMonth() + 1; }
 function seasonFit(d: Destination | Site, date: string) {
-  const month = monthNumber(date);
-  const season = String('season' in d ? d.season : d.months).toLowerCase();
-  if (season === 'all') return 1;
-  if (season.includes('winter') && [12, 1, 2].includes(month)) return 1;
-  if (season.includes('spring') && [3, 4, 5].includes(month)) return 1;
-  if (season.includes('summer') && [6, 7, 8].includes(month)) return 1;
-  if (season.includes('autumn') && [9, 10, 11].includes(month)) return 1;
-  if (season.includes('spring-autumn') && [3, 4, 5, 9, 10, 11].includes(month)) return 0.9;
-  return 0.45;
+  const season = String('season' in d ? d.season : d.months);
+  return seasonMatches(season, date) === true ? 1 : 0.45;
 }
 
 function routeLeg(from: string, to: string): RouteLeg {
   const policy = routeDecision(from, to);
   if (from === to) return { from, to, km: 0, hours: 0, source: 'No movement', live_required: false, known: true, preference: 'ALLOWED', vehicleDaysCharged: 0, rationale: policy.rationale };
   const direct = routeByName(from, to);
-  if (direct) return { ...direct, from, to, known: true, preference: policy.preference, vehicleDaysCharged: policy.vehicleDays, rationale: policy.rationale, preferredAlternative: policy.preferredAlternative };
   const a = routeByName(from, 'Srinagar'); const b = routeByName('Srinagar', to);
-  if (a && b) return { from, to, via: ['Srinagar'], km: a.km + b.km, hours: a.hours + b.hours, source: 'Composed from stored Srinagar legs', live_required: true, known: true, preference: policy.preference, vehicleDaysCharged: policy.vehicleDays, rationale: policy.rationale, preferredAlternative: policy.preferredAlternative };
+  if (a && b && from !== 'Srinagar' && to !== 'Srinagar' && (!direct || policy.preference === 'AVOID')) return { from, to, via: ['Srinagar'], km: a.km + b.km, hours: a.hours + b.hours, hours_max: (a.hours_max || a.hours) + (b.hours_max || b.hours), access_minutes: (a.access_minutes || 0) + (b.access_minutes || 0), source: 'Composed from destination-library Srinagar legs', live_required: true, known: true, preference: policy.preference, vehicleDaysCharged: policy.vehicleDays, rationale: policy.rationale, preferredAlternative: policy.preferredAlternative };
+  if (direct) return { ...direct, from, to, known: true, preference: policy.preference, vehicleDaysCharged: policy.vehicleDays, rationale: policy.rationale, preferredAlternative: policy.preferredAlternative };
   return { from, to, km: 0, hours: 0, source: 'Live routing required', live_required: true, known: false, preference: policy.preference, vehicleDaysCharged: policy.vehicleDays, rationale: policy.rationale, preferredAlternative: policy.preferredAlternative };
+}
+
+function journeyDrive(from: string, to: string, visit?: string | null): RouteLeg {
+  const direct = routeLeg(from, to);
+  if (!visit || visit === to) return direct;
+  const outward = routeLeg(from, visit); const onward = routeLeg(visit, to);
+  return { ...direct, via: [...new Set([...(outward.via || []), ...(onward.via || [])])],
+    km: outward.km + onward.km, hours: outward.hours + onward.hours,
+    hours_max: (outward.hours_max || outward.hours) + (onward.hours_max || onward.hours),
+    access_minutes: (outward.access_minutes || 0) + (onward.access_minutes || 0),
+    source: `Day visit: ${from} → ${visit} → ${to}`, live_required: outward.live_required || onward.live_required,
+    known: outward.known && onward.known,
+    preference: outward.preference === 'NOT_ALLOWED' || onward.preference === 'NOT_ALLOWED' ? 'NOT_ALLOWED' : outward.preference === 'AVOID' || onward.preference === 'AVOID' ? 'AVOID' : outward.preference,
+    vehicleDaysCharged: Math.max(1, outward.vehicleDaysCharged, onward.vehicleDaysCharged),
+    rationale: `Day visit only. Overnight remains ${to}; next-day origin remains ${to}.`,
+  };
 }
 
 function scoredDestination(d: Destination, input: TripInput, date: string) {
@@ -96,97 +108,6 @@ function scoredDestination(d: Destination, input: TripInput, date: string) {
   return score;
 }
 
-function targetBaseCount(nights: number, style: PlanningStyle) {
-  if (nights <= 2) return 1;
-  if (nights <= 4) return style === 'Relaxed' ? 2 : 3;
-  if (nights <= 6) return 3;
-  if (nights <= 9) return style === 'Relaxed' ? 3 : style === 'Packed' ? 5 : 4;
-  if (nights <= 12) return style === 'Relaxed' ? 4 : 5;
-  if (nights <= 16) return 6;
-  if (nights <= 21) return 7;
-  return 8;
-}
-
-function chooseBases(input: TripInput, nights: number) {
-  const srinagar = destinationByName('Srinagar');
-  if (!srinagar) throw new Error('Srinagar destination is missing from data.');
-  const candidates = destinations
-    .filter((d) => d.overnight_allowed && d.base && d.name !== 'Srinagar')
-    .filter((d) => seasonFit(d, input.arrival) >= 0.45)
-    .map((d) => ({ d, score: scoredDestination(d, input, input.arrival) }))
-    .sort((a, b) => b.score - a.score);
-  const need = Math.max(1, targetBaseCount(nights, input.style) - 1);
-  const chosen: Destination[] = []; let minNights = 1;
-  for (const item of candidates) {
-    if (chosen.length >= need) break;
-    if (minNights + item.d.min_nights > nights) continue;
-    chosen.push(item.d); minNights += item.d.min_nights;
-  }
-  return [srinagar, ...chosen];
-}
-
-function allocateNights(bases: Destination[], nights: number, input: TripInput) {
-  const selected = bases.slice(); const minMap = new Map<string, number>();
-  for (const d of selected) minMap.set(d.name, d.name === 'Srinagar' && nights >= 3 ? 2 : d.min_nights);
-  let total = [...minMap.values()].reduce((a, b) => a + b, 0);
-  while (total > nights && selected.length > 1) {
-    const removable = selected.slice(1).sort((a, b) => scoredDestination(a, input, input.arrival) - scoredDestination(b, input, input.arrival))[0];
-    selected.splice(selected.indexOf(removable), 1); total -= minMap.get(removable.name) || 1; minMap.delete(removable.name);
-  }
-  if (total > nights) { minMap.set('Srinagar', 1); total = 1; selected.splice(1, selected.length - 1); }
-
-  const rankedExtras = destinations
-    .filter((d) => d.overnight_allowed && d.base && !selected.some((x) => x.name === d.name))
-    .filter((d) => seasonFit(d, input.arrival) >= 0.45)
-    .sort((a, b) => scoredDestination(b, input, input.arrival) - scoredDestination(a, input, input.arrival));
-  let extraCursor = 0;
-  while (total < nights) {
-    const extendable = selected.filter((d) => (minMap.get(d.name) || 0) < d.max_nights);
-    if (extendable.length) {
-      extendable.sort((a, b) => ((b.ideal_nights - (minMap.get(b.name) || 0)) - (a.ideal_nights - (minMap.get(a.name) || 0))) || scoredDestination(b, input, input.arrival) - scoredDestination(a, input, input.arrival));
-      const pick = extendable[0]; minMap.set(pick.name, (minMap.get(pick.name) || 0) + 1); total++; continue;
-    }
-    let added = false;
-    while (extraCursor < rankedExtras.length) {
-      const candidate = rankedExtras[extraCursor++];
-      if (candidate.min_nights <= nights - total) { selected.push(candidate); minMap.set(candidate.name, candidate.min_nights); total += candidate.min_nights; added = true; break; }
-    }
-    if (!added) break;
-  }
-  if (total < nights) throw new Error('The destination database does not contain enough productive overnight capacity for this trip length.');
-  return selected.map((d) => ({ destination: d, nights: minMap.get(d.name) || 1 }));
-}
-
-function orderBases(stays: { destination: Destination; nights: number }[], input: TripInput) {
-  const s = stays.find((x) => x.destination.name === 'Srinagar');
-  const rest = stays.filter((x) => x.destination.name !== 'Srinagar'); const ordered: typeof rest = []; let current = 'Srinagar';
-  while (rest.length) {
-    rest.sort((a, b) => {
-      const ra = routeLeg(current, a.destination.name), rb = routeLeg(current, b.destination.name);
-      const clusterA = a.destination.cluster === destinationByName(current)?.cluster ? 4 : 0;
-      const clusterB = b.destination.cluster === destinationByName(current)?.cluster ? 4 : 0;
-      const policyA = ra.preference === 'AVOID' ? -18 : ra.preference === 'PREFERRED' ? 5 : 0;
-      const policyB = rb.preference === 'AVOID' ? -18 : rb.preference === 'PREFERRED' ? 5 : 0;
-      return (scoredDestination(b.destination, input, input.arrival) + clusterB + policyB - rb.hours * 1.8) - (scoredDestination(a.destination, input, input.arrival) + clusterA + policyA - ra.hours * 1.8);
-    });
-    const next = rest.shift()!; ordered.push(next); current = next.destination.name;
-  }
-  return s ? [s, ...ordered] : ordered;
-}
-
-function siteLimit(style: PlanningStyle, transfer: boolean, isDeparture: boolean) {
-  if (isDeparture) return 2;
-  if (transfer) return style === 'Packed' ? 3 : 2;
-  return style === 'Relaxed' ? 3 : style === 'Packed' ? 5 : 4;
-}
-
-function transferSightseeingLimit(hours: number, style: PlanningStyle) {
-  if (hours >= 5) return 0;
-  if (hours >= 4) return 1;
-  if (hours >= 3) return 1;
-  return siteLimit(style, true, false);
-}
-
 function minutesOfDay(value?: string) {
   if (!value || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return null;
   const [hours, minutes] = value.split(':').map(Number);
@@ -201,93 +122,11 @@ export function arrivalDayVisitAllowed(input: TripInput, destination: string) {
   return arrival + 90 + outward.hours * 120 + 120 <= 18 * 60;
 }
 
-function easyArrivalScore(site: Destination['local_sightseeing'][number], destination: string) {
-  const label = `${site.name} ${site.description}`.toLowerCase();
-  const place = destination.toLowerCase();
-  if (label.includes(place) && /town|market|riverfront|riverside|meadow|boulevard|lakefront/.test(label)) return 100;
-  if (/town|market|riverfront|riverside|meadow|boulevard|lakefront|local walk/.test(label)) return 60;
-  if (/river|lake|garden|temple/.test(label)) return 25;
-  return 0;
-}
-
-function compatibleSites(d: Destination, used: Set<string>, date: string, input: TripInput) {
-  const preferred = new Set(input.interests.map((x) => x.toLowerCase()));
-  const enabled = new Set(enabledSightseeing(d));
-  return d.local_sightseeing.filter((s) => {
-    const rule = sightseeingRule(d.name, s.name);
-    // These upper Gulmarg stops require the Gondola or a separate mountain
-    // excursion, while Gondola tickets are excluded from the base package.
-    const needsExcludedGondola = d.name === 'Gulmarg' && /gondola|kongdori|apharwat|alpather/i.test(`${s.name} ${s.description}`);
-    return enabled.has(s.name) && !used.has(`${d.name}::${s.name}`) && seasonFit({ ...d, season: s.season || d.season }, date) >= 0.45
-      && !needsExcludedGondola && !rule.extraCost && !['OPTIONAL', 'EXTRA', 'EXCLUDED'].includes(rule.status);
-  }).sort((a, b) => {
-    const aFit = a.tags.filter((x) => preferred.has(x.toLowerCase())).length;
-    const bFit = b.tags.filter((x) => preferred.has(x.toLowerCase())).length;
-    return (bFit * 5 + seasonFit(d, date) * 2) - (aFit * 5 + seasonFit(d, date) * 2);
-  });
-}
-
-function siteBlocks(d: Destination, count: number, used: Set<string>, date: string, input: TripInput, kind: DayBlock['kind'] = 'sightseeing', easyArrival = false) {
-  const out: DayBlock[] = [];
-  const candidates = compatibleSites(d, used, date, input);
-  if (easyArrival) candidates.sort((a, b) => easyArrivalScore(b, d.name) - easyArrivalScore(a, d.name));
-  for (const s of candidates) {
-    if (out.length >= count) break;
-    const rule = sightseeingRule(d.name, s.name);
-    const conditional = rule.status === 'CONDITIONAL' || rule.status === 'SEASONAL' || rule.status === 'LIVE_CHECK';
-    out.push({
-      name: s.name,
-      description: s.client_sentence || s.description,
-      destination: d.name,
-      reason: rule.notes || `${d.name === 'Srinagar' ? 'Local sightseeing' : 'Sightseeing'} selected from the ${d.name} destination library for this day.`,
-      tags: s.tags,
-      source: d.source,
-      conditional,
-      kind,
-      intelligence: { status: rule.status, extraCost: rule.extraCost, note: rule.notes },
-    });
-    used.add(`${d.name}::${s.name}`);
-  }
-  return out;
-}
-
-function fallbackBlock(stay: string): DayBlock {
-  const d = destinationByName(stay);
-  return { name: `Short orientation walk in ${stay}`, description: `Walk through the area near your ${stay} hotel.`, reason: 'The library has fewer unallocated sights for this date, so the plan avoids repeating a named attraction.', tags: d?.tags || ['relaxation'], destination: stay, kind: 'free-time', intelligence: { status: 'STANDARD', note: 'A short local walk is planned without repeating an attraction.' } };
-}
-
-function dayTripBlock(base: Destination, target: Destination, date: string, input: TripInput, used: Set<string>, onArrival: boolean): DayBlock {
-  const highlights = target.highlights.map((name) => name.toLowerCase());
-  const candidates = compatibleSites(target, used, date, input).sort((a, b) => {
-    const rank = (name: string) => {
-      const value = name.toLowerCase();
-      const index = highlights.findIndex((highlight) => value.includes(highlight) || highlight.includes(value));
-      return index < 0 ? 99 : index;
-    };
-    return rank(a.name) - rank(b.name);
-  });
-  const limit = onArrival ? 2 : input.style === 'Packed' ? 6 : input.style === 'Relaxed' ? 4 : 5;
-  const sights = candidates.slice(0, limit).map((site) => site.name);
-  sights.forEach((name) => used.add(`${target.name}::${name}`));
-  return {
-    name: `${target.name} day trip`,
-    description: sights.length ? `Dedicated ${target.name} visit covering ${sights.join(', ')}.` : `${target.name} excursion from ${base.name}.`,
-    reason: `Overnight remains ${base.name}; this visit does not change the hotel base or the next day's origin.`,
-    destination: target.name,
-    sights,
-    tags: [...new Set([...target.tags, 'day-trip'])],
-    source: target.source,
-    conditional: target.access !== 'standard',
-    kind: 'sightseeing',
-    intelligence: { status: target.access === 'standard' ? 'STANDARD' : 'CONDITIONAL', note: sights.length ? `Planned highlights: ${sights.join(' · ')}.` : 'No compatible sightseeing stops available for this date.' },
-  };
-}
-
 const essentialVisits = ['Gulmarg', 'Pahalgam', 'Sonamarg', 'Doodhpathri', 'Naranag'];
 
 function chooseDayTrip(base: Destination, visited: Set<string>, date: string, input: TripInput) {
   if (base.name !== 'Srinagar') return null;
-  const candidates = destinations.filter((d) => d.name !== 'Srinagar' && !visited.has(d.name) && d.base && (routeByName('Srinagar', d.name)?.hours || 99) <= 3.5);
+  const candidates = destinations.filter((d) => d.name !== 'Srinagar' && !visited.has(d.name) && d.base && (!d.hub_route || d.hub_route.access_mode === 'road') && (routeByName('Srinagar', d.name)?.hours || 99) <= 3.5);
   const allowed = candidates.filter((d) => {
     if (d.name === 'Gurez') return isGurezAllowed(date);
     if (d.name === 'Doodhpathri') return seasonForDate(date) !== 'winter';
@@ -316,7 +155,12 @@ function recommendedNightSequence(input: TripInput) {
 
   const sequence = ['Srinagar'];
   const core = ['Gulmarg', 'Pahalgam', 'Sonamarg'].slice(0, Math.min(3, days - 5));
-  const addStay = (name: string) => { sequence.push(name, 'Srinagar'); };
+  const addStay = (name: string) => {
+    const destination = destinationByName(name);
+    const route = routeByName('Srinagar', name);
+    if (!destination?.overnight_allowed || !route || destination.hub_route?.access_mode && destination.hub_route.access_mode !== 'road') return false;
+    sequence.push(name, 'Srinagar'); return true;
+  };
   core.forEach(addStay);
   // Doodhpathri is a later, date-sensitive overnight. Never squeeze it into
   // the core circuit or a winter recommendation.
@@ -326,7 +170,7 @@ function recommendedNightSequence(input: TripInput) {
   // Keep one full Srinagar-based day for Naranag or another suitable visit.
   if (remaining > 0) { sequence.push('Srinagar'); remaining--; }
   const extras = destinations
-    .filter((d) => d.base && d.overnight_allowed && d.min_nights <= 1 && !sequence.includes(d.name))
+    .filter((d) => d.base && d.overnight_allowed && d.min_nights <= 1 && !sequence.includes(d.name) && (!d.hub_route || d.hub_route.access_mode === 'road'))
     .filter((d) => d.name !== 'Srinagar' && d.name !== 'Naranag' && d.cluster !== 'central')
     .filter((d) => (routeByName('Srinagar', d.name)?.hours || 99) <= 4 && seasonFit(d, input.arrival) >= 0.9)
     .sort((a, b) => scoredDestination(b, input, input.arrival) - scoredDestination(a, input, input.arrival));
@@ -339,23 +183,6 @@ function recommendedNightSequence(input: TripInput) {
   while (remaining >= 2 && extras.length) { addStay(extras.shift()!.name); remaining -= 2; }
   while (remaining-- > 0) sequence.push('Srinagar');
   return sequence;
-}
-
-function buildNightSequence(ordered: { destination: Destination; nights: number }[], nights: number) {
-  if (nights <= 2) return Array.from({ length: nights }, () => 'Srinagar');
-  const seq: string[] = [];
-  const push = (name: string, count: number) => { for (let i = 0; i < count && seq.length < nights; i++) seq.push(name); };
-  push('Srinagar', 1);
-  const rest = ordered.filter((x) => x.destination.name !== 'Srinagar');
-  for (const stay of rest) {
-    if (seq.length >= nights) break;
-    const room = nights - seq.length;
-    const stayNights = Math.min(stay.nights, room);
-    push(stay.destination.name, stayNights);
-    if (seq.length < nights && seq[seq.length - 1] !== 'Srinagar') push('Srinagar', 1);
-  }
-  while (seq.length < nights) push('Srinagar', 1);
-  return seq.slice(0, nights);
 }
 
 function arrivalBlock(input: TripInput, stay: string, date: string): DayBlock {
@@ -377,22 +204,19 @@ function arrivalBlock(input: TripInput, stay: string, date: string): DayBlock {
 }
 
 function buildDays(input: TripInput, nightSequence: string[], departurePoint = 'Srinagar', dayTrips: Record<number, string | null> = {}) {
-  const nights = nightSequence.length; const used = new Set<string>(); const days: DayPlan[] = [];
+  const nights = nightSequence.length; const days: DayPlan[] = [];
   const visited = new Set(nightSequence);
   for (let index = 0; index <= nights; index++) {
     const date = dateAt(input.arrival, index);
     if (index === nights) {
-      const stay = nightSequence[nights - 1] || 'Srinagar'; const base = destinationByName(stay)!;
-      const leavingAt = minutesOfDay(input.departureTime);
-      const departureCapacity = leavingAt !== null && leavingAt >= 16 * 60 && routeLeg(stay, departurePoint).hours <= 2 ? 1 : 0;
-      const blocks = siteBlocks(base, departureCapacity, used, date, input, 'departure');
+      const stay = nightSequence[nights - 1] || 'Srinagar';
       const drive = routeLeg(stay, departurePoint);
-      days.push({ day: index + 1, date, label: 'Departure day', from: stay, to: departurePoint, stay, transfer: stay !== departurePoint, drive, blocks: blocks.length ? blocks : [fallbackBlock(stay)], departureTime: input.departureTime, notes: ['Keep the final sightseeing window flexible around the departure schedule.', ...(drive.preference === 'AVOID' ? [drive.rationale] : [])] });
+      days.push({ day: index + 1, date, label: 'Departure day', from: stay, to: departurePoint, stay, transfer: stay !== departurePoint, drive, blocks: [], departureTime: input.departureTime, notes: [] });
       continue;
     }
     const stay = nightSequence[index] || 'Srinagar'; const previous = index === 0 ? (input.pickup.toLowerCase().includes('srinagar') ? 'Srinagar' : input.pickup) : (nightSequence[index - 1] || stay);
     const base = destinationByName(stay)!; const transfer = index === 0 ? true : stay !== previous;
-    let drive = routeLeg(previous.toLowerCase().includes('jammu') && !previous.toLowerCase().includes('srinagar') ? 'Srinagar' : previous, stay);
+    let drive = routeLeg(previous, stay);
     const arrival = index === 0 ? [arrivalBlock(input, stay, date)] : [];
     const override = dayTrips[index + 1];
     // A four-day trip has only two full sightseeing days. Show the third core
@@ -404,27 +228,12 @@ function buildDays(input: TripInput, nightSequence: string[], departurePoint = '
     const feasibleArrivalVisit = arrivalVisit && arrivalDayVisitAllowed(input, arrivalVisit.name) ? arrivalVisit : null;
     const excursion = override === null ? null : override ? destinationByName(override)
       : feasibleArrivalVisit || (!transfer ? chooseDayTrip(base, visited, date, input) : null);
-    const sightseeingCapacity = excursion ? 0 : transfer
-      ? transferSightseeingLimit(drive.hours, input.style)
-      : siteLimit(input.style, false, false);
-    // A short return to Srinagar can include one new sight near the previous
-    // overnight base before the transfer; reserve the other slot for Srinagar.
-    const origin = index > 0 && previous !== 'Srinagar' ? destinationByName(previous) : null;
-    const remainingOriginSights = origin ? compatibleSites(origin, used, date, input).length : 0;
-    const outgoingLimit = index > 0 && transfer && !excursion && origin && remainingOriginSights > 0 && drive.hours <= 3.5
-      ? Math.min(1, sightseeingCapacity) : 0;
-    const outgoing = outgoingLimit ? siteBlocks(destinationByName(previous)!, outgoingLimit, used, date, input, 'transfer') : [];
-    const localLimit = Math.max(0, sightseeingCapacity - outgoing.length);
-    const sightseeing = siteBlocks(base, localLimit, used, date, input, transfer ? 'transfer' : 'sightseeing', transfer && drive.hours >= 3);
-    const blocks = [...arrival, ...outgoing, ...sightseeing];
+    const blocks = [...arrival];
     let dayTripDestination: string | null | undefined;
     dayTripDestination = excursion?.name ?? (override === null ? null : undefined);
     if (excursion && excursion.name !== stay) {
         visited.add(excursion.name);
-        blocks.unshift(dayTripBlock(base, excursion, date, input, used, index === 0));
-        const outward = routeLeg(previous, excursion.name);
-        const onward = routeLeg(excursion.name, base.name);
-        drive = { ...drive, km: outward.km + onward.km, hours: outward.hours + onward.hours, source: `Day visit: ${previous} → ${excursion.name} → ${base.name}`, live_required: outward.live_required || onward.live_required, known: outward.known && onward.known, preference: outward.preference === 'AVOID' || onward.preference === 'AVOID' ? 'AVOID' : outward.preference, vehicleDaysCharged: Math.max(1, outward.vehicleDaysCharged, onward.vehicleDaysCharged), rationale: `Day visit only. Overnight remains ${base.name}; next-day origin remains ${base.name}. Confirm that the sightseeing and transfer fit the available time.` };
+        drive = journeyDrive(previous, stay, excursion.name);
     }
     const accessFlags = destinationAccessFlags(stay);
     const notes = transfer ? ['Road movement and sightseeing are combined; verify live road conditions before confirmation.'] : [];
@@ -435,25 +244,10 @@ function buildDays(input: TripInput, nightSequence: string[], departurePoint = '
     days.push({
       day: index + 1, date, label: index === 0 ? 'Arrival day' : transfer ? 'Move & explore' : 'Explore',
       from: previous === stay ? stay : previous, to: stay, stay, transfer, drive, dayTripDestination,
-      blocks: blocks.length ? blocks : [fallbackBlock(stay)], notes,
+      blocks, notes, arrivalTime: index === 0 ? input.arrivalTime : undefined,
     });
   }
-  // Assign each destination's editorial note and general experiences to its
-  // richest sightseeing day. Site-specific activities can still appear on the
-  // particular day that includes their attraction.
-  const primary = new Map<string, { index: number; score: number }>();
-  days.forEach((day, index) => {
-    if (day.label === 'Departure day') return;
-    const names = new Set(day.blocks.map((block) => block.destination).filter((name): name is string => Boolean(name)));
-    for (const name of names) {
-      const count = day.blocks.filter((block) => block.destination === name && block.kind !== 'free-time' && block.kind !== 'arrival')
-        .reduce((sum, block) => sum + (block.sights?.length || 1), 0);
-      if (!count) continue;
-      const score = count * 10 + (day.transfer ? 0 : 2);
-      if (score > (primary.get(name)?.score ?? -1)) primary.set(name, { index, score });
-    }
-  });
-  return days.map((day, index) => ({ ...day, primaryVisitFor: [...primary.entries()].filter(([, value]) => value.index === index).map(([name]) => name) }));
+  return scheduleDayPlans(input, days);
 }
 
 function groupedStays(nightSequence: string[]) {
@@ -499,7 +293,14 @@ function validateInput(input: TripInput) {
   if (!Number.isFinite(input.budget) || input.budget < 0) throw new Error('Budget must be a valid non-negative amount.');
 }
 
-export function createPlan(input: TripInput): Plan {
+export function createPlan(input: TripInput, catalog?: Destination[]): Plan {
+  if (catalog) {
+    // Planning is synchronous: scope the request's shared library to this call,
+    // restoring the module's catalog before another request can run.
+    const previous = [...destinations];
+    replaceDestinationCatalog(catalog);
+    try { return createPlan(input); } finally { replaceDestinationCatalog(previous); }
+  }
   validateInput(input);
   const nights = tripNights(input);
   const normalizedMix = normalizeChildrenAndAdults(input.adults, input.youngAges);
@@ -519,7 +320,7 @@ export function createPlan(input: TripInput): Plan {
   const low = estimated.low; const high = estimated.high;
   const missingRateHotels = hotelPlans.filter((h) => !h.candidate?.mapB2B).map((h) => h.location);
   const alerts: string[] = [];
-  if (nights <= 4 && !dayPlans[0].dayTripDestination) alerts.push('The arrival-day excursion was omitted because an early arrival was not supplied or the drive cannot fit. Add a day or adjust the route if all core visits are required.');
+  if (nights <= 3 && !dayPlans[0].dayTripDestination) alerts.push('The arrival-day excursion was omitted because an early arrival was not supplied or the drive cannot fit. Add a day or adjust the route if all core visits are required.');
   const ruleTrace = engineRules().map((x) => x.rule);
   const exclusions = ['Pony rides', 'ATV rides', 'Seasonal snow activities', 'Union/local cabs', 'Personal expenses', 'Gondola tickets'];
   if (missingRateHotels.length) alerts.push(`B2B MAP rates are missing for: ${missingRateHotels.join(', ')}. Verify rates before confirmation.`);
@@ -573,7 +374,8 @@ export function rebuildPlanFromNightSequence(plan: Plan, nightSequence: string[]
       previousTrips[day.day] = visit;
     }
   });
-  const dayPlans = buildDays(plan.input, nightSequence, plan.dayPlans[plan.days - 1]?.to || 'Srinagar', previousTrips);
+  const nextInput = { ...plan.input, departure: dateAt(plan.input.arrival, nightSequence.length) };
+  const dayPlans = buildDays(nextInput, nightSequence, plan.dayPlans[plan.days - 1]?.to || 'Srinagar', previousTrips);
   const previousByDay = new Map(plan.dayPlans.map((d) => [d.day, d]));
   const mergedDays = dayPlans.map((d) => carryDayEdits(previousByDay.get(d.day), d));
   const segments = groupedStays(nightSequence);
@@ -581,6 +383,7 @@ export function rebuildPlanFromNightSequence(plan: Plan, nightSequence: string[]
   const hotelPlans = makeHotelPlans(nightSequence, plan.input.hotelCategory);
   return {
     ...plan,
+    input: nextInput,
     nights: nightSequence.length,
     days: nightSequence.length + 1,
     dayPlans: mergedDays,
@@ -598,14 +401,15 @@ function dayContext(day: DayPlan) {
   return JSON.stringify([
     day.date, day.label, day.from, day.to, day.stay, day.dayTripDestination || null,
     day.drive.hours, day.drive.via,
-    day.blocks.filter((block) => block.kind !== 'custom').map((block) => [block.kind, block.destination, block.name, block.sights || []]),
+
   ]);
 }
 
 function carryDayEdits(previous: DayPlan | undefined, generated: DayPlan): DayPlan {
-  if (!previous || dayContext(previous) !== dayContext(generated)) return generated;
+  if (!previous) return generated;
+  if (dayContext(previous) !== dayContext(generated)) return { ...generated, previousCustomAbout: previous.customAbout || previous.previousCustomAbout };
   const customBlocks = previous.blocks.filter((block) => block.kind === 'custom' && !generated.blocks.some((next) => next.name === block.name));
-  return { ...generated, blocks: [...generated.blocks, ...customBlocks], customTitle: previous.customTitle, customAbout: previous.customAbout };
+  return { ...generated, blocks: [...generated.blocks, ...customBlocks], customTitle: previous.customTitle, customAbout: previous.customAbout, customAboutContext: previous.customAboutContext, previousCustomAbout: previous.previousCustomAbout };
 }
 
 /** Retarget a single day to a new overnight-capable destination and refresh that day's local sightseeing. */
@@ -630,7 +434,7 @@ export function setPlanDayTrip(plan: Plan, dayNumber: number, destinationName: s
   plan.dayPlans.forEach((day) => { if (day.dayTripDestination !== undefined) trips[day.day] = day.dayTripDestination; });
   trips[dayNumber] = destinationName;
   const days = buildDays(plan.input, sequence, plan.dayPlans[plan.days - 1]?.to || 'Srinagar', trips);
-  const merged = days.map((day) => day.day === dayNumber ? day : carryDayEdits(plan.dayPlans[day.day - 1], day));
+  const merged = days.map((day) => carryDayEdits(plan.dayPlans[day.day - 1], day));
   const m = metrics(merged, plan.nights);
   return { ...plan, dayPlans: merged, routeKm: m.routeKm, driveHours: m.driveHours, travelLoad: m.travelLoad, evaluation: { ...plan.evaluation, route: `${Math.round(m.routeKm)} km across ${m.driveHours.toFixed(1)} planning driving hours` } };
 }
@@ -641,9 +445,19 @@ export function setPlanDeparturePoint(plan: Plan, departurePoint: string): Plan 
   const trips: Record<number, string | null> = {};
   plan.dayPlans.forEach((day) => { if (day.dayTripDestination !== undefined) trips[day.day] = day.dayTripDestination; });
   const days = buildDays(plan.input, sequence, departurePoint, trips);
-  const merged = days.map((day) => day.label === 'Departure day' ? day : carryDayEdits(plan.dayPlans[day.day - 1], day));
+  const merged = days.map((day) => carryDayEdits(plan.dayPlans[day.day - 1], day));
   const m = metrics(merged, plan.nights);
   return { ...plan, dayPlans: merged, routeKm: m.routeKm, driveHours: m.driveHours, travelLoad: m.travelLoad, evaluation: { ...plan.evaluation, route: `${Math.round(m.routeKm)} km across ${m.driveHours.toFixed(1)} planning driving hours` } };
+}
+
+/** Re-evaluate the programme against the current library and quote without changing the route. */
+export function reschedulePlan(plan: Plan, quote?: ScheduleQuote): Plan {
+  const refreshed = plan.dayPlans.map((day) => ({ ...day, drive: journeyDrive(day.from, day.to, day.dayTripDestination) }));
+  const dayPlans = scheduleDayPlans(plan.input, refreshed, quote);
+  const totals = metrics(dayPlans, plan.nights);
+  return { ...plan, dayPlans, ...totals,
+    evaluation: { ...plan.evaluation, route: `${Math.round(totals.routeKm)} km across ${totals.driveHours.toFixed(1)} planning driving hours` } };
+
 }
 
 export function itineraryPromptContext(plan: Plan) {
