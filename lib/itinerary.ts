@@ -114,6 +114,18 @@ function minutesOfDay(value?: string) {
   return hours * 60 + minutes;
 }
 
+/** Flights/trains leaving by 2 pm require the preceding hotel night in Srinagar. */
+export function requiresSrinagarFinalNight(input: Pick<TripInput, 'departureTime'>) {
+  const departure = minutesOfDay(input.departureTime);
+  return departure !== null && departure <= 14 * 60;
+}
+
+function departureNightSequence(input: TripInput, sequence: string[]) {
+  const nights = [...sequence];
+  if (nights.length && requiresSrinagarFinalNight(input)) nights[nights.length - 1] = 'Srinagar';
+  return nights;
+}
+
 export function arrivalDayVisitAllowed(input: TripInput, destination: string) {
   const arrival = minutesOfDay(input.arrivalTime);
   const outward = routeByName('Srinagar', destination);
@@ -305,7 +317,7 @@ export function createPlan(input: TripInput, catalog?: Destination[]): Plan {
   const nights = tripNights(input);
   const normalizedMix = normalizeChildrenAndAdults(input.adults, input.youngAges);
   const normalized = { ...input, youngAges: normalizedMix.children, adults: normalizedMix.adults, budget: Math.max(0, input.budget) };
-  const nightSequence = recommendedNightSequence(normalized);
+  const nightSequence = departureNightSequence(normalized, recommendedNightSequence(normalized));
   const dayPlans = buildDays(normalized, nightSequence);
   const staySegments = groupedStays(nightSequence);
   const hotelPlans = makeHotelPlans(nightSequence, normalized.hotelCategory);
@@ -362,9 +374,11 @@ export function createPlan(input: TripInput, catalog?: Destination[]): Plan {
   };
 }
 
-export function rebuildPlanFromNightSequence(plan: Plan, nightSequence: string[]): Plan {
-  if (nightSequence.length < 1 || nightSequence.length > 30) throw new Error('Night allocation must contain between 1 and 30 nights.');
-  if (nightSequence.some((name) => !destinationByName(name)?.overnight_allowed)) throw new Error('Every selected overnight destination must allow overnight stays.');
+export function rebuildPlanFromNightSequence(plan: Plan, requestedSequence: string[]): Plan {
+  if (requestedSequence.length < 1 || requestedSequence.length > 30) throw new Error('Night allocation must contain between 1 and 30 nights.');
+  if (requestedSequence.some((name) => !destinationByName(name)?.overnight_allowed)) throw new Error('Every selected overnight destination must allow overnight stays.');
+  const nightSequence = departureNightSequence(plan.input, requestedSequence);
+  const changedFinalNight = requestedSequence.at(-1) !== nightSequence.at(-1);
   const previousTrips: Record<number, string | null> = {};
   plan.dayPlans.forEach((day, index) => {
     if (index >= nightSequence.length || day.stay !== nightSequence[index] || day.dayTripDestination === undefined) return;
@@ -374,6 +388,13 @@ export function rebuildPlanFromNightSequence(plan: Plan, nightSequence: string[]
       previousTrips[day.day] = visit;
     }
   });
+  if (changedFinalNight) {
+    // Return to Srinagar for the night, preserving the planned excursion. An
+    // outlying hotel stay becomes a day visit rather than disappearing.
+    const previousFinalDay = plan.dayPlans[nightSequence.length - 1];
+    previousTrips[nightSequence.length] = previousFinalDay?.stay === requestedSequence.at(-1) && previousFinalDay.dayTripDestination
+      ? previousFinalDay.dayTripDestination : requestedSequence.at(-1)!;
+  }
   const nextInput = { ...plan.input, departure: dateAt(plan.input.arrival, nightSequence.length) };
   const dayPlans = buildDays(nextInput, nightSequence, plan.dayPlans[plan.days - 1]?.to || 'Srinagar', previousTrips);
   const previousByDay = new Map(plan.dayPlans.map((d) => [d.day, d]));
@@ -400,7 +421,7 @@ export function rebuildPlanFromNightSequence(plan: Plan, nightSequence: string[]
 function dayContext(day: DayPlan) {
   return JSON.stringify([
     day.date, day.label, day.from, day.to, day.stay, day.dayTripDestination || null,
-    day.drive.hours, day.drive.via,
+    day.drive.hours, day.drive.via, day.arrivalTime, day.departureTime,
 
   ]);
 }
@@ -418,6 +439,9 @@ export function retargetDay(plan: Plan, dayNumber: number, destinationName: stri
   if (!target) throw new Error('Destination not found in the library.');
   if (!target.overnight_allowed) throw new Error(`${destinationName} is a sightseeing destination and is not marked as an overnight base.`);
   if (dayNumber < 1 || dayNumber > plan.nights) throw new Error('Only overnight days can change the stay destination.');
+  if (dayNumber === plan.nights && destinationName !== 'Srinagar' && requiresSrinagarFinalNight(plan.input)) {
+    throw new Error('Departure at or before 2 pm requires the final overnight in Srinagar. You can still choose another destination for a day visit.');
+  }
 
   const overnightNames = plan.dayPlans.slice(0, plan.nights).map((d) => d.stay);
   overnightNames[dayNumber - 1] = destinationName;
@@ -425,6 +449,7 @@ export function retargetDay(plan: Plan, dayNumber: number, destinationName: stri
 }
 
 export function setPlanDayTrip(plan: Plan, dayNumber: number, destinationName: string | null): Plan {
+  plan = enforceDepartureNight(plan);
   if (dayNumber < 1 || dayNumber > plan.nights) throw new Error('Choose a sightseeing day before departure.');
   const oldDay = plan.dayPlans[dayNumber - 1];
   if (destinationName && !destinationByName(destinationName)) throw new Error('Day-trip destination not found.');
@@ -440,6 +465,7 @@ export function setPlanDayTrip(plan: Plan, dayNumber: number, destinationName: s
 }
 
 export function setPlanDeparturePoint(plan: Plan, departurePoint: string): Plan {
+  plan = enforceDepartureNight(plan);
   if (!destinationByName(departurePoint)?.overnight_allowed && departurePoint !== 'Jammu') throw new Error('Choose a recognized departure base.');
   const sequence = plan.dayPlans.slice(0, plan.nights).map((d) => d.stay);
   const trips: Record<number, string | null> = {};
@@ -450,8 +476,14 @@ export function setPlanDeparturePoint(plan: Plan, departurePoint: string): Plan 
   return { ...plan, dayPlans: merged, routeKm: m.routeKm, driveHours: m.driveHours, travelLoad: m.travelLoad, evaluation: { ...plan.evaluation, route: `${Math.round(m.routeKm)} km across ${m.driveHours.toFixed(1)} planning driving hours` } };
 }
 
-/** Re-evaluate the programme against the current library and quote without changing the route. */
+function enforceDepartureNight(plan: Plan): Plan {
+  return requiresSrinagarFinalNight(plan.input) && plan.dayPlans[plan.nights - 1]?.stay !== 'Srinagar'
+    ? rebuildPlanFromNightSequence(plan, plan.dayPlans.slice(0, plan.nights).map((day) => day.stay)) : plan;
+}
+
+/** Apply compulsory departure logistics, then re-evaluate the library programme and quote. */
 export function reschedulePlan(plan: Plan, quote?: ScheduleQuote): Plan {
+  plan = enforceDepartureNight(plan);
   const refreshed = plan.dayPlans.map((day) => ({ ...day, drive: journeyDrive(day.from, day.to, day.dayTripDestination) }));
   const dayPlans = scheduleDayPlans(plan.input, refreshed, quote);
   const totals = metrics(dayPlans, plan.nights);

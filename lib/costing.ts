@@ -4,8 +4,10 @@ import { priceTrip } from '@/lib/pricing';
 import { quotedActivityCost, tripActivities } from '@/lib/activities';
 
 export function calculateCosts(plan: Plan, hotels: HotelSelection[], model: CostModel) {
-  const accommodation = hotels.reduce((sum, h) => {
-    return sum + h.nights * h.rooms * h.nightlyRate + h.nights * h.extraBeds * h.extraBedRate + h.nights * h.cnb * h.cnbRate;
+  const accommodation = plan.hotelPlans.reduce((sum, stay) => {
+    const h = hotels.find((hotel) => hotel.location === stay.location);
+    if (!h) return sum;
+    return sum + stay.nights * h.rooms * h.nightlyRate + stay.nights * h.extraBeds * h.extraBedRate + stay.nights * h.cnb * h.cnbRate;
   }, 0);
   // A private vehicle is reserved throughout the package, including local
   // sightseeing and the final drop. Route-leg charges alone omit those days.
@@ -16,6 +18,9 @@ export function calculateCosts(plan: Plan, hotels: HotelSelection[], model: Cost
   const activities = tripActivities(plan, undefined, model.activitySelections).reduce((sum, activity) => sum + (quotedActivityCost(model.activityCosts, activity, model.activitySelections) ?? 0), 0);
   const priced = priceTrip({ accommodation, vehicleDays, transportDaily: model.transportDaily, other: model.otherAmount + activities, profitPct: model.profitPct });
   const people = plan.input.adults + plan.input.youngAges.length;
-  const missingHotelRates = hotels.filter((h) => !h.hotelName || h.hotelName === 'Hotel to be added' || h.nightlyRate <= 0).map((h) => h.location);
+  const missingHotelRates = plan.hotelPlans.filter((stay) => {
+    const h = hotels.find((hotel) => hotel.location === stay.location);
+    return !h || !h.hotelName || h.hotelName === 'Hotel to be added' || h.nightlyRate <= 0;
+  }).map((stay) => stay.location);
   return { ...priced, meals, activities, preGst: priced.b2bCost, people, missingHotelRates };
 }

@@ -164,15 +164,19 @@ function visitCopy(day: DayPlan, destination: string, planned: string[], quote?:
   // paid-activity gate that silently removes part of that programme.
   const clientStops = (options.activitiesOnly ? [] : planned).filter((name) => {
     const sight = guide?.local_sightseeing.find((item) => item.name === name);
-    // A linked activity's authored sentence can already describe its sight.
-    // Keep either that complete sentence or the sight sentence, once each.
+    // A linked activity may replace an identical or generic place-only line.
+    // Merely naming a place does not cover the operator's more specific visit
+    // instructions, which must remain in the client programme.
     return !quotedActivities.some((activity) => {
       const authored = guide?.activity_copy?.[activity]?.trim();
       const linked = sight?.requires_activity === activity || guide?.activity_timing?.[activity]?.sight_names?.includes(name);
       if (!linked || !authored) return false;
       const normalized = (text: string) => text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
-      return normalized(authored).includes(normalized(name))
-        || Boolean(sight?.client_sentence && normalized(authored) === normalized(sight.client_sentence));
+      const authoredText = normalized(authored);
+      const sightText = normalized(sightseeingSentence(sight || { name, description: '' }));
+      const placeOnly = sightText.replace(/^(?:visit|see|explore|ride|enjoy|take|walk through|continue to)\s+(?:(?:the|a|an)\s+)?/, '') === normalized(name);
+      return authoredText === sightText || authoredText.includes(sightText)
+        || (placeOnly && authoredText.includes(normalized(name)));
     });
   });
   const noteSource = guide ? guide.day_note?.trim() || defaultDayNote(guide) : '';
@@ -193,7 +197,6 @@ function visitCopy(day: DayPlan, destination: string, planned: string[], quote?:
   const note = noteSentences.join(' ');
   const stops = sightseeingCopy(clientStops, guide);
   const experiences = guide ? [...new Set(quotedActivities)].filter((item) => {
-    if (note.toLowerCase().includes(item.toLowerCase())) return false;
     if (timedActivities !== undefined) return true;
     const places = referencedPlaces(item, guide);
     if (places.length) return places.every((place) => matchesPlannedPlace(place, clientStops)) && !/^(visit|explore|see)\b/i.test(item);
@@ -204,9 +207,9 @@ function visitCopy(day: DayPlan, destination: string, planned: string[], quote?:
     return authored ? /[.!?]$/.test(authored) ? authored : `${authored}.` : activitySentence(name);
   };
   const early = (name: string) => (guide?.activity_timing?.[name]?.time_window?.end ?? 1440) <= 8 * 60;
-  const uniqueSentences = new Set(clientStops.map((name) => sightseeingSentence(
+  const uniqueSentences = new Set([...noteSentences, ...clientStops.map((name) => sightseeingSentence(
     guide?.local_sightseeing.find((sight) => sight.name === name) || { name, description: '' },
-  ).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()));
+  ))].map((sentence) => sentence.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()));
   const activityCopy = (names: string[]) => names.map(sentenceForActivity).filter((sentence) => {
     const identity = sentence.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
     if (!identity || uniqueSentences.has(identity)) return false;

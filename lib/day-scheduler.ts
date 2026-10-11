@@ -13,10 +13,26 @@ const clockMinutes = (time?: string) => time && /^([01]\d|2[0-3]):[0-5]\d$/.test
   ? Number(time.slice(0, 2)) * 60 + Number(time.slice(3)) : null;
 const positiveMinutes = (value: number | undefined, fallback: number) => Number.isFinite(value) && value! >= 0 ? Math.round(value!) : fallback;
 const key = (destination: string, name: string) => `${destination}\u001f${name}`;
-const sightIdentity = (name: string) => {
-  const normalized = name.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const genericSightWords = new Set([
+  'a', 'and', 'area', 'areas', 'alpine', 'bird', 'birdlife', 'blossom', 'camping', 'circuit', 'country', 'countryside',
+  'forest', 'forests', 'garden', 'gardens', 'heritage', 'high', 'hill', 'hills', 'lake', 'landscape', 'landscapes',
+  'local', 'market', 'markets', 'meadow', 'meadows', 'mountain', 'mountains', 'nature', 'nearby', 'orchard', 'orchards',
+  'panorama', 'photography', 'picnic', 'ridge', 'river', 'riverfront', 'riverside', 'road', 'scenery', 'scenic',
+  'seasonal', 'shepherd', 'shore', 'shoreline', 'short', 'snow', 'spring', 'stream', 'streams', 'sunrise', 'sunset',
+  'surroundings', 'temple', 'the', 'town', 'trail', 'trails', 'trek', 'valley', 'view', 'viewpoint', 'viewpoints',
+  'views', 'village', 'villages', 'walk', 'walks', 'watching', 'waterfront',
+]);
+const sightIdentity = (name: string, destination?: string) => {
+  const normalized = name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
   if (/^floating market\b/.test(normalized)) return 'floating market';
   if (/^dal lake(?: (?:and|boulevard|waterfront|lakefront|shore|area))*(?: road)?$/.test(normalized)) return 'dal lake waterfront';
+  if (/^aru (?:valley|meadows?)$/.test(normalized)) return 'aru valley meadow';
+  if (/^betaab valley(?: meadows?)?$/.test(normalized)) return 'betaab valley meadow';
+  if (/^chandanwari(?: valley)?$/.test(normalized)) return 'chandanwari valley';
+  if (/^peer ki gali(?: pass)?$/.test(normalized)) return 'peer ki gali pass';
+  // Generic labels identify different physical places in different valleys.
+  // Named landmarks still share an identity across overlapping guide records.
+  if (destination && normalized.split(' ').every((word) => genericSightWords.has(word))) return `${destination.toLowerCase()}\u001f${normalized}`;
   return normalized;
 };
 
@@ -139,7 +155,6 @@ export function scheduleDayPlans(input: TripInput, original: DayPlan[], quote?: 
     const fit = candidates.filter((day) => {
       const slot = slotFor(day, activity.window, activity.minutes);
       return slot && day.timing!.remainingMinutes + slot.available - slot.service >= activity.minutes &&
-        !(day.transfer && day.drive.hours >= 3 && activity.minutes > 90) &&
         !day.timing!.issues.some((issue) => /transfers|road distance|not permitted|Gurez|previous night/.test(issue));
     })
       .sort((a, b) => Number(visiting(b, activity.destination)) - Number(visiting(a, activity.destination)) ||
@@ -206,7 +221,7 @@ export function scheduleDayPlans(input: TripInput, original: DayPlan[], quote?: 
       const windowCandidates = sight.time_window ? relevant.filter((day) => usable(day) &&
         slotFor(day, sight.time_window, sightCost(sight, destination, day)) !== null) : [];
       const entry = { destination, sight, candidates: windowCandidates.length ? windowCandidates : candidates };
-      const identity = sightIdentity(sight.name);
+      const identity = sightIdentity(sight.name, destination.name);
       const previous = selected.get(identity);
       if (!previous || Math.max(...entry.candidates.map((day) => preference(day, destination.name))) >
         Math.max(...previous.candidates.map((day) => preference(day, previous.destination.name)))) selected.set(identity, entry);

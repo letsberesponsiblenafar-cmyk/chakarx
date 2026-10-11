@@ -118,14 +118,39 @@ export function syncHotelSelections(plan: Plan, current: HotelSelection[], db: H
     const existingRecord = existing?.hotelId ? db.find((h) => h.id === existing.hotelId) : null;
     if (existing && existingRecord) {
       const refreshed=selectionFromHotel(row.location,existingRecord,row.nights,input);
+      const roomSetup = { rooms: existing.rooms, extraBeds: existing.extraBeds, cnb: existing.cnb };
+      const operatorRates = existing.status === 'user-edited' || existing.status === 'common hotel policy applied';
       const stable = existing.hotelName === refreshed.hotelName && existing.nightlyRate === refreshed.nightlyRate && existing.extraBedRate === refreshed.extraBedRate && existing.cnbRate === refreshed.cnbRate && existing.nights === refreshed.nights;
-      return existing.status==='user-edited'?{...refreshed,nightlyRate:existing.nightlyRate,extraBedRate:existing.extraBedRate,cnbRate:existing.cnbRate,status:existing.status,rateConfirmed:existing.nights === refreshed.nights && existing.rateConfirmed,confirmedSignature:existing.confirmedSignature}: {...refreshed,rateConfirmed:stable && existing.rateConfirmed,confirmedSignature:existing.confirmedSignature};
+      return operatorRates?{...refreshed,...roomSetup,nightlyRate:existing.nightlyRate,extraBedRate:existing.extraBedRate,cnbRate:existing.cnbRate,status:existing.status,rateConfirmed:existing.nights === refreshed.nights && existing.rateConfirmed,confirmedSignature:existing.confirmedSignature}: {...refreshed,...roomSetup,rateConfirmed:stable && existing.rateConfirmed,confirmedSignature:existing.confirmedSignature};
     }
-    if (existing?.hotelId) return { ...existing, nights: row.nights, status: 'Selected hotel is not in the current database; verify this stay' };
-    if (existing && existing.hotelName && existing.hotelName !== 'Hotel to be added' && existing.hotelName !== 'Hotel to be confirmed') return { ...existing, nights: row.nights };
+    if (existing?.hotelId) return { ...existing, nights: row.nights, rateConfirmed: existing.nights === row.nights && existing.rateConfirmed, status: 'Selected hotel is not in the current database; verify this stay' };
+    if (existing && existing.hotelName && existing.hotelName !== 'Hotel to be added' && existing.hotelName !== 'Hotel to be confirmed') return { ...existing, nights: row.nights, rateConfirmed: existing.nights === row.nights && existing.rateConfirmed };
     const candidate = suggestedHotel(row.location, input.hotelCategory, db, window.arrival, window.departure);
     return candidate ? selectionFromHotel(row.location, candidate, row.nights, input) : selectionFallback(row.location, row.nights, input, db, window.arrival, window.departure);
   });
+}
+
+function stateWithScheduledPlan(state: PlannerState, plan: Plan | null): PlannerState {
+  if (!state.plan || !plan) return { ...state, plan };
+  const previousPlan = state.plan;
+  const hotelSelections = plan.hotelPlans.map((stay) => {
+    const existing = state.hotelSelections.find((hotel) => hotel.location === stay.location);
+    const dates = (route: Plan) => route.dayPlans.slice(0, route.nights).filter((day) => day.stay === stay.location).map((day) => day.date);
+    if (existing) {
+      const unchanged = existing.nights === stay.nights && JSON.stringify(dates(previousPlan)) === JSON.stringify(dates(plan));
+      // A route update changes nights, not the operator's chosen room, hotel or
+      // negotiated price. Only the affected stay needs verification again.
+      return unchanged ? existing : { ...existing, nights: stay.nights, rateConfirmed: false, confirmedSignature: undefined };
+    }
+    const window = stayDateWindow(plan.dayPlans.slice(0, plan.nights), stay.location);
+    return selectionFallback(stay.location, stay.nights, state.input, state.hotelDatabase, window.arrival, window.departure);
+  });
+  return { ...state, plan, hotelSelections };
+}
+
+/** Keep the route and hotel quote together when restoring or normalising a draft. */
+export function reconcilePlannerState(state: PlannerState): PlannerState {
+  return stateWithScheduledPlan(state, state.plan ? reschedulePlan(state.plan, state.costModel) : null);
 }
 
 function shiftDate(date: string, delta: number) {
@@ -194,19 +219,18 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     }
   }
   useEffect(() => {
-    setState(readState());
+    setState(reconcilePlannerState(readState()));
     setMounted(true);
     // Login is public and has no session yet. The full navigation after sign-in
     // remounts this provider and loads the hotel master with the new cookie.
     if(window.location.pathname!=='/login') { void refreshHotels(); void refreshDestinations(); }
   }, []);
-  useEffect(() => { if (mounted) { try { const {hotelDatabase: _privateRates, ...saved}=state; localStorage.setItem(STORAGE, JSON.stringify(saved)); } catch { /* ignore storage errors */ } } }, [state, mounted]);
-
   const scheduledPlan = useMemo(() => state.plan ? reschedulePlan(state.plan, state.costModel) : null,
     [state.plan, state.costModel.activityCosts, state.costModel.activitySelections, destinationCatalog]);
+  const scheduledState = useMemo(() => stateWithScheduledPlan(state, scheduledPlan), [state, scheduledPlan]);
+  useEffect(() => { if (mounted) { try { const {hotelDatabase: _privateRates, ...saved}=scheduledState; localStorage.setItem(STORAGE, JSON.stringify(saved)); } catch { /* ignore storage errors */ } } }, [scheduledState, mounted]);
   const value = useMemo<PlannerContextValue>(() => ({
-    ...state,
-    plan: scheduledPlan,
+    ...scheduledState,
     hydrated: mounted,
     destinationCatalog,
     destinationConnection,
@@ -243,14 +267,22 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     setDayTrip(day, destination) {
       setState((s) => {
         if (!s.plan) return s;
-        try { return { ...s, plan: setPlanDayTrip(reschedulePlan(s.plan, s.costModel), day, destination) }; }
+        try {
+          const current = reconcilePlannerState(s);
+          const plan = setPlanDayTrip(current.plan!, day, destination);
+          return { ...current, plan, hotelSelections: syncHotelSelections(plan, current.hotelSelections, current.hotelDatabase, current.input) };
+        }
         catch { return s; }
       });
     },
     setDeparturePoint(destination) {
       setState((s) => {
         if (!s.plan) return s;
-        try { return { ...s, plan: setPlanDeparturePoint(reschedulePlan(s.plan, s.costModel), destination) }; }
+        try {
+          const current = reconcilePlannerState(s);
+          const plan = setPlanDeparturePoint(current.plan!, destination);
+          return { ...current, plan, hotelSelections: syncHotelSelections(plan, current.hotelSelections, current.hotelDatabase, current.input) };
+        }
         catch { return s; }
       });
     },
@@ -401,10 +433,10 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     },
     reset() { try { localStorage.removeItem(STORAGE); } catch {} location.href = '/'; },
     loadSavedItinerary(id, snapshot) {
-      setState((s) => ({ ...s, ...snapshot, costModel: { ...defaultCost, ...snapshot.costModel, activitySelections: snapshot.costModel?.activitySelections || {}, manualInclusions: Array.isArray(snapshot.costModel?.manualInclusions) ? snapshot.costModel.manualInclusions : [], manualExclusions: Array.isArray(snapshot.costModel?.manualExclusions) ? snapshot.costModel.manualExclusions : [], transportIsCustom: snapshot.costModel?.transportIsCustom === true || (Boolean(snapshot.input?.transport) && !transportOptions.includes(snapshot.input.transport)) }, hotelDatabase: s.hotelDatabase, savedItineraryId: id }));
+      setState((s) => reconcilePlannerState({ ...s, ...snapshot, costModel: { ...defaultCost, ...snapshot.costModel, activitySelections: snapshot.costModel?.activitySelections || {}, manualInclusions: Array.isArray(snapshot.costModel?.manualInclusions) ? snapshot.costModel.manualInclusions : [], manualExclusions: Array.isArray(snapshot.costModel?.manualExclusions) ? snapshot.costModel.manualExclusions : [], transportIsCustom: snapshot.costModel?.transportIsCustom === true || (Boolean(snapshot.input?.transport) && !transportOptions.includes(snapshot.input.transport)) }, hotelDatabase: s.hotelDatabase, savedItineraryId: id }));
     },
     markSavedItinerary(id) { setState((s) => ({ ...s, savedItineraryId: id })); },
-  }), [state, scheduledPlan, mounted, hotelConnection, hotelConnectionError, destinationCatalog, destinationConnection, destinationConnectionError]);
+  }), [state, scheduledState, mounted, hotelConnection, hotelConnectionError, destinationCatalog, destinationConnection, destinationConnectionError]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

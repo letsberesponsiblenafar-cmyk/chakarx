@@ -312,14 +312,31 @@ try {
       `${item.name} was dropped or repeated across Pahalgam days.`);
   });
 
-  test('Sonamarg overnight permits an early checkout for a 13:00 Srinagar departure without extra sightseeing', () => {
+  test('a 13:00 departure keeps the previous overnight in Srinagar instead of requiring a Sonamarg airport transfer', () => {
     reset();
-    const departure = planFor(['Srinagar', 'Sonamarg'], { departureTime: '13:00' }).dayPlans.at(-1);
-    assert.equal(departure.from, 'Sonamarg');
+    const plan = planFor(['Srinagar', 'Sonamarg'], { departureTime: '13:00' });
+    const departure = plan.dayPlans.at(-1);
+    assert.equal(plan.dayPlans[plan.nights - 1].stay, 'Srinagar');
+    assert.equal(departure.from, 'Srinagar');
     assert.equal(departure.to, 'Srinagar');
-    assert.ok(departure.timing.startMinutes < 8 * 60 + 30, 'The transfer should start before the sightseeing day.');
+    assert.equal(departure.drive.hours, 0, 'The flight morning must not contain a Sonamarg-to-Srinagar highway transfer.');
+    assert.equal(departure.timing.endMinutes, 10 * 60, 'The 13:00 flight must still retain its three-hour departure allowance.');
     assert.equal(departure.timing.issues.length, 0, departure.timing.issues.join(' '));
-    assert.equal(allocated(departure).length, 0, 'An early transfer must not also promise sightseeing.');
+    assert.equal(allocated(departure).length, 0, 'The dedicated earlier visit days should cover the selected sights.');
+  });
+
+  test('the final-night Srinagar rule includes 14:00 and allows a deliberately selected outlying stay after 14:00', () => {
+    reset();
+    const base = planFor(['Srinagar', 'Sonamarg'], { departureTime: '18:30' });
+    const early = rebuildPlanFromNightSequence({ ...base, input: { ...base.input, departureTime: '14:00' } }, ['Srinagar', 'Sonamarg']);
+    assert.equal(early.dayPlans[early.nights - 1].stay, 'Srinagar');
+    assert.equal(early.dayPlans[early.nights - 1].dayTripDestination, 'Sonamarg', 'Changing the hotel base should preserve the original final destination as a visit.');
+    assert.equal(early.dayPlans.at(-1).from, 'Srinagar');
+    assert.throws(() => retargetDay(early, early.nights, 'Gulmarg'), /Srinagar|departure|14:00/i,
+      'A final-night edit must not override the early-departure rule.');
+    const later = rebuildPlanFromNightSequence({ ...base, input: { ...base.input, departureTime: '14:01' } }, ['Srinagar', 'Sonamarg']);
+    assert.equal(later.dayPlans[later.nights - 1].stay, 'Sonamarg');
+    assert.equal(later.dayPlans.at(-1).from, 'Sonamarg');
   });
 
   test('a 23:00 arrival and 08:00 departure retain the travel times and request a real visit day', () => {
@@ -366,6 +383,48 @@ try {
     assert.ok(plan.dayPlans.some((day) => day.timing.issues.some((issue) => /All day expedition.*cannot fit/.test(issue))));
     assert.equal(plan.dayPlans.flatMap((day) => day.scheduledActivities).filter((activity) => activity.name === 'Short garden visit').length, 1);
     assert.ok(plan.dayPlans.every((day) => !/all day expedition/i.test(dayNarrative(day, 'Srinagar', priced))));
+  });
+
+  test('a priced two-hour Pahalgam experience can fit before a three-hour return and still prefers a full local day when present', () => {
+    reset();
+    const name = 'Private valley experience';
+    const key = activityKey('Pahalgam', name);
+    replaceDestinationCatalog(destinations.map((item) => item.name === 'Pahalgam' ? { ...item,
+      activities: [name], enabled_activities: [name], activity_copy: { [name]: 'Enjoy the arranged private valley experience.' },
+      activity_timing: { [name]: { duration_minutes: 120, sight_names: ['Aru Valley excursion'] } },
+    } : item));
+    const priced = { activityCosts: { [key]: 2000 }, activitySelections: { [key]: true } };
+    const oneNight = reschedulePlan(planFor(['Gulmarg', 'Pahalgam', 'Srinagar']), priced);
+    const returnDay = oneNight.dayPlans[2];
+    assert.equal(returnDay.from, 'Pahalgam');
+    assert.equal(returnDay.drive.hours, 3);
+    assert.ok(returnDay.scheduledActivities.some((activity) => activity.key === key),
+      'A fitting two-hour visit must not be rejected by a fixed 90-minute transfer cap.');
+    assert.equal(oneNight.dayPlans.flatMap((day) => day.scheduledActivities).filter((activity) => activity.key === key).length, 1);
+    assert.ok(allocated(returnDay).includes(activityKey('Pahalgam', 'Aru Valley excursion')), 'The linked sight should be described on the same day as its paid experience.');
+    assert.ok(!returnDay.timing.issues.some((message) => message.includes(name) && /cannot fit/.test(message)));
+    const twoNights = reschedulePlan(planFor(['Gulmarg', 'Pahalgam', 'Pahalgam', 'Srinagar']), priced);
+    assert.ok(twoNights.dayPlans[2].scheduledActivities.some((activity) => activity.key === key),
+      'The same experience should use the full local Pahalgam day when it exists.');
+  });
+
+  test('a quoted Sonamarg river experience and its explicitly linked sight stay on the same visit day', () => {
+    reset();
+    const name = 'Arranged river photography';
+    const key = activityKey('Sonamarg', name);
+    const river = sight('Sindh River', { arrival_suitable: false });
+    replaceDestinationCatalog(destinations.map((item) => item.name === 'Sonamarg' ? { ...item,
+      local_sightseeing: [river, sight('Nearby Sonamarg meadow')], enabled_sightseeing: [river.name, 'Nearby Sonamarg meadow'],
+      activities: [name], enabled_activities: [name], activity_copy: { [name]: 'Photograph the arranged Sindh River viewpoints.' },
+      activity_timing: { [name]: { duration_minutes: 120, sight_names: [river.name] } },
+    } : item));
+    const priced = { activityCosts: { [key]: 1000 }, activitySelections: { [key]: true } };
+    const plan = reschedulePlan(planFor(['Srinagar', 'Sonamarg', 'Sonamarg', 'Srinagar']), priced);
+    const experienceDays = plan.dayPlans.filter((day) => day.scheduledActivities.some((activity) => activity.key === key));
+    assert.equal(experienceDays.length, 1);
+    assert.ok(allocated(experienceDays[0]).includes(activityKey('Sonamarg', river.name)),
+      'An explicitly linked river sight must not become another river visit on a different day.');
+    assert.equal(plan.dayPlans.flatMap(allocated).filter((name) => name === activityKey('Sonamarg', river.name)).length, 1);
   });
 
   test('unchanged manual day text survives scheduling; a changed programme regenerates copy and keeps the previous text', () => {
@@ -459,6 +518,51 @@ try {
     assert.equal(stops.filter((name) => /Nigeen[- ]Lake/i.test(name)).length, 1, 'Punctuation changed the identity of the same lake.');
     assert.equal(stops.filter((name) => /^Dal Lake (?:& Boulevard|waterfront)$/i.test(name)).length, 1,
       'The waterfront and Boulevard aliases repeated the same Dal Lake visit.');
+  });
+
+  test('generic sightseeing labels remain distinct in different valleys', () => {
+    reset();
+    const valleyNames = ['Doodhpathri', 'Yusmarg'];
+    const labels = ['Forest viewpoints', 'Village walk'];
+    replaceDestinationCatalog(destinations.map((item) => valleyNames.includes(item.name) ? { ...item,
+      local_sightseeing: labels.map((name) => sight(name, { client_sentence: `Explore ${item.name}: ${name.toLowerCase()}.` })),
+      enabled_sightseeing: labels,
+    } : item));
+    let plan = planFor(['Srinagar', 'Srinagar', 'Srinagar'], { arrivalTime: '06:00', departureTime: '20:00' });
+    for (let index = 0; index < valleyNames.length; index++) plan = setPlanDayTrip(plan, index + 2, valleyNames[index]);
+    const stops = plan.dayPlans.flatMap(allocated);
+    for (const destination of valleyNames) for (const name of labels) {
+      assert.equal(stops.filter((stop) => stop === activityKey(destination, name)).length, 1,
+        `${destination}: its ${name} was incorrectly merged with a different valley.`);
+      const sentence = destinationByName(destination).local_sightseeing.find((item) => item.name === name).client_sentence;
+      assert.equal(plan.dayPlans.filter((day) => dayNarrative(day, 'Srinagar').includes(sentence)).length, 1,
+        `${destination}: the distinct selected place must also appear once in client copy.`);
+    }
+  });
+
+  test('known valley and mountain-pass aliases are covered once without removing distinct nearby sights', () => {
+    const pairs = [
+      ['Pahalgam', 'Aru Valley', 'Aru Valley', 'Aru Meadow'],
+      ['Pahalgam', 'Betaab Valley', 'Betaab Valley', 'Betaab Valley meadow'],
+      ['Pahalgam', 'Chandanwari', 'Chandanwari', 'Chandanwari valley'],
+      ['Mughal Road', 'Peer Ki Gali', 'Peer Ki Gali', 'Peer Ki Gali pass'],
+    ];
+    for (const [parentName, destinationName, parentSight, aliasSight] of pairs) {
+      reset();
+      const names = { [parentName]: [parentSight, `${parentName} distinct stop`], [destinationName]: [aliasSight, `${destinationName} distinct stop`] };
+      replaceDestinationCatalog(destinations.map((item) => names[item.name] ? { ...item,
+        local_sightseeing: names[item.name].map((name) => sight(name)), enabled_sightseeing: names[item.name], season: 'all',
+        hub_route: { ...item.hub_route, km: 30, hours: 1, hours_max: 1, access_mode: 'road' },
+      } : item));
+      let plan = planFor(['Srinagar', 'Srinagar', 'Srinagar'], { arrivalTime: '06:00', departureTime: '20:00' });
+      plan = setPlanDayTrip(plan, 2, parentName);
+      plan = setPlanDayTrip(plan, 3, destinationName);
+      const stops = plan.dayPlans.flatMap(allocated);
+      assert.equal(stops.filter((stop) => [activityKey(parentName, parentSight), activityKey(destinationName, aliasSight)].includes(stop)).length, 1,
+        `${parentSight} and ${aliasSight} repeated the same physical place.`);
+      for (const destination of [parentName, destinationName]) assert.equal(stops.filter((stop) => stop === activityKey(destination, `${destination} distinct stop`)).length, 1,
+        `${destination}: deduplication must preserve its separate selected stop.`);
+    }
   });
 
   test('saving and reloading a complete selected programme does not change coverage or accumulate reviews', () => {

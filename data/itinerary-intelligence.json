@@ -2553,6 +2553,10 @@
     {
       "id": "ENGINE-14",
       "rule": "Trip length should control whether a destination is an overnight base or a day excursion; do not over-pack short trips."
+    },
+    {
+      "id": "ENGINE-15",
+      "rule": "Departure at or before 14:00 requires the preceding overnight in Srinagar. Apply this before sightseeing allocation and hotel pricing; preserve any outlying visit as a day excursion."
     }
   ],
   "dataGaps": [

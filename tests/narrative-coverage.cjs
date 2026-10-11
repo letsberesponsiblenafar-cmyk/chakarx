@@ -73,6 +73,14 @@ try {
     'Assigned sightseeing must survive rendering without a second price or availability filter.');
   assert.equal((assignedCopy.match(/Walk across Gulmarg Meadow/g) || []).length, 1);
   assert.doesNotMatch(assignedCopy, /Enjoy the Gulmarg Gondola ride/, 'An unquoted paid activity must not be promised by the sightseeing copy.');
+  const gondolaKey = 'Gulmarg\u001fGondola ride';
+  const gondolaActivity = { key: gondolaKey, destination: 'Gulmarg', name: 'Gondola ride', minutes: 120 };
+  const gondolaQuote = { activityCosts: { [gondolaKey]: 4000 }, activitySelections: { [gondolaKey]: true } };
+  const detailedGondola = dayNarrative({ ...assigned, scheduledActivities: [gondolaActivity] }, 'Srinagar', gondolaQuote);
+  assert.match(detailedGondola, /Visit the Gulmarg Gondola viewing area/,
+    'An activity naming a place must not erase the operator’s specific sightseeing instructions.');
+  assert.match(detailedGondola, /Enjoy the Gulmarg Gondola ride/, 'The quoted activity keeps its separate authored experience sentence.');
+  assert.equal((detailedGondola.match(/Walk across Gulmarg Meadow/g) || []).length, 1);
 
   const returnDay = day({ from: 'Gulmarg', stay: 'Srinagar', transfer: true, primaryVisitFor: ['Gulmarg', 'Srinagar'],
     blocks: [siteBlock('Gulmarg', 'Gulmarg Gondola')] });
@@ -108,6 +116,38 @@ try {
   assert.equal(dayNarrative(focusedExcursion, 'Srinagar'), unchangedCopy, 'Editing the overnight base guide must not alter an excursion narrative.');
   assert.equal(dayScheduleContext(focusedExcursion), unchangedProgramme,
     'Editing an unused overnight-base guide must not invalidate a manual excursion description.');
+
+  // Cover every real destination's authored wording in each journey shape.
+  // These are rendering fixtures: selected places are already assigned by the
+  // scheduler, independently of whether a destination permits a hotel stay.
+  replaceDestinationCatalog(original.map((destination) => ({ ...destination, enabled_activities: destination.activities })));
+  for (const destination of destinations) {
+    const blocks = destination.local_sightseeing.map((place) => siteBlock(destination.name, place.name));
+    const local = day({ from: destination.name, to: destination.name, stay: destination.name,
+      primaryVisitFor: [destination.name], blocks });
+    const journeys = [local];
+    if (destination.name !== 'Srinagar') journeys.push(
+      { ...local, from: 'Srinagar', transfer: true },
+      { ...local, from: 'Srinagar', to: 'Srinagar', stay: 'Srinagar', dayTripDestination: destination.name },
+      { ...local, to: 'Srinagar', stay: 'Srinagar', transfer: true },
+    );
+    for (const journey of journeys) {
+      const text = dayNarrative(journey, 'Srinagar');
+      for (const place of destination.local_sightseeing) {
+        const sentence = place.client_sentence;
+        if (sentence) assert.equal(text.split(sentence).length - 1, 1,
+          `${destination.name}: ${place.name} must retain its authored sentence once in ${journey.dayTripDestination ? 'an excursion' : journey.transfer ? 'a transfer' : 'a local visit'}.`);
+      }
+    }
+    for (const name of destination.activities) {
+      const key = `${destination.name}\u001f${name}`;
+      const quote = { activityCosts: { [key]: 0 }, activitySelections: { [key]: true } };
+      const scheduled = { key, destination: destination.name, name, minutes: 60 };
+      const text = dayNarrative({ ...local, scheduledActivities: [scheduled] }, 'Srinagar', quote);
+      const sentence = destination.activity_copy?.[name];
+      if (sentence) assert.ok(text.includes(sentence), `${destination.name}: the scheduled ${name} sentence must remain in client copy.`);
+    }
+  }
 } finally { replaceDestinationCatalog(original); }
 
 console.log('Narrative coverage passed: excursion focus, return-day sights, assigned coverage, unique copy and manual edits.');

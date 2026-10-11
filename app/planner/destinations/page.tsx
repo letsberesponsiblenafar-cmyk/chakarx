@@ -6,7 +6,7 @@ import AppShell from '@/components/AppShell';
 import PlannerChrome from '@/components/PlannerChrome';
 import { usePlanner } from '@/components/PlannerProvider';
 import { routeByName } from '@/lib/data';
-import { ROUTE_VERSION } from '@/lib/itinerary';
+import { ROUTE_VERSION, requiresSrinagarFinalNight } from '@/lib/itinerary';
 import '../destination-refinement.css';
 
 function displayDate(value: string) {
@@ -39,9 +39,11 @@ export default function DestinationsPage() {
   return <AppShell><PlannerChrome title="Choose your journey" eyebrow="STEP 01 · DESTINATIONS"><div className="journey-refinement">
     {routeVersion !== ROUTE_VERSION && <section className="route-update-banner"><div><b>New route suggestions are available.</b><p>Rebuilding will replace the route and hotel choices in this draft.</p></div><button type="button" className="secondary-link" onClick={() => generate()}>Rebuild suggestions</button></section>}
     <section className="journey-intro"><div><span className="eyebrow">YOUR SUGGESTED ROUTE</span><h2>Where you explore. Where you stay.</h2><p>Choose the destination to explore and the hotel base for each night. Your next day starts from that hotel base, and sightseeing is arranged around the journey time.</p></div><div className="journey-intro-count"><strong>{plan.days}</strong><span>days · {plan.nights} nights</span></div></section>
+    {requiresSrinagarFinalNight(plan.input) && <p className="journey-time-line" role="note"><Moon size={14} aria-hidden="true"/><span>Departure at {plan.input.departureTime}: the final hotel night is in Srinagar. You can still choose a day visit before returning for the night.</span></p>}
 
     <div className="journey-days">{plan.dayPlans.map((day) => {
       const departure = day.day > plan.nights;
+      const finalNightLocked = day.day === plan.nights && requiresSrinagarFinalNight(plan.input);
       const visit = day.dayTripDestination || day.stay;
       const visits = [...destinationCatalog].sort((a, b) => {
         const rank = (name: string) => name === day.stay ? 0 : name === visit ? 1 : visited.includes(name) ? 2 : 3;
@@ -66,7 +68,7 @@ export default function DestinationsPage() {
           {departure ? <div className="journey-choice single"><label htmlFor="departure-point">Departure point</label><select id="departure-point" value={day.to} onChange={(event) => setDeparturePoint(event.target.value)}>{['Srinagar', ...overnightOptions.filter((place) => place.name !== 'Srinagar').map((place) => place.name), 'Jammu'].map((name) => <option key={name} value={name}>{name}</option>)}</select><small>No hotel night on the departure day. Any sightseeing fits around the departure time.</small></div> : <div className="journey-choices"><div className="journey-choice"><label htmlFor={`visit-${day.day}`}><MapPin size={13} aria-hidden="true"/> Destination to explore</label><select id={`visit-${day.day}`} value={visit} onChange={(event) => setDayTrip(day.day, event.target.value === day.stay ? null : event.target.value)}>{visits.map((place) => {
               const travel = hoursBetween(day.from, place.name) + hoursBetween(place.name, day.stay);
               return <option key={place.name} value={place.name}>{place.name}{travel >= 99 ? ' · timing needed' : travel > 6 ? ' · long journey' : ''}</option>;
-            })}</select><small>{day.dayTripDestination ? `Visit ${visit} and continue to ${day.stay} for the night.` : `Sightseeing in ${day.stay}, where you also stay.`}</small></div><div className="journey-choice"><label htmlFor={`overnight-${day.day}`}><Moon size={13} aria-hidden="true"/> Hotel base for the night</label><select id={`overnight-${day.day}`} value={day.stay} onChange={(event) => { const nextStay = event.target.value; setDayDestination(day.day, nextStay); if (visit !== nextStay) setDayTrip(day.day, visit); }}>{overnightOptions.map((place) => <option key={place.name} value={place.name}>{place.name}</option>)}</select><small>{day.day < plan.nights ? `Day ${day.day + 1} starts from ${day.stay}.` : `Departure day starts from ${day.stay}.`}</small></div></div>}
+            })}</select><small>{day.dayTripDestination ? `Visit ${visit} and continue to ${day.stay} for the night.` : `Sightseeing in ${day.stay}, where you also stay.`}</small></div><div className="journey-choice"><label htmlFor={`overnight-${day.day}`}><Moon size={13} aria-hidden="true"/> Hotel base for the night</label><select id={`overnight-${day.day}`} value={day.stay} disabled={finalNightLocked} onChange={(event) => { const nextStay = event.target.value; setDayDestination(day.day, nextStay); if (visit !== nextStay) setDayTrip(day.day, visit); }}>{overnightOptions.map((place) => <option key={place.name} value={place.name}>{place.name}</option>)}</select><small>{finalNightLocked ? 'Required in Srinagar for departure at or before 2 pm.' : day.day < plan.nights ? `Day ${day.day + 1} starts from ${day.stay}.` : `Departure day starts from ${day.stay}.`}</small></div></div>}
           {timingIssues.length > 0 && <details className="journey-timing-review"><summary>Review this day’s timing</summary><ul>{timingIssues.map((issue, index) => <li key={`${issue}-${index}`}>{issue}</li>)}</ul></details>}
         </div>
       </article>;

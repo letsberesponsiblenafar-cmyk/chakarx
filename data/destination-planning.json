@@ -452,7 +452,10 @@
       },
       "River and mountain photography": {
         "client_sentence": "Photograph the Sindh River and mountain landscape around Sonamarg.",
-        "duration_minutes": 60
+        "duration_minutes": 60,
+        "sight_names": [
+          "Sindh River"
+        ]
       },
       "Short valley walks": {
         "client_sentence": "Follow the selected valley walk through Sonamarg's meadow and riverside scenery.",
@@ -460,7 +463,10 @@
       },
       "Seasonal rafting where officially operated": {
         "client_sentence": "Enjoy the arranged rafting session on the selected Sindh River stretch.",
-        "duration_minutes": 120
+        "duration_minutes": 120,
+        "sight_names": [
+          "Sindh River"
+        ]
       },
       "Trekking and alpine excursions": {
         "client_sentence": "Follow the arranged alpine trekking programme from Sonamarg.",
