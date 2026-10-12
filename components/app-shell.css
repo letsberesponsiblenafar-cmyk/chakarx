@@ -1,0 +1,34 @@
+.side-rail {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #735435 transparent;
+}
+
+.rail-nav .rail-build-new,
+.mobile-menu .rail-build-new {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 11px 10px;
+  border: 1px solid #6a4b2a;
+  border-radius: 11px;
+  background: #49301b;
+  color: #fff5df;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 5px;
+}
+
+.rail-nav .rail-build-new:hover,
+.mobile-menu .rail-build-new:hover { background: #5c3c20; border-color: #a58148; }
+.rail-nav .rail-build-new svg,
+.mobile-menu .rail-build-new svg { color: #dfbd79; flex: none; }
+.rail-nav a:focus-visible,
+.rail-nav button:focus-visible,
+.mobile-menu a:focus-visible,
+.mobile-menu button:focus-visible { outline: 2px solid #dfbd79; outline-offset: 2px; }
+.mobile-menu .rail-build-new { font-size: 14px; }
