@@ -75,7 +75,7 @@ try {
     for (const name of ['Gulmarg', 'Pahalgam', 'Doodhpathri', 'Sonamarg']) assertCoverage(plan, name);
   });
 
-  test('every destination uses the same legacy availability fallback without overriding the Gurez access rule', () => {
+  test('every destination retains checked legacy places while preserving route access reviews', () => {
     const catalog = original.map((item) => ({ ...item,
       local_sightseeing: [{ name: `${item.name} operator-selected viewpoint`, description: '', tags: [],
         client_sentence: `Visit the selected viewpoint in ${item.name}.`, season: 'late-spring-summer-autumn',
@@ -93,10 +93,12 @@ try {
         blocks: [], notes: [], scheduledActivities: [] };
       const [day] = scheduleDayPlans(input, [originalDay], quote);
       const selectedKey = key(guide.name, guide.local_sightseeing[0].name);
-      assert.equal(stops(day).filter((value) => value === selectedKey).length, guide.name === 'Gurez' ? 0 : 1,
+      assert.equal(stops(day).filter((value) => value === selectedKey).length, 1,
         `${guide.name} applied a conflicting availability rule.`);
+      assert.ok(dayNarrative(day, 'Srinagar', quote).includes(guide.local_sightseeing[0].client_sentence),
+        `${guide.name} omitted its checked place from About This Day.`);
       if (guide.name === 'Gurez') assert.ok(day.timing.issues.some((issue) => issue.includes('May–October')),
-        'The operator tick fallback must preserve the explicit Gurez access restriction.');
+        'Preserving the selected place must not conceal the Gurez access review.');
     }
   });
 

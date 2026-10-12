@@ -134,7 +134,10 @@ try {
   assert.ok(gondolaDay.blocks.some((block) => block.name === gondolaSight.name), 'The selected sightseeing place must remain in its destination programme.');
   const gondolaCopy = dayNarrative(gondolaDay, input.pickup, gondolaQuote);
   assert.match(gondolaCopy, /Kongdori/, 'Client copy must not hide a mountain station covered by its scheduled activity.');
-  assert.equal((gondolaCopy.match(/Gulmarg Gondola/g) || []).length, 1, 'The authored linked activity must describe the shared sight once.');
+  assert.equal(gondolaCopy.split(gondolaSight.client_sentence).length - 1, 1,
+    'The checked sightseeing sentence must remain exactly once alongside its separately quoted activity.');
+  assert.equal(gondolaCopy.split(gondolaDestination.activity_copy['Gondola ride']).length - 1, 1,
+    'The quoted activity must retain its distinct authored Kongdori experience sentence exactly once.');
   const noGondola = reschedulePlan(gondolaPlan, { activityCosts: {}, activitySelections: { [gondolaKey]: false } });
   assert.ok(clientActivityLists(noGondola, {}, { [gondolaKey]: false }).excluded.includes('Gulmarg: Gondola ride — activity charges'), 'An explicitly retained sightseeing visit must not be described as absent when only the paid activity is excluded.');
   const selectedGondolaDays = noGondola.dayPlans.filter((day) => day.blocks.some((block) => block.name === gondolaSight.name));

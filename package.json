@@ -11,7 +11,7 @@
     "test:hotels": "node tests/hotel-suggestions.cjs",
     "test:store": "node tests/database-retry.cjs",
     "test:model": "node scripts/verify-model.mjs && node scripts/verify-recommendations.cjs",
-    "test:scheduling": "node tests/day-scheduling.cjs && node tests/narrative-coverage.cjs && node tests/departure-policy.cjs && node tests/restored-quote-coherence.cjs && node tests/selected-visit-coverage.cjs"
+    "test:scheduling": "node tests/day-scheduling.cjs && node tests/narrative-coverage.cjs && node tests/departure-policy.cjs && node tests/restored-quote-coherence.cjs && node tests/selected-visit-coverage.cjs && node tests/sightseeing-checkbox-authority.cjs"
   },
   "engines": {
     "node": "22.x"

@@ -29,24 +29,24 @@ const fixtures = original.map((destination) => {
   if (destination.name === 'Srinagar') return { ...destination,
     day_note: 'Discover Srinagar’s lakeside setting and cultural heritage.',
     local_sightseeing: [sight('Dal Lake & Boulevard', 'Walk beside Dal Lake and Boulevard Road.'), sight('Shalimar Bagh', 'Explore the terraces of Shalimar Bagh.')],
-    enabled_sightseeing: [], activities: ['Private evening lake cruise'], enabled_activities: ['Private evening lake cruise'],
+    enabled_sightseeing: ['Dal Lake & Boulevard', 'Shalimar Bagh'], activities: ['Private evening lake cruise'], enabled_activities: ['Private evening lake cruise'],
     activity_copy: { 'Private evening lake cruise': 'Enjoy a private evening cruise on Dal Lake.' }, activity_timing: {} };
   if (destination.name === 'Gulmarg') return { ...destination,
     day_note: 'Discover Gulmarg’s alpine setting and Pir Panjal scenery.',
     local_sightseeing: [sight('Gulmarg Meadow', 'Walk across Gulmarg Meadow.'), sight('Gulmarg Gondola', 'Visit the Gulmarg Gondola viewing area.', { requires_activity: 'Gondola ride' })],
-    enabled_sightseeing: [], activities: ['Gondola ride'], enabled_activities: ['Gondola ride'],
+    enabled_sightseeing: ['Gulmarg Meadow', 'Gulmarg Gondola'], activities: ['Gondola ride'], enabled_activities: ['Gondola ride'],
     activity_copy: { 'Gondola ride': 'Enjoy the Gulmarg Gondola ride.' }, activity_timing: {} };
   if (destination.name === 'Pahalgam') return { ...destination,
     day_note: 'Explore Pahalgam’s pine-lined mountain valley.',
     local_sightseeing: [sight('Pahalgam riverside', 'Walk beside the Lidder River in Pahalgam.'), sight('Aru Valley', 'Explore Aru Valley’s alpine meadows.'), sight('Betaab Valley', 'Visit Betaab Valley’s river and mountain setting.')],
-    enabled_sightseeing: [], activities: [], enabled_activities: [], activity_copy: {}, activity_timing: {} };
+    enabled_sightseeing: ['Pahalgam riverside', 'Aru Valley', 'Betaab Valley'], activities: [], enabled_activities: [], activity_copy: {}, activity_timing: {} };
   return destination;
 });
 
 try {
   replaceDestinationCatalog(fixtures);
   const excursion = day({ dayTripDestination: 'Gulmarg', primaryVisitFor: ['Srinagar', 'Gulmarg'],
-    blocks: [siteBlock('Gulmarg', 'Gulmarg Meadow'), siteBlock('Srinagar', 'Shalimar Bagh')] });
+    blocks: [siteBlock('Gulmarg', 'Gulmarg Meadow')] });
   const excursionCopy = dayNarrative(excursion, 'Srinagar');
   assert.match(excursionCopy, /Walk across Gulmarg Meadow/);
   assert.doesNotMatch(excursionCopy, /lakeside setting|cultural heritage|Shalimar Bagh|Srinagar local sightseeing/,
@@ -73,6 +73,13 @@ try {
     'Assigned sightseeing must survive rendering without a second price or availability filter.');
   assert.equal((assignedCopy.match(/Walk across Gulmarg Meadow/g) || []).length, 1);
   assert.doesNotMatch(assignedCopy, /Enjoy the Gulmarg Gondola ride/, 'An unquoted paid activity must not be promised by the sightseeing copy.');
+  replaceDestinationCatalog(fixtures.map((destination) => destination.name === 'Gulmarg'
+    ? { ...destination, enabled_sightseeing: ['Gulmarg Gondola'] } : destination));
+  const currentTickCopy = dayNarrative(assigned, 'Srinagar', { activityCosts: {}, activitySelections: {} });
+  assert.doesNotMatch(currentTickCopy, /Walk across Gulmarg Meadow/,
+    'An old assigned block must not reintroduce a currently unchecked library place.');
+  assert.match(currentTickCopy, /Visit the Gulmarg Gondola viewing area/);
+  replaceDestinationCatalog(fixtures);
   const gondolaKey = 'Gulmarg\u001fGondola ride';
   const gondolaActivity = { key: gondolaKey, destination: 'Gulmarg', name: 'Gondola ride', minutes: 120 };
   const gondolaQuote = { activityCosts: { [gondolaKey]: 4000 }, activitySelections: { [gondolaKey]: true } };
@@ -120,7 +127,8 @@ try {
   // Cover every real destination's authored wording in each journey shape.
   // These are rendering fixtures: selected places are already assigned by the
   // scheduler, independently of whether a destination permits a hotel stay.
-  replaceDestinationCatalog(original.map((destination) => ({ ...destination, enabled_activities: destination.activities })));
+  replaceDestinationCatalog(original.map((destination) => ({ ...destination,
+    enabled_sightseeing: destination.local_sightseeing.map((place) => place.name), enabled_activities: destination.activities })));
   for (const destination of destinations) {
     const blocks = destination.local_sightseeing.map((place) => siteBlock(destination.name, place.name));
     const local = day({ from: destination.name, to: destination.name, stay: destination.name,

@@ -339,15 +339,22 @@ try {
     assert.equal(later.dayPlans.at(-1).from, 'Sonamarg');
   });
 
-  test('a 23:00 arrival and 08:00 departure retain the travel times and request a real visit day', () => {
+  test('a 23:00 arrival and 08:00 departure retain checked sightseeing with a timing review', () => {
     reset();
     const plan = planFor(['Srinagar'], { arrivalTime: '23:00', departureTime: '08:00' });
     assert.equal(plan.input.arrivalTime, '23:00');
     assert.equal(plan.input.departureTime, '08:00');
-    assert.ok(plan.dayPlans.every((day) => allocated(day).length === 0), 'Selected places cannot create sightseeing time between a late arrival and early flight.');
+    const stops = plan.dayPlans.flatMap(allocated);
+    const copy = plan.dayPlans.map((day) => dayNarrative(day, 'Srinagar')).join(' ');
+    for (const place of destinationByName('Srinagar').local_sightseeing) {
+      assert.equal(stops.filter((stop) => stop === activityKey('Srinagar', place.name)).length, 1,
+        'An impractical arrival/departure window must not silently erase a checked place.');
+      assert.ok(copy.includes(place.client_sentence), `${place.name} must remain in About This Day.`);
+    }
     const reviews = plan.dayPlans.flatMap((day) => [...day.timing.issues, ...(day.timing.advisories || [])]);
-    assert.ok(reviews.some((message) => /selected programme.*visit day|selected.*(?:sight|place).*day/i.test(message)),
-      'When no actual visit day exists, the operator needs a selected-programme coverage review.');
+    assert.ok(reviews.length > 0, 'The unavailable visit window must remain visible as a planning review.');
+    assert.ok(plan.dayPlans.some((day) => day.timing.overrunMinutes > 0),
+      'Including the checked places must not conceal their timing overrun.');
   });
 
   test('late departure includes its newly allocated sightseeing in the client narrative', () => {
@@ -455,9 +462,14 @@ try {
     assert.ok(sharedVisits.length > 0, 'The route must actually schedule a shared garden.');
     assert.equal(new Set(sharedVisits).size, sharedVisits.length, 'A physical garden was repeated under a different destination record.');
     assert.equal(plan.dayPlans[1].dayTripDestination, cluster.name, 'Deduplicating gardens must not change the selected excursion.');
+    const copy = plan.dayPlans.map((day) => dayNarrative(day, 'Srinagar')).join(' ');
+    const sentences = new Set([srinagar, cluster].flatMap((destination) => destination.local_sightseeing)
+      .filter((place) => shared.has(place.name)).map((place) => place.client_sentence).filter(Boolean));
+    for (const sentence of sentences) assert.equal(copy.split(sentence).length - 1, 1,
+      'One physical garden visit must retain every distinct checked authored sentence exactly once.');
   });
 
-  test('a generic legacy garden circuit is covered by all four selected gardens without another stop or duration', () => {
+  test('a checked generic garden circuit remains alongside all four checked individual gardens', () => {
     for (const aggregateName of ['Mughal Gardens & Zabarwan Foothills', 'Mughal Gardens and Zabarwan Foothills']) {
       reset();
       const gardens = ['Pari Mahal', 'Nishat Bagh', 'Shalimar Bagh', 'Chashme Shahi'].map((name) => sight(name, {
@@ -469,17 +481,18 @@ try {
       } : item));
       const plan = planFor(['Srinagar'], { arrivalTime: '06:00', departureTime: '20:00' });
       const stops = plan.dayPlans.flatMap(allocated);
-      assert.ok(!stops.includes(activityKey('Srinagar', aggregateName)), 'The circuit heading became an additional garden stop.');
+      assert.equal(stops.filter((name) => name === activityKey('Srinagar', aggregateName)).length, 1,
+        'Only the library checkbox may remove the selected garden circuit.');
       for (const garden of gardens) {
         assert.equal(stops.filter((name) => name === activityKey('Srinagar', garden.name)).length, 1,
           `${garden.name} was collapsed while covering the aggregate.`);
         assert.equal(plan.dayPlans.filter((day) => dayNarrative(day, 'Srinagar').includes(garden.client_sentence)).length, 1,
           `${garden.name} must retain its individual client sentence exactly once.`);
       }
-      assert.equal(plan.dayPlans.reduce((total, day) => total + day.timing.scheduledMinutes, 0), 4 * (45 + 10),
-        'The already-covered circuit must not reserve a second sightseeing duration.');
-      assert.ok(plan.dayPlans.every((day) => !dayNarrative(day, 'Srinagar').includes(aggregate.client_sentence)),
-        'The redundant generic circuit sentence leaked into the client programme.');
+      assert.equal(plan.dayPlans.reduce((total, day) => total + day.timing.scheduledMinutes, 0), 4 * (45 + 10) + 180 + 30,
+        'Timing estimates must account for every checked library entry.');
+      assert.equal(plan.dayPlans.filter((day) => dayNarrative(day, 'Srinagar').includes(aggregate.client_sentence)).length, 1,
+        'The checked aggregate sentence must remain in the client programme once.');
     }
   });
 
@@ -497,7 +510,7 @@ try {
       } : item));
       const plan = planFor(['Srinagar'], { arrivalTime: '06:00', departureTime: '20:00' });
       assert.equal(plan.dayPlans.flatMap(allocated).filter((name) => name === activityKey('Srinagar', aggregateName)).length, 1,
-        `${variant}: the aggregate was removed without complete equivalent coverage.`);
+        `${variant}: the checked aggregate was removed.`);
       assert.equal(plan.dayPlans.filter((day) => dayNarrative(day, 'Srinagar').includes(aggregate.client_sentence)).length, 1,
         `${variant}: the aggregate's selected client sentence must remain intact.`);
       for (const garden of gardens) assert.equal(plan.dayPlans.flatMap(allocated).filter((name) => name === activityKey('Srinagar', garden.name)).length, 1,
@@ -508,8 +521,14 @@ try {
   test('physical aliases do not repeat a lake visit through different destination records', () => {
     reset();
     const names = { Srinagar: ['Nigeen Lake', 'Dal Lake & Boulevard'], 'Nigeen Lake': ['Nigeen-Lake'], 'Dal Lake': ['Dal Lake waterfront'] };
+    const sentences = {
+      'Nigeen Lake': 'Walk beside Nigeen Lake and its willow-lined shore.',
+      'Nigeen-Lake': 'Pause for photographs of the houseboats at Nigeen Lake.',
+      'Dal Lake & Boulevard': 'Walk along Boulevard Road beside Dal Lake.',
+      'Dal Lake waterfront': 'Explore the waterfront viewpoints overlooking Dal Lake.',
+    };
     replaceDestinationCatalog(destinations.map((item) => names[item.name] ? { ...item,
-      local_sightseeing: names[item.name].map((name) => sight(name)), enabled_sightseeing: names[item.name],
+      local_sightseeing: names[item.name].map((name) => sight(name, { client_sentence: sentences[name] })), enabled_sightseeing: names[item.name],
     } : item));
     let plan = planFor(['Srinagar', 'Srinagar', 'Srinagar'], { arrivalTime: '06:00', departureTime: '20:00' });
     plan = setPlanDayTrip(plan, 2, 'Nigeen Lake');
@@ -518,6 +537,11 @@ try {
     assert.equal(stops.filter((name) => /Nigeen[- ]Lake/i.test(name)).length, 1, 'Punctuation changed the identity of the same lake.');
     assert.equal(stops.filter((name) => /^Dal Lake (?:& Boulevard|waterfront)$/i.test(name)).length, 1,
       'The waterfront and Boulevard aliases repeated the same Dal Lake visit.');
+    const copy = plan.dayPlans.map((day) => dayNarrative(day, 'Srinagar')).join(' ');
+    for (const sentence of Object.values(sentences)) {
+      assert.equal(copy.split(sentence).length - 1, 1,
+        'A merged physical lake visit must keep each distinct checked alias sentence once.');
+    }
   });
 
   test('generic sightseeing labels remain distinct in different valleys', () => {
@@ -560,6 +584,9 @@ try {
       const stops = plan.dayPlans.flatMap(allocated);
       assert.equal(stops.filter((stop) => [activityKey(parentName, parentSight), activityKey(destinationName, aliasSight)].includes(stop)).length, 1,
         `${parentSight} and ${aliasSight} repeated the same physical place.`);
+      const copy = plan.dayPlans.map((day) => dayNarrative(day, 'Srinagar')).join(' ');
+      for (const name of [parentSight, aliasSight]) assert.equal(copy.split(`Visit ${name}.`).length - 1, 1,
+        `${name}: the checked alias sentence was lost or repeated during physical-visit deduplication.`);
       for (const destination of [parentName, destinationName]) assert.equal(stops.filter((stop) => stop === activityKey(destination, `${destination} distinct stop`)).length, 1,
         `${destination}: deduplication must preserve its separate selected stop.`);
     }
@@ -645,7 +672,10 @@ try {
       'The client must visit the dawn market before the departure transfer.');
     assert.equal(departure.timing.issues.length, 0, departure.timing.issues.join(' '));
     const earlyFlight = planFor(['Srinagar'], { arrivalTime: '20:00', departureTime: '08:00' });
-    assert.ok(earlyFlight.dayPlans.every((day) => allocated(day).length === 0), 'An 08:00 flight cannot also promise the dawn market.');
+    assert.equal(earlyFlight.dayPlans.flatMap(allocated).filter((name) => name === activityKey('Srinagar', market.name)).length, 1,
+      'The early flight must produce a planning review rather than silently deleting the checked market.');
+    assert.ok(earlyFlight.dayPlans.some((day) => [...day.timing.issues, ...(day.timing.advisories || [])].length > 0),
+      'The incompatible flight and market timing must remain visible for review.');
   });
 
   test('a priced hotel-base activity can use spare time after an excursion without moving the hotel', () => {

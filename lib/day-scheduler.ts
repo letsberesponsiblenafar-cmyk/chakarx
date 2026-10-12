@@ -5,9 +5,8 @@ import type { DayBlock, DayPlan, TripInput } from '@/lib/itinerary';
 
 export type ScheduleQuote = { activityCosts: Record<string, number>; activitySelections?: Record<string, boolean> };
 
-// Rule order: route -> real travel window -> quoted experiences -> all selected
-// library sights, distributed once across the destination's visit days -> copy.
-// Visit durations guide distribution; they must never silently untick a place.
+// Library checkboxes alone decide sightseeing inclusion. Route, time and quoted
+// experiences guide placement across visit days; they never untick a place.
 const clockMinutes = (time?: string) => time && /^([01]\d|2[0-3]):[0-5]\d$/.test(time)
   ? Number(time.slice(0, 2)) * 60 + Number(time.slice(3)) : null;
 const positiveMinutes = (value: number | undefined, fallback: number) => Number.isFinite(value) && value! >= 0 ? Math.round(value!) : fallback;
@@ -88,12 +87,20 @@ function sightCost(sight: Sightseeing, destination: Destination, day: DayPlan) {
   return linked ? 0 : positiveMinutes(sight.visit_minutes, 60) + positiveMinutes(sight.transfer_minutes, 20);
 }
 
-export function dayScheduleContext(day: DayPlan) {
+export function dayScheduleContext(day: DayPlan, includeLibrarySights = true) {
   const programme = new Set([...day.blocks.filter((block) => block.kind !== 'arrival' && (block.sights === undefined || block.sights.length))
     .map((block) => block.destination).filter((name): name is string => Boolean(name)),
     ...(day.scheduledActivities || []).map((activity) => activity.destination)]);
   return JSON.stringify([day.date, day.from, day.to, day.stay, day.dayTripDestination, day.additionalVisitDestinations || [], day.arrivalTime, day.departureTime, day.drive.hours, day.drive.km, day.drive.via || [],
-    day.blocks.filter((block) => block.kind !== 'arrival').map((block) => [block.name, block.description, block.destination, block.sights]),
+    day.blocks.filter((block) => block.kind !== 'arrival').map((block) => [block.name, block.description, block.destination, block.sights,
+      // Day-trip wrappers and merged aliases track their source lines too;
+      // their generic summary alone cannot detect a library sentence edit.
+      ...(includeLibrarySights && block.librarySights?.length && (block.sights !== undefined ||
+        block.librarySights.some((selection) => selection.destination !== block.destination || selection.name !== selection.visitName))
+        ? [block.librarySights.map((selection) => [selection.destination, selection.name, selection.visitName,
+          destinationByName(selection.destination)?.local_sightseeing.find((sight) => sight.name === selection.name)?.client_sentence,
+          destinationByName(selection.destination)?.local_sightseeing.find((sight) => sight.name === selection.name)?.description])]
+        : [])]),
     [...programme].filter((name) => day.primaryVisitFor?.includes(name)).map((name) => [name, destinationByName(name)?.day_note]),
     day.scheduledActivities?.map((activity) => [activity.key, destinationByName(activity.destination)?.activity_copy?.[activity.name]])]);
 }
@@ -179,10 +186,10 @@ export function scheduleDayPlans(input: TripInput, original: DayPlan[], quote?: 
     updateLoad(day);
   }
 
-  // Build the complete selected programme before assigning days. Ownership of
-  // overlapping records goes to an explicit destination visit (e.g. a Mughal
-  // Gardens excursion), so an earlier Srinagar arrival cannot consume it first.
-  type SelectedSight = { destination: Destination; sight: Sightseeing; candidates: DayPlan[] };
+  // Group duplicate physical visits on one day, preserving every checked
+  // record's authored instructions, including records in overlapping guides.
+  type SelectedSight = { destination: Destination; sight: Sightseeing; candidates: DayPlan[];
+    selections: { destination: string; name: string }[] };
   const selected = new Map<string, SelectedSight>();
   for (const destination of destinations) {
     const active = new Set(enabledSightseeing(destination));
@@ -191,8 +198,8 @@ export function scheduleDayPlans(input: TripInput, original: DayPlan[], quote?: 
       // Older/manual routes may use Srinagar only for hotel nights. Keep its
       // selected city circuit together on one best return day, never spread it
       // across every excursion merely because the hotel base is Srinagar.
-      const returnDay = days.filter((day) => day.stay === 'Srinagar' && day.label !== 'Departure day' && usable(day))
-        .sort((a, b) => Number(Boolean(a.dayTripDestination)) - Number(Boolean(b.dayTripDestination)) ||
+      const returnDay = days.filter((day) => day.stay === 'Srinagar' && day.label !== 'Departure day')
+        .sort((a, b) => Number(usable(b)) - Number(usable(a)) || Number(Boolean(a.dayTripDestination)) - Number(Boolean(b.dayTripDestination)) ||
           (b.timing!.availableMinutes - b.timing!.driveMinutes - b.timing!.serviceMinutes) -
           (a.timing!.availableMinutes - a.timing!.driveMinutes - a.timing!.serviceMinutes) || a.day - b.day)[0];
       if (returnDay && !relevant.includes(returnDay)) {
@@ -202,43 +209,34 @@ export function scheduleDayPlans(input: TripInput, original: DayPlan[], quote?: 
     }
     if (!relevant.length) continue;
     const normal = relevant.filter((day) => day.label !== 'Departure day' && usable(day));
-    const candidates = normal.length ? normal : relevant.filter(usable);
+    const preferredDays = normal.length ? normal : relevant.filter(usable);
+    const visitDays = relevant.filter((day) => day.label !== 'Departure day');
+    const candidates = preferredDays.length ? preferredDays : visitDays.length ? visitDays : relevant;
     // Use exactly the library's tick state, including its legacy-record fallback.
     // Seasonal metadata guides recommendations; it must not silently remove an
     // operator-selected place from an existing journey and its client wording.
     for (const sight of destination.local_sightseeing.filter((item) => active.has(item.name))) {
-      if (!candidates.length) {
-        relevant[0].timing!.issues.push(`${destination.name}: the selected programme needs a visit day between arrival and departure. Adjust the route or edit this day's description.`);
-        continue;
-      }
       // A selected early visit can use a late departure's local morning when
       // every ordinary day is an afternoon arrival or another excursion.
       const windowCandidates = sight.time_window ? relevant.filter((day) => usable(day) &&
         slotFor(day, sight.time_window, sightCost(sight, destination, day)) !== null) : [];
-      const entry = { destination, sight, candidates: windowCandidates.length ? windowCandidates : candidates };
+      const entry: SelectedSight = { destination, sight, candidates: windowCandidates.length ? windowCandidates : candidates,
+        selections: [{ destination: destination.name, name: sight.name }] };
       const identity = sightIdentity(sight.name, destination.name);
       const previous = selected.get(identity);
-      if (!previous || Math.max(...entry.candidates.map((day) => preference(day, destination.name))) >
-        Math.max(...previous.candidates.map((day) => preference(day, previous.destination.name)))) selected.set(identity, entry);
+      if (!previous) selected.set(identity, entry);
+      else {
+        const selections = [...previous.selections, ...entry.selections];
+        if (Math.max(...entry.candidates.map((day) => preference(day, destination.name))) >
+          Math.max(...previous.candidates.map((day) => preference(day, previous.destination.name)))) selected.set(identity, { ...entry, selections });
+        else previous.selections = selections;
+      }
     }
-  }
-  // A legacy library entry names the whole garden circuit rather than a fifth
-  // stop. Only its generic auto-written sentence is covered by all four named
-  // gardens; partial selections and operator-authored detail remain intact.
-  const gardenComponents = ['Pari Mahal', 'Nishat Bagh', 'Shalimar Bagh', 'Chashme Shahi'];
-  const sentenceIdentity = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-  for (const [identity, entry] of selected) {
-    if (!/^mughal gardens (?:and )?zabarwan foothills$/.test(identity)) continue;
-    const sentence = entry.sight.client_sentence?.trim() || `Visit ${entry.sight.name}.`;
-    if (sentenceIdentity(sentence) !== sentenceIdentity(`Visit ${entry.sight.name}.`) ||
-      !gardenComponents.every((name) => selected.has(sightIdentity(name)))) continue;
-    selected.delete(identity);
-    entry.candidates[0].timing!.advisories!.push(`${entry.sight.name} is covered by the individually selected ${gardenComponents.join(', ')}.`);
   }
   const entries = [...selected.values()].sort((a, b) =>
     Number(Boolean(b.sight.time_window)) - Number(Boolean(a.sight.time_window)) ||
     Number(b.sight.arrival_suitable === true) - Number(a.sight.arrival_suitable === true));
-  for (const { destination, sight, candidates } of entries) {
+  for (const { destination, sight, candidates, selections } of entries) {
     const choices = candidates.map((day) => ({ day, cost: sightCost(sight, destination, day),
       slot: slotFor(day, sight.time_window, sightCost(sight, destination, day)) }));
     const fitsWindow = choices.filter((choice) => choice.slot !== null);
@@ -275,10 +273,13 @@ export function scheduleDayPlans(input: TripInput, original: DayPlan[], quote?: 
     };
     const chosen = [...pool].sort((a, b) => score(a) - score(b) || a.day.day - b.day.day)[0];
     const day = chosen.day;
+    if (!usable(day)) day.timing!.advisories!.push('Checked sightseeing remains included. Review the journey and visit-time estimates for this day.');
     if (chosen.slot) reserveSlot(day, chosen.slot);
     else day.timing!.advisories!.push(`${sight.name} remains in the programme. Review its visit window or edit the day's wording.`);
     const block: DayBlock = { name: sight.name, startMinute: chosen.slot?.fixed ? chosen.slot.start : undefined,
-      description: sight.client_sentence || `Visit ${sight.name}.`, destination: destination.name,
+      description: [...new Set(selections.map((selection) => destinationByName(selection.destination)?.local_sightseeing
+        .find((item) => item.name === selection.name)?.client_sentence?.trim() || `Visit ${selection.name}.`))].join(' '), destination: destination.name,
+      librarySights: selections.map((selection) => ({ ...selection, visitName: sight.name })),
       reason: 'Selected in the destination library and assigned once across this destination’s visit days.', tags: sight.tags,
       kind: 'sightseeing', source: destination.source, intelligence: { status: 'STANDARD', extraCost: false,
         note: `${chosen.cost} estimated minutes including local movement; selection remains editable in the day description.` } };
@@ -298,7 +299,8 @@ export function scheduleDayPlans(input: TripInput, original: DayPlan[], quote?: 
       day.blocks = [...day.blocks.filter((block) => !sights.includes(block)), {
         name: `${day.dayTripDestination} day trip`, description: `Day visit to ${day.dayTripDestination}.`, destination: day.dayTripDestination,
         reason: 'The visit uses the same timed sightseeing allocation as the client description.',
-        sights: sights.map((block) => block.name), tags: ['day-trip'], kind: 'sightseeing', intelligence: { status: 'STANDARD' },
+        sights: sights.map((block) => block.name), librarySights: sights.flatMap((block) => block.librarySights || []),
+        tags: ['day-trip'], kind: 'sightseeing', intelligence: { status: 'STANDARD' },
       }];
     }
     const hasVisits = day.blocks.some((block) => block.kind === 'sightseeing' && (!block.name.endsWith('day trip') || Boolean(block.sights?.length))) || Boolean(day.scheduledActivities?.length);
@@ -313,14 +315,31 @@ export function scheduleDayPlans(input: TripInput, original: DayPlan[], quote?: 
       + day.scheduledActivities!.filter((activity) => activity.destination === destination.name).length;
     if (score && score > (primary.get(destination.name)?.score || 0)) primary.set(destination.name, { day: day.day, score });
   }
+  const copyIdentity = (text: string) => text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  const uncheckedCopy = destinations.flatMap((destination) => {
+    const checked = new Set(enabledSightseeing(destination));
+    return destination.local_sightseeing.filter((sight) => !checked.has(sight.name))
+      .map((sight) => copyIdentity(sight.client_sentence?.trim() || `Visit ${sight.name}.`));
+  });
   return days.map((day, index) => {
     const previous = original[index];
     day.primaryVisitFor = [...primary.entries()].filter(([, entry]) => entry.day === day.day).map(([name]) => name);
-    const changed = (previous.customAboutContext || dayScheduleContext(previous)) !== dayScheduleContext(day);
+    const context = dayScheduleContext(day);
+    const currentCopy = new Set(day.blocks.flatMap((block) => (block.librarySights || []).map((selection) => copyIdentity(
+      destinationByName(selection.destination)?.local_sightseeing.find((sight) => sight.name === selection.name)?.client_sentence?.trim() || `Visit ${selection.name}.`,
+    ))));
+    const obsoleteCopy = previous.customAbout && uncheckedCopy.some((sentence) => !currentCopy.has(sentence) && copyIdentity(previous.customAbout!).includes(sentence));
+    // Upgrade older manually edited drafts without discarding unchanged text.
+    // Once refreshed, source lines are tracked for all later library edits.
+    const legacyManual = previous.customAbout?.trim() && previous.customAboutContext && !obsoleteCopy &&
+      !previous.blocks.some((block) => block.librarySights) &&
+      previous.customAboutContext === dayScheduleContext(previous, false) &&
+      dayScheduleContext(previous, false) === dayScheduleContext(day, false);
+    const changed = !legacyManual && (previous.customAboutContext || dayScheduleContext(previous)) !== context;
     return { ...day,
       timing: { ...day.timing!, issues: !changed && previous.customAbout?.trim() ? day.timing!.issues.filter((issue) => !issue.includes('the selected programme needs a visit day')) : day.timing!.issues },
       customAbout: changed ? undefined : previous.customAbout,
-      customAboutContext: changed ? undefined : previous.customAboutContext,
+      customAboutContext: changed ? undefined : previous.customAbout?.trim() ? context : previous.customAboutContext,
       previousCustomAbout: changed ? previous.customAbout || previous.previousCustomAbout : previous.previousCustomAbout };
   });
 }
