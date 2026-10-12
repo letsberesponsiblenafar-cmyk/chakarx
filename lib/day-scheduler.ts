@@ -1,5 +1,4 @@
 import { destinationByName, destinations, enabledSightseeing, type Destination, type Sightseeing, type VisitWindow } from '@/lib/data';
-import { seasonMatches } from '@/lib/seasons';
 import { quotedActivityCost } from '@/lib/activities';
 import { isGurezAllowed } from '@/lib/intelligence';
 import type { DayBlock, DayPlan, TripInput } from '@/lib/itinerary';
@@ -81,13 +80,6 @@ function activityVisiting(day: DayPlan, name: string) {
   // An explicitly quoted base experience can follow an excursion. This never
   // makes the hotel's city eligible for its whole sightseeing programme.
   return visiting(day, name) || day.stay === name || Boolean(day.transfer && day.from === name);
-}
-
-function seasonEligible(sight: Sightseeing, destination: Destination, date: string) {
-  // An explicit operator availability list is authoritative. The season field
-  // is a recommendation default for older records with no availability choice.
-  if (destination.enabled_sightseeing !== undefined) return true;
-  return seasonMatches(sight.season || destination.season || 'all', date) !== false;
 }
 
 function sightCost(sight: Sightseeing, destination: Destination, day: DayPlan) {
@@ -211,7 +203,10 @@ export function scheduleDayPlans(input: TripInput, original: DayPlan[], quote?: 
     if (!relevant.length) continue;
     const normal = relevant.filter((day) => day.label !== 'Departure day' && usable(day));
     const candidates = normal.length ? normal : relevant.filter(usable);
-    for (const sight of destination.local_sightseeing.filter((item) => active.has(item.name) && relevant.some((day) => seasonEligible(item, destination, day.date)))) {
+    // Use exactly the library's tick state, including its legacy-record fallback.
+    // Seasonal metadata guides recommendations; it must not silently remove an
+    // operator-selected place from an existing journey and its client wording.
+    for (const sight of destination.local_sightseeing.filter((item) => active.has(item.name))) {
       if (!candidates.length) {
         relevant[0].timing!.issues.push(`${destination.name}: the selected programme needs a visit day between arrival and departure. Adjust the route or edit this day's description.`);
         continue;
