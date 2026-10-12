@@ -305,6 +305,12 @@ function validateInput(input: TripInput) {
   if (!Number.isFinite(input.budget) || input.budget < 0) throw new Error('Budget must be a valid non-negative amount.');
 }
 
+export function validatedTripInput(input: TripInput): TripInput {
+  validateInput(input);
+  const normalizedMix = normalizeChildrenAndAdults(input.adults, input.youngAges);
+  return { ...input, youngAges: normalizedMix.children, adults: normalizedMix.adults, budget: Math.max(0, input.budget) };
+}
+
 export function createPlan(input: TripInput, catalog?: Destination[]): Plan {
   if (catalog) {
     // Planning is synchronous: scope the request's shared library to this call,
@@ -313,10 +319,8 @@ export function createPlan(input: TripInput, catalog?: Destination[]): Plan {
     replaceDestinationCatalog(catalog);
     try { return createPlan(input); } finally { replaceDestinationCatalog(previous); }
   }
-  validateInput(input);
-  const nights = tripNights(input);
-  const normalizedMix = normalizeChildrenAndAdults(input.adults, input.youngAges);
-  const normalized = { ...input, youngAges: normalizedMix.children, adults: normalizedMix.adults, budget: Math.max(0, input.budget) };
+  const normalized = validatedTripInput(input);
+  const nights = tripNights(normalized);
   const nightSequence = departureNightSequence(normalized, recommendedNightSequence(normalized));
   const dayPlans = buildDays(normalized, nightSequence);
   const staySegments = groupedStays(nightSequence);

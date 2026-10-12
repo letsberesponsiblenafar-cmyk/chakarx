@@ -4,8 +4,12 @@ import { initialPackageDefaults, type PackageDefaults } from '@/lib/package-defa
 
 export type TripActivity = { key: string; destination: string; name: string; available: boolean };
 
+export function tripActivityDestinations(plan: Plan): Set<string> {
+  return new Set(plan.dayPlans.flatMap((day) => [day.from, day.to, day.stay, day.dayTripDestination].filter((name): name is string => Boolean(name))));
+}
+
 export function tripActivities(plan: Plan, catalog: Destination[] = destinations, _selections: Record<string, boolean> = {}): TripActivity[] {
-  const visited = new Set(plan.dayPlans.flatMap((day) => [day.from, day.to, day.stay, day.dayTripDestination].filter((name): name is string => Boolean(name))));
+  const visited = tripActivityDestinations(plan);
   return catalog.filter((destination) => visited.has(destination.name)).flatMap((destination) =>
     destination.activities.map((name) => ({
       key: `${destination.name}\u001f${name}`,

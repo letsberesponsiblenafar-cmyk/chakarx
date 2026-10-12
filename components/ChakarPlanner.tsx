@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { CalendarDays, ChevronRight, Sparkles, MapPin } from 'lucide-react';
 import { usePlanner } from '@/components/PlannerProvider';
 import { hotelCategories, mealOptions } from '@/lib/data';
-import { createPlan, ROUTE_VERSION } from '@/lib/itinerary';
+import { ROUTE_VERSION } from '@/lib/itinerary';
 import { calculateCosts } from '@/lib/costing';
 import { departureForNights, tripDuration } from '@/lib/trip-dates';
 import { planInputsNeedRefresh } from '@/lib/quote-readiness';
@@ -55,7 +55,6 @@ export default function ChakarPlanner(){
    setBusy(true);
    const effective={...input,adults:Number(adultsText),youngAges:childrenText.trim()===''?[]:input.youngAges,budget:budgetText.trim()===''?0:Number(budgetText),arrival:input.arrival||arrivals,departure:input.departure||departures};
    generate(effective);
-   createPlan(effective);
    router.push('/planner/destinations');
   }catch(e){setQuickError(e instanceof Error?e.message:'Please check the trip details.')}finally{setBusy(false)}
  }
@@ -71,7 +70,7 @@ export default function ChakarPlanner(){
      <div><span className="eyebrow">CHAKAR EXPERIENCE</span><h1>Build Your Trip</h1><p>Start with the essentials. Chakar will use your dates, traveller mix, pickup, budget and itinerary category to build the first route.</p></div>
      <div className="build-header-badge"><Sparkles size={15}/><span>Personalised Kashmir journey</span></div>
    </section>
-   {preview && routeVersion !== ROUTE_VERSION && <div className="draft-update-note"><Sparkles size={17}/><span>Your saved draft uses earlier route recommendations. Press <b>Next</b> to build it with the expanded circuit.</span></div>}
+   {preview && routeVersion !== ROUTE_VERSION && <div className="draft-update-note"><Sparkles size={17}/><span>Press <b>Next</b> to update this saved trip while keeping its selected hotels and services.</span></div>}
    <div className="page-grid build-grid">
     <section className="editor-card">
       <div className="section-head"><div><span className="eyebrow">TRIP DETAILS</span><h2>Tell us about the trip</h2><p>Every field below directly affects the itinerary, hotel occupancy or customer costing.</p></div><span className="step-chip">STEP 01</span></div>
@@ -99,7 +98,7 @@ export default function ChakarPlanner(){
         <div className="build-duration-panel"><div className="build-duration-heading"><CalendarDays size={17}/><span>Trip length</span><small>{duration?`${fmtDate(arrivals)} – ${fmtDate(departures)}`:'Choose a departure after arrival'}</small></div><div className="build-duration-fields"><label>Days<input aria-label="Trip days" type="number" min="2" max="31" value={durationDaysText} onChange={e=>setDurationDaysText(e.target.value)} onBlur={()=>commitDuration('days')} onKeyDown={e=>{if(e.key==='Enter')e.currentTarget.blur()}}/></label><span>↔</span><label>Nights<input aria-label="Trip nights" type="number" min="1" max="30" value={durationNightsText} onChange={e=>setDurationNightsText(e.target.value)} onBlur={()=>commitDuration('nights')} onKeyDown={e=>{if(e.key==='Enter')e.currentTarget.blur()}}/></label></div><small>Adjust either number; the departure date updates automatically.</small></div>
       </div>
       <div className="build-flow"><div><span>01</span><b>Destinations</b><p>Choose each day visit and overnight base.</p></div><div><span>02</span><b>Hotels</b><p>Select hotels, room setup and internal rates.</p></div><div><span>03</span><b>Activities &amp; Transport</b><p>Choose a vehicle and quote activities for the group.</p></div><div><span>04</span><b>Itinerary</b><p>Review and edit the day descriptions.</p></div><div><span>05</span><b>Costing</b><p>Review the full customer price.</p></div><div><span>06</span><b>Client PDF</b><p>Preview and download the itinerary.</p></div></div>
-      {draftNeedsRefresh&&<div className="build-refresh-hint">Trip details changed. Press Next to rebuild the itinerary and refresh its quote.</div>}
+      {draftNeedsRefresh&&<div className="build-refresh-hint">Trip details changed. Press Next to update the journey. Selected hotels, vehicle and rates stay in place; costs adjust to the revised nights and travel days.</div>}
       {preview&&<div className="preview-bottom"><div><span>{draftNeedsRefresh?'Previous draft':'Current draft'}</span><strong>{preview.days} days</strong></div><div><span>Budget / person</span><strong>{budgetText.trim()===''?'No cap':money(Number(budgetText)||0)}</strong></div><div><span>Travellers</span><strong>{people}</strong></div><div><span>{draftNeedsRefresh?'Previous total':'Current total'}</span><strong>{money(calculateCosts(preview,hotelSelections,costModel).sellingTotal)}</strong></div></div>}
       <div className="build-note"><MapPin size={16}/><span><b>Children rule:</b> enter each child's age. Any age above 14 is automatically moved into Adults so room and costing calculations stay correct.</span></div>
     </section>

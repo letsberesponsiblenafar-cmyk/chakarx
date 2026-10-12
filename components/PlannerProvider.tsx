@@ -1,6 +1,9 @@
 'use client';
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { createPlan, reschedulePlan, retargetDay, rebuildPlanFromNightSequence, setPlanDayTrip, setPlanDeparturePoint, ROUTE_VERSION, type Plan, type TripInput } from '@/lib/itinerary';
+import { createPlan, reschedulePlan, retargetDay, rebuildPlanFromNightSequence, setPlanDayTrip, setPlanDeparturePoint, validatedTripInput, ROUTE_VERSION, type Plan, type TripInput } from '@/lib/itinerary';
+import { editTripPlan, removeTripDay } from '@/lib/trip-edits';
+import { tripActivityDestinations } from '@/lib/activities';
+import { departureForNights } from '@/lib/trip-dates';
 import { hotelDatabase as importedHotels, hotelCategories, mealOptions, transportOptions, travelStyles, interests, destinations, destinationByName, replaceDestinationCatalog, type Destination, type Hotel } from '@/lib/data';
 import { firstHotelCandidate, roomsRequired, cnbChildren, extraBedsRequired, matchesPackageCategory, suggestedHotel } from '@/lib/hotels';
 import { stayDateWindow } from '@/lib/hotel-rate-validity';
@@ -121,46 +124,63 @@ export function syncHotelSelections(plan: Plan, current: HotelSelection[], db: H
   return plan.hotelPlans.map((row) => {
     const window = stayDateWindow((plan.dayPlans || []).slice(0, plan.nights || 0), row.location);
     const existing = current.find((h) => h.location === row.location);
-    const existingRecord = existing?.hotelId ? db.find((h) => h.id === existing.hotelId) : null;
-    if (existing && existingRecord) {
-      const refreshed=selectionFromHotel(row.location,existingRecord,row.nights,input);
-      const roomSetup = { rooms: existing.rooms, extraBeds: existing.extraBeds, cnb: existing.cnb };
-      const operatorRates = existing.status === 'user-edited' || existing.status === 'common hotel policy applied';
-      const stable = existing.hotelName === refreshed.hotelName && existing.nightlyRate === refreshed.nightlyRate && existing.extraBedRate === refreshed.extraBedRate && existing.cnbRate === refreshed.cnbRate && existing.nights === refreshed.nights;
-      return operatorRates?{...refreshed,...roomSetup,nightlyRate:existing.nightlyRate,extraBedRate:existing.extraBedRate,cnbRate:existing.cnbRate,status:existing.status,rateConfirmed:existing.nights === refreshed.nights && existing.rateConfirmed,confirmedSignature:existing.confirmedSignature}: {...refreshed,...roomSetup,rateConfirmed:stable && existing.rateConfirmed,confirmedSignature:existing.confirmedSignature};
+    // A selected hotel is part of this client's quote, not a live master-rate
+    // subscription. Only an explicit hotel replacement loads another quote.
+    if (existing && (existing.hotelId || (typeof existing.hotelName === 'string' && existing.hotelName.trim() && !['Hotel to be added', 'Hotel to be confirmed'].includes(existing.hotelName)))) {
+      return existing.nights === row.nights ? existing : { ...existing, nights: row.nights, rateConfirmed: false, confirmedSignature: undefined };
     }
-    if (existing?.hotelId) return { ...existing, nights: row.nights, rateConfirmed: existing.nights === row.nights && existing.rateConfirmed, status: 'Selected hotel is not in the current database; verify this stay' };
-    if (existing && existing.hotelName && existing.hotelName !== 'Hotel to be added' && existing.hotelName !== 'Hotel to be confirmed') return { ...existing, nights: row.nights, rateConfirmed: existing.nights === row.nights && existing.rateConfirmed };
     const candidate = suggestedHotel(row.location, input.hotelCategory, db, window.arrival, window.departure);
     return candidate ? selectionFromHotel(row.location, candidate, row.nights, input) : selectionFallback(row.location, row.nights, input, db, window.arrival, window.departure);
   });
 }
 
 function stateWithScheduledPlan(state: PlannerState, plan: Plan | null): PlannerState {
-  if (!state.plan || !plan) return { ...state, plan };
+  if (!plan) return { ...state, plan };
   const previousPlan = state.plan;
-  const hotelSelections = plan.hotelPlans.map((stay) => {
-    const existing = state.hotelSelections.find((hotel) => hotel.location === stay.location);
-    const dates = (route: Plan) => route.dayPlans.slice(0, route.nights).filter((day) => day.stay === stay.location).map((day) => day.date);
-    if (existing) {
-      const unchanged = existing.nights === stay.nights && JSON.stringify(dates(previousPlan)) === JSON.stringify(dates(plan));
+  const hotelSelections = syncHotelSelections(plan, state.hotelSelections, state.hotelDatabase, plan.input).map((hotel) => {
+    const existing = state.hotelSelections.find((item) => item.location === hotel.location);
+    const dates = (route: Plan) => route.dayPlans.slice(0, route.nights).filter((day) => day.stay === hotel.location).map((day) => day.date);
+    if (existing && previousPlan) {
+      const unchanged = existing.nights === hotel.nights && previousPlan.input.mealPlan === plan.input.mealPlan && previousPlan.input.hotelCategory === plan.input.hotelCategory &&
+        previousPlan.input.adults === plan.input.adults && JSON.stringify(previousPlan.input.youngAges) === JSON.stringify(plan.input.youngAges) &&
+        JSON.stringify(dates(previousPlan)) === JSON.stringify(dates(plan));
       // A route update changes nights, not the operator's chosen room, hotel or
       // negotiated price. Only the affected stay needs verification again.
-      return unchanged ? existing : { ...existing, nights: stay.nights, rateConfirmed: false, confirmedSignature: undefined };
+      return unchanged ? hotel : { ...hotel, rateConfirmed: false, confirmedSignature: undefined };
     }
-    const window = stayDateWindow(plan.dayPlans.slice(0, plan.nights), stay.location);
-    return selectionFallback(stay.location, stay.nights, state.input, state.hotelDatabase, window.arrival, window.departure);
+    return hotel;
   });
-  return { ...state, plan, hotelSelections };
+  return { ...state, plan, hotelSelections, costModel: activityQuoteForPlan(state.costModel, plan) };
+}
+
+function activityQuoteForPlan(model: CostModel, plan: Plan): CostModel {
+  const remaining = tripActivityDestinations(plan);
+  const retained = (key: string) => remaining.has(key.split('\u001f')[0]);
+  const costs = Object.entries(model.activityCosts || {}).filter(([key]) => retained(key));
+  const selections = Object.entries(model.activitySelections || {}).filter(([key]) => retained(key));
+  if (model.activityCosts && model.activitySelections && costs.length === Object.keys(model.activityCosts).length && selections.length === Object.keys(model.activitySelections).length) return model;
+  return { ...model, activityCosts: Object.fromEntries(costs), activitySelections: Object.fromEntries(selections) };
+}
+
+/** Apply a journey edit without replacing its hotels, negotiated rates or vehicle. */
+export function applyPlanEdit(state: PlannerState, plan: Plan): PlannerState {
+  const costModel = activityQuoteForPlan(state.costModel, plan);
+  return stateWithScheduledPlan({ ...state, costModel }, reschedulePlan(plan, costModel));
+}
+
+/** Next updates an existing client trip; Build New alone starts another quote. */
+export function generatePlannerState(state: PlannerState, overrides: Partial<TripInput> = {}): PlannerState {
+  const effectiveInput = validatedTripInput({ ...state.input, ...overrides });
+  const plan = state.plan ? editTripPlan(state.plan, effectiveInput) : createPlan(effectiveInput);
+  const costModel = state.plan ? state.costModel : { ...state.costModel,
+    transportDaily: state.costModel.transportIsCustom ? state.costModel.transportDaily : (transportRates[effectiveInput.transport] ?? state.costModel.transportDaily) };
+  return applyPlanEdit({ ...state, input: effectiveInput, routeVersion: ROUTE_VERSION, costModel,
+    hotelDefaults: state.plan ? state.hotelDefaults : { ...state.hotelDefaults, rooms: roomsRequired(effectiveInput.adults), extraBeds: extraBedsRequired(effectiveInput.youngAges), cnb: cnbChildren(effectiveInput.youngAges) }, generated: true }, plan);
 }
 
 /** Keep the route and hotel quote together when restoring or normalising a draft. */
 export function reconcilePlannerState(state: PlannerState): PlannerState {
-  return stateWithScheduledPlan(state, state.plan ? reschedulePlan(state.plan, state.costModel) : null);
-}
-
-function shiftDate(date: string, delta: number) {
-  const d = new Date(`${date}T12:00:00`); d.setDate(d.getDate() + delta); return d.toISOString().slice(0, 10);
+  return state.plan ? applyPlanEdit(state, state.plan) : state;
 }
 
 const Ctx = createContext<PlannerContextValue | null>(null);
@@ -229,7 +249,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
         try {
           const sequence = current.plan.dayPlans.slice(0, current.plan.nights).map((day) => day.stay);
           const plan = rebuildPlanFromNightSequence(current.plan, sequence);
-          return { ...current, plan, hotelSelections: syncHotelSelections(plan, current.hotelSelections, current.hotelDatabase, current.input) };
+          return applyPlanEdit(current, plan);
         } catch { return current; }
       });
       setDestinationConnection('ready');
@@ -295,10 +315,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     setYoungAges(ages) { setState((s) => ({ ...s, input: { ...s.input, youngAges: ages } })); },
     setInterests(xs) { setState((s) => ({ ...s, input: { ...s.input, interests: xs } })); },
     generate(overrides = {}) {
-      const effectiveInput = { ...state.input, ...overrides };
-      const plan = createPlan(effectiveInput);
-      const selections = syncHotelSelections(plan, [], state.hotelDatabase, effectiveInput);
-      setState((s) => ({ ...s, input: effectiveInput, plan, routeVersion: ROUTE_VERSION, hotelSelections: selections, hotelDefaults: { ...s.hotelDefaults, rooms: roomsRequired(effectiveInput.adults), extraBeds: extraBedsRequired(effectiveInput.youngAges), cnb: cnbChildren(effectiveInput.youngAges) }, costModel: { ...s.costModel, transportDaily: s.costModel.transportIsCustom ? s.costModel.transportDaily : (transportRates[effectiveInput.transport] ?? s.costModel.transportDaily) }, generated: true }));
+      setState(generatePlannerState(state, overrides));
     },
     setDayDestination(day, destination) {
       setState((s) => {
@@ -309,8 +326,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
           // Any operator custom copy for that day is intentionally cleared so the
           // destination's own intelligence description becomes the new baseline.
           nextPlan.dayPlans = nextPlan.dayPlans.map((d) => d.day === day ? { ...d, customTitle: undefined, customAbout: undefined } : d);
-          const nextHotels = syncHotelSelections(nextPlan, s.hotelSelections, s.hotelDatabase, s.input);
-          return { ...s, plan: nextPlan, hotelSelections: nextHotels };
+          return applyPlanEdit(s, nextPlan);
         } catch {
           return s;
         }
@@ -322,7 +338,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
         try {
           const current = reconcilePlannerState(s);
           const plan = setPlanDayTrip(current.plan!, day, destination);
-          return { ...current, plan, hotelSelections: syncHotelSelections(plan, current.hotelSelections, current.hotelDatabase, current.input) };
+          return applyPlanEdit(current, plan);
         }
         catch { return s; }
       });
@@ -333,7 +349,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
         try {
           const current = reconcilePlannerState(s);
           const plan = setPlanDeparturePoint(current.plan!, destination);
-          return { ...current, plan, hotelSelections: syncHotelSelections(plan, current.hotelSelections, current.hotelDatabase, current.input) };
+          return applyPlanEdit(current, plan);
         }
         catch { return s; }
       });
@@ -362,8 +378,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
         }
         try {
           const nextPlan = rebuildPlanFromNightSequence(reschedulePlan(s.plan, s.costModel), sequence);
-          const nextHotels = syncHotelSelections(nextPlan, s.hotelSelections, s.hotelDatabase, s.input);
-          return { ...s, plan: nextPlan, hotelSelections: nextHotels };
+          return applyPlanEdit(s, nextPlan);
         } catch { return s; }
       });
     },
@@ -373,38 +388,26 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
         if (sequence.some((name) => { const d = destinationByName(name); return !d || !d.overnight_allowed; })) return s;
         try {
           const nextPlan = rebuildPlanFromNightSequence(reschedulePlan(s.plan, s.costModel), sequence);
-          const nextHotels = syncHotelSelections(nextPlan, s.hotelSelections, s.hotelDatabase, s.input);
-          return { ...s, plan: nextPlan, hotelSelections: nextHotels };
+          return applyPlanEdit(s, nextPlan);
         } catch { return s; }
       });
     },
     addDay() {
       setState((s) => {
         if (!s.plan || s.plan.nights >= 30) return s;
-        const lastStay = s.plan.dayPlans[s.plan.nights - 1]?.stay || 'Srinagar';
-        const sequence = s.plan.dayPlans.slice(0, s.plan.nights).map((d) => d.stay);
-        sequence.push(lastStay);
         try {
-          const nextPlan = rebuildPlanFromNightSequence(reschedulePlan(s.plan, s.costModel), sequence);
-          const nextInput = { ...s.input, departure: shiftDate(s.input.departure, 1) };
-          nextPlan.input = nextInput;
-          const nextHotels = syncHotelSelections(nextPlan, s.hotelSelections, s.hotelDatabase, nextInput);
-          return { ...s, input: nextInput, plan: nextPlan, hotelSelections: nextHotels };
+          const departure = departureForNights(s.input.arrival, s.plan.nights + 1);
+          if (!departure) return s;
+          return generatePlannerState(s, { departure });
         } catch { return s; }
       });
     },
     removeDay(day) {
       setState((s) => {
         if (!s.plan || s.plan.nights <= 1 || day < 1 || day > s.plan.days) return s;
-        const sequence = s.plan.dayPlans.slice(0, s.plan.nights).map((d) => d.stay);
-        const removeIndex = day >= s.plan.days ? sequence.length - 1 : Math.min(sequence.length - 1, day - 1);
-        sequence.splice(removeIndex, 1);
         try {
-          const nextPlan = rebuildPlanFromNightSequence(reschedulePlan(s.plan, s.costModel), sequence);
-          const nextInput = { ...s.input, departure: shiftDate(s.input.departure, -1) };
-          nextPlan.input = nextInput;
-          const nextHotels = syncHotelSelections(nextPlan, s.hotelSelections, s.hotelDatabase, nextInput);
-          return { ...s, input: nextInput, plan: nextPlan, hotelSelections: nextHotels };
+          const nextPlan = removeTripDay(reschedulePlan(s.plan, s.costModel), day);
+          return applyPlanEdit({ ...s, input: nextPlan.input }, nextPlan);
         } catch { return s; }
       });
     },
@@ -425,8 +428,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     updateHotelRecord(id, patch) {
       setState((s) => {
         const hotelDatabase = s.hotelDatabase.map((h) => h.id === id ? { ...h, ...patch, lastUpdated: new Date().toISOString().slice(0, 10) } : h);
-        const changed = hotelDatabase.find((h) => h.id === id);
-        const hotelSelections = changed ? s.hotelSelections.map((h) => h.hotelId === id ? selectionFromHotel(h.location, changed, h.nights, s.input) : h) : s.hotelSelections;
+        const hotelSelections = s.plan ? syncHotelSelections(s.plan, s.hotelSelections, hotelDatabase, s.input) : s.hotelSelections;
         return { ...s, hotelDatabase, hotelSelections };
       });
     },
