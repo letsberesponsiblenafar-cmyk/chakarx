@@ -17,7 +17,7 @@ export default function DestinationPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [photos, setPhotos] = useState<{ url: string; thumb: string; title: string }[]>([]);
-  useEffect(() => { if (fromCatalog) setDestination(fromCatalog); }, [fromCatalog]);
+  useEffect(() => { setDestination(fromCatalog || null); }, [fromCatalog]);
   useEffect(() => {
     if (!destination?.photoQuery) return;
     let current = true;

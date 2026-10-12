@@ -1,5 +1,7 @@
 -- Run once in the Supabase SQL Editor. The app overlays editable records on
 -- the bundled Kashmir catalog; each edit or new destination is saved here.
+-- Deleted guides remain as tombstones in record so bundled destinations do
+-- not reappear. No schema migration is required for destination deletion.
 create table if not exists public.destination_master (
   id text primary key,
   record jsonb not null,

@@ -1,10 +1,11 @@
-import { destinationByName, destinations, replaceDestinationCatalog, hotelCategories, interests, mealOptions, routeByName, transportOptions, travelStyles } from '@/lib/data';
+import { destinationByName, destinations, withDestinationCatalog, hotelCategories, interests, mealOptions, routeByName, transportOptions, travelStyles } from '@/lib/data';
 import type { Destination, Route, Site, Hotel } from '@/lib/data';
 import { firstHotelCandidate, roomsRequired, cnbChildren, extraBedsRequired } from '@/lib/hotels';
 import { destinationPriority, recommendationWeight, routeDecision, routeRule, isGurezAllowed, shouldPreferOffbeat, destinationAccessFlags, engineRules } from '@/lib/intelligence';
 import { seasonMatches } from '@/lib/seasons';
 import { priceTrip } from '@/lib/pricing';
 import { scheduleDayPlans, type ScheduleQuote } from '@/lib/day-scheduler';
+import { snapshotPlanDestinations, srinagarLogisticsGuide, withPlanDestinations } from '@/lib/plan-destinations';
 
 export type TripInput = {
   name: string; arrival: string; departure: string; arrivalTime?: string; departureTime?: string; pickup: string; adults: number; youngAges: number[]; budget: number;
@@ -22,6 +23,7 @@ export type Plan = {
   input: TripInput; nights: number; days: number; stays: Stay[]; dayPlans: DayPlan[]; routeKm: number; driveHours: number; hotelChanges: number; travelLoad: 'Light' | 'Moderate' | 'Heavy';
   estimatedTotal: number; rangeLow: number; rangeHigh: number; costs: { accommodation: number; transport: number; meals: number; activities: number; contingency: number };
   hotelPlans: HotelPlan[]; evaluation: { budgetFit: string; season: string; capacity: string; route: string; dataConfidence: string; alerts: string[]; ruleTrace: string[]; exclusions: string[] };
+  destinationSnapshot?: Destination[];
 };
 
 export const ROUTE_VERSION = 'kashmir-timed-library-2026-10-11';
@@ -138,7 +140,7 @@ const essentialVisits = ['Gulmarg', 'Pahalgam', 'Sonamarg', 'Doodhpathri', 'Nara
 
 function chooseDayTrip(base: Destination, visited: Set<string>, date: string, input: TripInput) {
   if (base.name !== 'Srinagar') return null;
-  const candidates = destinations.filter((d) => d.name !== 'Srinagar' && !visited.has(d.name) && d.base && (!d.hub_route || d.hub_route.access_mode === 'road') && (routeByName('Srinagar', d.name)?.hours || 99) <= 3.5);
+  const candidates = destinations.filter((d) => !d.library_archived && d.name !== 'Srinagar' && !visited.has(d.name) && d.base && (!d.hub_route || d.hub_route.access_mode === 'road') && (routeByName('Srinagar', d.name)?.hours || 99) <= 3.5);
   const allowed = candidates.filter((d) => {
     if (d.name === 'Gurez') return isGurezAllowed(date);
     if (d.name === 'Doodhpathri') return seasonForDate(date) !== 'winter';
@@ -170,7 +172,7 @@ function recommendedNightSequence(input: TripInput) {
   const addStay = (name: string) => {
     const destination = destinationByName(name);
     const route = routeByName('Srinagar', name);
-    if (!destination?.overnight_allowed || !route || destination.hub_route?.access_mode && destination.hub_route.access_mode !== 'road') return false;
+    if (!destination?.overnight_allowed || destination.library_archived || !route || destination.hub_route?.access_mode && destination.hub_route.access_mode !== 'road') return false;
     sequence.push(name, 'Srinagar'); return true;
   };
   core.forEach(addStay);
@@ -182,14 +184,14 @@ function recommendedNightSequence(input: TripInput) {
   // Keep one full Srinagar-based day for Naranag or another suitable visit.
   if (remaining > 0) { sequence.push('Srinagar'); remaining--; }
   const extras = destinations
-    .filter((d) => d.base && d.overnight_allowed && d.min_nights <= 1 && !sequence.includes(d.name) && (!d.hub_route || d.hub_route.access_mode === 'road'))
+    .filter((d) => !d.library_archived && d.base && d.overnight_allowed && d.min_nights <= 1 && !sequence.includes(d.name) && (!d.hub_route || d.hub_route.access_mode === 'road'))
     .filter((d) => d.name !== 'Srinagar' && d.name !== 'Naranag' && d.cluster !== 'central')
     .filter((d) => (routeByName('Srinagar', d.name)?.hours || 99) <= 4 && seasonFit(d, input.arrival) >= 0.9)
     .sort((a, b) => scoredDestination(b, input, input.arrival) - scoredDestination(a, input, input.arrival));
   if (remaining >= 2 && extras.length) { addStay(extras.shift()!.name); remaining -= 2; }
   if (remaining > 0 && days >= 14) {
     const extend = ['Pahalgam', 'Gulmarg', 'Sonamarg', 'Doodhpathri'].find((name) =>
-      sequence.includes(name) && sequence.filter((stay) => stay === name).length < (destinationByName(name)?.max_nights || 1));
+      sequence.includes(name) && !destinationByName(name)?.library_archived && sequence.filter((stay) => stay === name).length < (destinationByName(name)?.max_nights || 1));
     if (extend) { sequence.splice(sequence.lastIndexOf(extend) + 1, 0, extend); remaining--; }
   }
   while (remaining >= 2 && extras.length) { addStay(extras.shift()!.name); remaining -= 2; }
@@ -237,7 +239,7 @@ function buildDays(input: TripInput, nightSequence: string[], departurePoint = '
     const arrivalVisit = index === 0 && stay === 'Srinagar'
       ? destinationByName(nights === 3 ? 'Gulmarg' : '')
       : null;
-    const feasibleArrivalVisit = arrivalVisit && arrivalDayVisitAllowed(input, arrivalVisit.name) ? arrivalVisit : null;
+    const feasibleArrivalVisit = arrivalVisit && !arrivalVisit.library_archived && arrivalDayVisitAllowed(input, arrivalVisit.name) ? arrivalVisit : null;
     const excursion = override === null ? null : override ? destinationByName(override)
       : feasibleArrivalVisit || (!transfer ? chooseDayTrip(base, visited, date, input) : null);
     const blocks = [...arrival];
@@ -315,10 +317,9 @@ export function createPlan(input: TripInput, catalog?: Destination[]): Plan {
   if (catalog) {
     // Planning is synchronous: scope the request's shared library to this call,
     // restoring the module's catalog before another request can run.
-    const previous = [...destinations];
-    replaceDestinationCatalog(catalog);
-    try { return createPlan(input); } finally { replaceDestinationCatalog(previous); }
+    return withDestinationCatalog(catalog, () => createPlan(input));
   }
+  if (!destinationByName('Srinagar') || destinationByName('Srinagar')?.library_archived) return withDestinationCatalog([...destinations.filter((destination) => destination.name !== 'Srinagar'), srinagarLogisticsGuide()], () => createPlan(input));
   const normalized = validatedTripInput(input);
   const nights = tripNights(normalized);
   const nightSequence = departureNightSequence(normalized, recommendedNightSequence(normalized));
@@ -350,7 +351,7 @@ export function createPlan(input: TripInput, catalog?: Destination[]): Plan {
   }
   if (dayPlans.some((d) => d.stay === 'Gurez') && !isGurezAllowed(input.arrival)) alerts.push('Gurez is outside the May-October planning window and should not be confirmed.');
   dayPlans.flatMap((d) => d.blocks).filter((b) => b.intelligence?.status === 'CONDITIONAL' || b.intelligence?.status === 'LIVE_CHECK').forEach((b) => alerts.push(`${b.name}: ${b.intelligence?.note || 'Current access/operation check required.'}`));
-  return {
+  const plan: Plan = {
     input: normalized,
     nights,
     days: nights + 1,
@@ -376,9 +377,14 @@ export function createPlan(input: TripInput, catalog?: Destination[]): Plan {
       exclusions,
     },
   };
+  return { ...plan, destinationSnapshot: snapshotPlanDestinations(plan) };
 }
 
 export function rebuildPlanFromNightSequence(plan: Plan, requestedSequence: string[]): Plan {
+  return withPlanDestinations(plan, () => rebuildExistingPlanFromNightSequence(plan, requestedSequence));
+}
+
+function rebuildExistingPlanFromNightSequence(plan: Plan, requestedSequence: string[]): Plan {
   if (requestedSequence.length < 1 || requestedSequence.length > 30) throw new Error('Night allocation must contain between 1 and 30 nights.');
   if (requestedSequence.some((name) => !destinationByName(name)?.overnight_allowed)) throw new Error('Every selected overnight destination must allow overnight stays.');
   const nightSequence = departureNightSequence(plan.input, requestedSequence);
@@ -406,7 +412,7 @@ export function rebuildPlanFromNightSequence(plan: Plan, requestedSequence: stri
   const segments = groupedStays(nightSequence);
   const m = metrics(mergedDays, nightSequence.length);
   const hotelPlans = makeHotelPlans(nightSequence, plan.input.hotelCategory);
-  return {
+  const rebuilt: Plan = {
     ...plan,
     input: nextInput,
     nights: nightSequence.length,
@@ -420,6 +426,7 @@ export function rebuildPlanFromNightSequence(plan: Plan, requestedSequence: stri
     travelLoad: m.travelLoad,
     evaluation: { ...plan.evaluation, capacity: `${segments.length} stay segments using destination day and night windows`, route: `${Math.round(m.routeKm)} km across ${m.driveHours.toFixed(1)} planning driving hours` },
   };
+  return { ...rebuilt, destinationSnapshot: snapshotPlanDestinations(rebuilt) };
 }
 
 function dayContext(day: DayPlan) {
@@ -453,6 +460,10 @@ export function retargetDay(plan: Plan, dayNumber: number, destinationName: stri
 }
 
 export function setPlanDayTrip(plan: Plan, dayNumber: number, destinationName: string | null): Plan {
+  return withPlanDestinations(plan, () => setExistingPlanDayTrip(plan, dayNumber, destinationName));
+}
+
+function setExistingPlanDayTrip(plan: Plan, dayNumber: number, destinationName: string | null): Plan {
   plan = enforceDepartureNight(plan);
   if (dayNumber < 1 || dayNumber > plan.nights) throw new Error('Choose a sightseeing day before departure.');
   const oldDay = plan.dayPlans[dayNumber - 1];
@@ -465,10 +476,15 @@ export function setPlanDayTrip(plan: Plan, dayNumber: number, destinationName: s
   const days = buildDays(plan.input, sequence, plan.dayPlans[plan.days - 1]?.to || 'Srinagar', trips);
   const merged = days.map((day) => carryDayEdits(plan.dayPlans[day.day - 1], day));
   const m = metrics(merged, plan.nights);
-  return { ...plan, dayPlans: merged, routeKm: m.routeKm, driveHours: m.driveHours, travelLoad: m.travelLoad, evaluation: { ...plan.evaluation, route: `${Math.round(m.routeKm)} km across ${m.driveHours.toFixed(1)} planning driving hours` } };
+  const updated = { ...plan, dayPlans: merged, routeKm: m.routeKm, driveHours: m.driveHours, travelLoad: m.travelLoad, evaluation: { ...plan.evaluation, route: `${Math.round(m.routeKm)} km across ${m.driveHours.toFixed(1)} planning driving hours` } };
+  return { ...updated, destinationSnapshot: snapshotPlanDestinations(updated) };
 }
 
 export function setPlanDeparturePoint(plan: Plan, departurePoint: string): Plan {
+  return withPlanDestinations(plan, () => setExistingPlanDeparturePoint(plan, departurePoint));
+}
+
+function setExistingPlanDeparturePoint(plan: Plan, departurePoint: string): Plan {
   plan = enforceDepartureNight(plan);
   if (!destinationByName(departurePoint)?.overnight_allowed && departurePoint !== 'Jammu') throw new Error('Choose a recognized departure base.');
   const sequence = plan.dayPlans.slice(0, plan.nights).map((d) => d.stay);
@@ -477,7 +493,8 @@ export function setPlanDeparturePoint(plan: Plan, departurePoint: string): Plan 
   const days = buildDays(plan.input, sequence, departurePoint, trips);
   const merged = days.map((day) => carryDayEdits(plan.dayPlans[day.day - 1], day));
   const m = metrics(merged, plan.nights);
-  return { ...plan, dayPlans: merged, routeKm: m.routeKm, driveHours: m.driveHours, travelLoad: m.travelLoad, evaluation: { ...plan.evaluation, route: `${Math.round(m.routeKm)} km across ${m.driveHours.toFixed(1)} planning driving hours` } };
+  const updated = { ...plan, dayPlans: merged, routeKm: m.routeKm, driveHours: m.driveHours, travelLoad: m.travelLoad, evaluation: { ...plan.evaluation, route: `${Math.round(m.routeKm)} km across ${m.driveHours.toFixed(1)} planning driving hours` } };
+  return { ...updated, destinationSnapshot: snapshotPlanDestinations(updated) };
 }
 
 function enforceDepartureNight(plan: Plan): Plan {
@@ -487,13 +504,17 @@ function enforceDepartureNight(plan: Plan): Plan {
 
 /** Apply compulsory departure logistics, then re-evaluate the library programme and quote. */
 export function reschedulePlan(plan: Plan, quote?: ScheduleQuote): Plan {
+  return withPlanDestinations(plan, () => rescheduleExistingPlan(plan, quote));
+}
+
+function rescheduleExistingPlan(plan: Plan, quote?: ScheduleQuote): Plan {
   plan = enforceDepartureNight(plan);
   const refreshed = plan.dayPlans.map((day) => ({ ...day, drive: journeyDrive(day.from, day.to, day.dayTripDestination) }));
   const dayPlans = scheduleDayPlans(plan.input, refreshed, quote);
   const totals = metrics(dayPlans, plan.nights);
-  return { ...plan, dayPlans, ...totals,
+  const scheduled: Plan = { ...plan, dayPlans, ...totals,
     evaluation: { ...plan.evaluation, route: `${Math.round(totals.routeKm)} km across ${totals.driveHours.toFixed(1)} planning driving hours` } };
-
+  return { ...scheduled, destinationSnapshot: snapshotPlanDestinations(scheduled) };
 }
 
 export function itineraryPromptContext(plan: Plan) {

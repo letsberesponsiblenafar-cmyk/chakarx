@@ -21,6 +21,8 @@ export type Site = {
 
 export type Destination = {
   id?: string;
+  /** Internal quote fallback; excluded from new automatic recommendations. */
+  library_archived?: boolean;
   name: string;
   tier: string;
   district: string;
@@ -112,8 +114,21 @@ export function enrichDestination(record: Destination): Destination {
   };
 }
 export const destinations: Destination[] = (destinationsJson as Destination[]).map(enrichDestination);
+// Removed guides are available only to existing quote snapshots, never to the
+// library or the recommendation list.
+let archivedDestinations: Destination[] = [];
+export function replaceArchivedDestinationCatalog(records: Destination[]) {
+  archivedDestinations = records.map(enrichDestination);
+}
+export function archivedDestinationCatalog() { return archivedDestinations; }
 export function replaceDestinationCatalog(records: Destination[]) {
   destinations.splice(0, destinations.length, ...records.map(enrichDestination));
+}
+/** Scope synchronous quote work without changing the active library. */
+export function withDestinationCatalog<T>(records: Destination[], work: () => T): T {
+  const previous = [...destinations];
+  replaceDestinationCatalog(records);
+  try { return work(); } finally { replaceDestinationCatalog(previous); }
 }
 export const routes = routesJson as Record<string, Route>;
 // Hotel master data is fetched from the authenticated server API after sign-in.

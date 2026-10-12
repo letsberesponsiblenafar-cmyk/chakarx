@@ -38,8 +38,16 @@ global.fetch = async (url, options = {}) => {
   assert.ok(!options.headers.Authorization, 'A Supabase secret key is not a JWT bearer token.');
   if (options.method === 'POST') {
     const row = JSON.parse(options.body);
+    if (options.headers.Prefer?.includes('ignore-duplicates') && rows.has(row.id)) return Response.json([]);
     rows.set(row.id, row);
+    if (options.headers.Prefer?.includes('return=representation')) return Response.json([row]);
     return new Response(null, { status: 201 });
+  }
+  if (options.method === 'PATCH') {
+    const row = JSON.parse(options.body);
+    if (!rows.has(row.id) || rows.get(row.id).record.kind === 'deleted-destination') return Response.json([]);
+    rows.set(row.id, row);
+    return Response.json([row]);
   }
   if (url.includes(`id=eq.${PACKAGE_DEFAULTS_RECORD_ID}`)) return Response.json(rows.has(PACKAGE_DEFAULTS_RECORD_ID) ? [rows.get(PACKAGE_DEFAULTS_RECORD_ID)] : []);
   // Deliberately return the settings row even when the URL filters it. The

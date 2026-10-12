@@ -8,6 +8,7 @@ import PlannerChrome from '@/components/PlannerChrome';
 import { usePlanner } from '@/components/PlannerProvider';
 import { quotedActivityCost, tripActivities } from '@/lib/activities';
 import { dayTitle } from '@/lib/narrative';
+import { withPlanDestinations } from '@/lib/plan-destinations';
 import type { DayPlan } from '@/lib/itinerary';
 import { accommodationDayNarrative, hotelForNight, hotelStayLabel } from '@/lib/accommodation';
 import './itinerary-refinement.css';
@@ -54,8 +55,9 @@ export default function ItineraryPage() {
       const advisories = day.timing?.advisories || [];
       const suggested = accommodationDayNarrative(plan, hotelSelections, { ...day, customAbout: undefined }, input.pickup || 'Srinagar', costModel);
       const copy = accommodationDayNarrative(plan, hotelSelections, day, input.pickup || 'Srinagar', costModel);
+      const title = withPlanDestinations(plan, () => dayTitle(day, input.pickup || 'Srinagar'));
       return <article className="itinerary-review-card" key={day.day}>
-        <div className="itinerary-review-top"><div className="itinerary-review-number">{String(day.day).padStart(2, '0')}</div><div><span className="eyebrow">{displayDate(day.date)}</span><h3>{dayTitle(day, input.pickup || 'Srinagar')}</h3><p>{day.label === 'Departure day' ? `Departure: ${day.to}${day.departureTime ? ` · ${day.departureTime}` : ''}` : `Overnight: ${hotel ? hotelStayLabel(hotel) : day.stay}${hotel?.hotelName && hotel.hotelName !== 'Hotel to be added' ? ` · ${hotel.hotelName}` : ''}`}</p></div><button type="button" className="secondary-link" onClick={() => setEditingDay(editing ? null : day.day)}>{editing ? 'Done' : 'Edit description'}</button></div>
+        <div className="itinerary-review-top"><div className="itinerary-review-number">{String(day.day).padStart(2, '0')}</div><div><span className="eyebrow">{displayDate(day.date)}</span><h3>{title}</h3><p>{day.label === 'Departure day' ? `Departure: ${day.to}${day.departureTime ? ` · ${day.departureTime}` : ''}` : `Overnight: ${hotel ? hotelStayLabel(hotel) : day.stay}${hotel?.hotelName && hotel.hotelName !== 'Hotel to be added' ? ` · ${hotel.hotelName}` : ''}`}</p></div><button type="button" className="secondary-link" onClick={() => setEditingDay(editing ? null : day.day)}>{editing ? 'Done' : 'Edit description'}</button></div>
         <div className="itinerary-day-context"><span><Route size={15}/>{dayRoute(day)}</span><span><Clock3 size={15}/>{durationLabel(day.timing?.driveMinutes ?? day.drive.hours * 60)} estimated driving{day.timing ? ` · ${durationLabel(day.timing.scheduledMinutes)} estimated visits & activities` : ''}</span></div>
         {advisories.length > 0 && <details className="itinerary-planning-estimates"><summary><Clock3 size={14}/>Planning estimates</summary><p>These estimates do not remove selected places. You can edit the day description below.</p><ul>{advisories.map((message, index) => <li key={index}>{message}</li>)}</ul></details>}
         {!hasProgramme(day) && day.label !== 'Departure day' && !day.transfer && <p className="itinerary-empty-programme"><AlertTriangle size={14}/>No visits are assigned to this day. Add a destination visit or an included activity before sharing.</p>}

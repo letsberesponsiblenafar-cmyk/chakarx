@@ -4,12 +4,13 @@ import { createPlan, reschedulePlan, retargetDay, rebuildPlanFromNightSequence, 
 import { editTripPlan, removeTripDay } from '@/lib/trip-edits';
 import { tripActivityDestinations } from '@/lib/activities';
 import { departureForNights } from '@/lib/trip-dates';
-import { hotelDatabase as importedHotels, hotelCategories, mealOptions, transportOptions, travelStyles, interests, destinations, destinationByName, replaceDestinationCatalog, type Destination, type Hotel } from '@/lib/data';
+import { hotelDatabase as importedHotels, hotelCategories, mealOptions, transportOptions, travelStyles, interests, destinations, destinationByName, replaceDestinationCatalog, replaceArchivedDestinationCatalog, archivedDestinationCatalog, type Destination, type Hotel } from '@/lib/data';
 import { firstHotelCandidate, roomsRequired, cnbChildren, extraBedsRequired, matchesPackageCategory, suggestedHotel, isHouseboatHotel, sameHotelDestination } from '@/lib/hotels';
 import { stayDateWindow } from '@/lib/hotel-rate-validity';
 import { hotelSelectionKey, hotelStayType, hotelNightDates, type AccommodationType } from '@/lib/accommodation';
 import { dayScheduleContext } from '@/lib/day-scheduler';
 import { initialPackageDefaults, validatePackageDefaults, type PackageDefaults } from '@/lib/package-defaults';
+import { withPlanDestinations } from '@/lib/plan-destinations';
 
 export type HotelSelection = {
   location: string; hotelId: string; hotelName: string; category: string; starRating: number | null; address: string; roomType: string; website: string;
@@ -30,6 +31,7 @@ type PlannerContextValue = PlannerState & {
   destinationConnection: 'loading' | 'ready' | 'error';
   destinationConnectionError: string;
   refreshDestinations: (rebuildCurrent?: boolean) => Promise<void>;
+  removeDestinationFromLibrary: (destination: Destination) => void;
   packageDefaults: PackageDefaults;
   packageDefaultsConnection: 'loading' | 'ready' | 'error';
   packageDefaultsError: string;
@@ -298,11 +300,13 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       if(!response.ok)throw new Error(payload.error||`Destination database request failed (${response.status}).`);
       if(!Array.isArray(payload.destinations))throw new Error('Destination database returned an invalid response.');
       const catalog=payload.destinations as Destination[];
+      replaceArchivedDestinationCatalog(Array.isArray(payload.archivedDestinations) ? payload.archivedDestinations : []);
       replaceDestinationCatalog(catalog);
       setDestinationCatalog([...destinations]);
-      if (rebuildCurrent) setState((current) => {
+      setState((current) => {
         if (!current.plan) return current;
         try {
+          if (!rebuildCurrent) return reconcilePlannerState(current);
           const sequence = current.plan.dayPlans.slice(0, current.plan.nights).map((day) => day.stay);
           const plan = rebuildPlanFromNightSequence(current.plan, sequence);
           return applyPlanEdit(current, plan);
@@ -342,14 +346,15 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     }
   }
   useEffect(() => {
-    setState(reconcilePlannerState(readState()));
+    // Retain restored day-trip content until active and removed guides load.
+    setState(readState());
     setMounted(true);
     // Login is public and has no session yet. The full navigation after sign-in
     // remounts this provider and loads the hotel master with the new cookie.
     if(window.location.pathname!=='/login') { void refreshHotels(); void refreshDestinations(); void refreshPackageDefaults(); }
   }, []);
-  const scheduledPlan = useMemo(() => state.plan ? reschedulePlan(state.plan, state.costModel) : null,
-    [state.plan, state.costModel.activityCosts, state.costModel.activitySelections, destinationCatalog]);
+  const scheduledPlan = useMemo(() => state.plan ? destinationConnection === 'ready' ? reschedulePlan(state.plan, state.costModel) : state.plan : null,
+    [state.plan, state.costModel.activityCosts, state.costModel.activitySelections, destinationCatalog, destinationConnection]);
   const scheduledState = useMemo(() => stateWithScheduledPlan(state, scheduledPlan), [state, scheduledPlan]);
   useEffect(() => { if (mounted) { try { const {hotelDatabase: _privateRates, ...saved}=scheduledState; localStorage.setItem(STORAGE, JSON.stringify(saved)); } catch { /* ignore storage errors */ } } }, [scheduledState, mounted]);
   const value = useMemo<PlannerContextValue>(() => ({
@@ -359,6 +364,13 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     destinationConnection,
     destinationConnectionError,
     refreshDestinations,
+    removeDestinationFromLibrary(destination) {
+      const id = destination.id || destination.name;
+      replaceArchivedDestinationCatalog([...archivedDestinationCatalog().filter((item) => (item.id || item.name) !== id), destination]);
+      replaceDestinationCatalog(destinations.filter((item) => (item.id || item.name) !== id));
+      setDestinationCatalog([...destinations]);
+      setState((current) => reconcilePlannerState(current));
+    },
     packageDefaults,
     packageDefaultsConnection,
     packageDefaultsError,
@@ -414,7 +426,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       setState((s) => {
         if (!s.plan) return s;
         const plan = reschedulePlan(s.plan, s.costModel);
-        return { ...s, plan: { ...plan, dayPlans: plan.dayPlans.map((d) => d.day === day ? { ...d, customTitle: patch.title ?? d.customTitle, customAbout: patch.about ?? d.customAbout, customAboutContext: patch.about !== undefined ? dayScheduleContext(d) : d.customAboutContext } : d) } };
+        return { ...s, plan: { ...plan, dayPlans: plan.dayPlans.map((d) => d.day === day ? { ...d, customTitle: patch.title ?? d.customTitle, customAbout: patch.about ?? d.customAbout, customAboutContext: patch.about !== undefined ? withPlanDestinations(plan, () => dayScheduleContext(d)) : d.customAboutContext } : d) } };
       });
     },
     setStayAllocation(entries) {

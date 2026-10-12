@@ -3,6 +3,7 @@ import type { DayPlan, Plan } from '@/lib/itinerary';
 import { isHouseboatHotel } from '@/lib/hotels';
 import { stayDateWindow } from '@/lib/hotel-rate-validity';
 import { dayNarrative, type NarrativeQuote } from '@/lib/narrative';
+import { withPlanDestinations } from '@/lib/plan-destinations';
 
 export type AccommodationType = 'hotel' | 'houseboat';
 
@@ -50,8 +51,8 @@ export function hotelForNight(plan: Plan, hotels: HotelSelection[], dayNumber: n
 export function accommodationDayNarrative(plan: Plan, hotels: HotelSelection[], day: DayPlan, pickup: string, quote?: NarrativeQuote) {
   const current = hotelForNight(plan, hotels, day.day);
   const previous = hotelForNight(plan, hotels, day.day - 1);
-  return dayNarrative(day, pickup, quote, {
+  return withPlanDestinations(plan, () => dayNarrative(day, pickup, quote, {
     current: current ? hotelStayType(current) : 'hotel',
     previous: previous ? hotelStayType(previous) : 'hotel',
-  });
+  }));
 }

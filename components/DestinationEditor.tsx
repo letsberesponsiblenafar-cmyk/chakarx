@@ -4,6 +4,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { type Destination, type VisitWindow } from '@/lib/data';
 import { activitySentence, defaultDayNote, sightseeingSentence } from '@/lib/narrative';
+import DestinationDeleteSection from '@/components/DestinationDeleteSection';
 import '@/app/planner/destination-refinement.css';
 
 type Sight = Destination['local_sightseeing'][number];
@@ -29,7 +30,7 @@ function duplicates(values: string[]) {
   return values.some((value) => { const key = value.trim().toLowerCase(); if (!key) return false; if (seen.has(key)) return true; seen.add(key); return false; });
 }
 
-export default function DestinationEditor({ initial, onSaved }: { initial?: Destination; onSaved: (destination: Destination) => Promise<void> }) {
+export default function DestinationEditor({ initial, onSaved, onDeleted }: { initial?: Destination; onSaved: (destination: Destination) => Promise<void>; onDeleted?: () => Promise<void> }) {
   const [draft, setDraft] = useState<Destination>(() => initial ? {
     ...initial, id: initial.id || initial.name, day_note: initial.day_note || defaultDayNote(initial),
     local_sightseeing: initial.local_sightseeing.map((sight) => ({ ...sight, tags: [...sight.tags] })),
@@ -39,6 +40,7 @@ export default function DestinationEditor({ initial, onSaved }: { initial?: Dest
   } : newDestination());
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const back = initial ? `/library/${encodeURIComponent(initial.id || initial.name)}` : '/library';
   const change = <K extends keyof Destination>(key: K, value: Destination[K]) => setDraft((current) => ({ ...current, [key]: value }));
   const updateSight = (index: number, patch: Partial<Sight>) => setDraft((current) => {
@@ -110,6 +112,7 @@ export default function DestinationEditor({ initial, onSaved }: { initial?: Dest
     <div className="destination-page-top"><Link className="secondary-link" href={back}>← Back to {initial ? 'destination' : 'library'}</Link><span className="eyebrow">KASHMIR DESTINATION LIBRARY</span></div>
     <div className="destination-page-hero"><div><span className="eyebrow">{initial ? 'EDIT DESTINATION' : 'NEW DESTINATION'}</span><h1>{initial ? `Edit ${initial.name}` : 'Add a destination'}</h1><p>Write the destination introduction, one client sentence for each sightseeing place, and the popular activities. Things to Do appears automatically on the destination page.</p></div></div>
     <form onSubmit={save} className="destination-full-form">
+      <fieldset className="destination-edit-fields" disabled={saving || deleting}>
       <section className="destination-form-section"><div className="destination-form-section-head"><div><span className="eyebrow">01 · OVERVIEW</span><h2>Destination details</h2></div></div>
         <div className="destination-editor-grid"><label>Name<input required value={draft.name} onChange={(event) => change('name', event.target.value)}/></label><label>District<input value={draft.district} onChange={(event) => change('district', event.target.value)}/></label><label>Category<select value={draft.tier} onChange={(event) => change('tier', event.target.value)}>{['Iconic','Established','Secondary','Offbeat','Iconic Site','Seasonal Icon','Special'].map((value) => <option key={value}>{value}</option>)}</select></label><label>Photo search<input value={draft.photoQuery} onChange={(event) => change('photoQuery', event.target.value)} placeholder="e.g. Srinagar Kashmir"/></label></div>
         <label>About this day<textarea rows={5} value={draft.day_note || ''} onChange={(event) => change('day_note', event.target.value)} placeholder="Write a short destination introduction. Travel, selected sights and overnight wording are added for the actual day."/><small>Keep this introduction general. The route distributes selected sightseeing places across the available days.</small></label>
@@ -136,6 +139,8 @@ export default function DestinationEditor({ initial, onSaved }: { initial?: Dest
       </details>
       {error && <p className="destination-editor-error" role="alert">{error}</p>}
       <footer className="destination-form-actions"><Link className="secondary-link" href={back}>Cancel</Link><button type="submit" className="primary-cta inline" disabled={saving}>{saving ? 'Saving…' : 'Save destination'}</button></footer>
+      </fieldset>
     </form>
+    {initial && onDeleted && <DestinationDeleteSection destination={initial} disabled={saving} onBusy={setDeleting} onDeleted={onDeleted}/>}
   </main>;
 }

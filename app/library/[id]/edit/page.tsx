@@ -9,13 +9,18 @@ import type { Destination } from '@/lib/data';
 export default function EditDestinationPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { destinationCatalog, destinationConnection, destinationConnectionError, refreshDestinations } = usePlanner();
+  const { destinationCatalog, destinationConnection, destinationConnectionError, refreshDestinations, removeDestinationFromLibrary } = usePlanner();
   const destination = destinationCatalog.find((item) => item.id === id || item.name === id);
   async function saved(record: Destination) {
     await refreshDestinations(true);
     router.push(`/library/${encodeURIComponent(record.id || record.name)}`);
   }
+  async function deleted() {
+    if (destination) removeDestinationFromLibrary(destination);
+    await refreshDestinations();
+    router.replace('/library');
+  }
   return <AppShell>{destination
-    ? <DestinationEditor key={destination.id || destination.name} initial={destination} onSaved={saved}/>
+    ? <DestinationEditor key={destination.id || destination.name} initial={destination} onSaved={saved} onDeleted={deleted}/>
     : <main className="page destination-page"><Link className="secondary-link" href="/library">← Destination library</Link><div className="empty-panel"><h2>{destinationConnection === 'loading' ? 'Loading destination…' : 'Destination not found'}</h2><p>{destinationConnection === 'error' ? destinationConnectionError : 'Choose a destination from the library.'}</p></div></main>}</AppShell>;
 }

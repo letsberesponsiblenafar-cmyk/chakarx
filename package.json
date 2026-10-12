@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "test:routes": "node tests/route-rules.mjs",
-    "test:destinations": "node tests/destination-library.cjs && node tests/destination-package-defaults.cjs && node tests/package-defaults-store.cjs",
+    "test:destinations": "node tests/destination-library.cjs && node tests/destination-package-defaults.cjs && node tests/package-defaults-store.cjs && node tests/destination-deletion.cjs && node tests/deleted-destination-quotes.cjs",
     "test:hotels": "node tests/hotel-suggestions.cjs && node tests/houseboat-stays.cjs",
     "test:store": "node tests/database-retry.cjs",
     "test:model": "node scripts/verify-model.mjs && node scripts/verify-recommendations.cjs",

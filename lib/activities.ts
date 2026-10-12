@@ -1,6 +1,7 @@
 import { destinations, packageTermKey, type Destination } from '@/lib/data';
 import type { Plan } from '@/lib/itinerary';
 import { initialPackageDefaults, type PackageDefaults } from '@/lib/package-defaults';
+import { planDestinations } from '@/lib/plan-destinations';
 
 export type TripActivity = { key: string; destination: string; name: string; available: boolean };
 
@@ -10,7 +11,7 @@ export function tripActivityDestinations(plan: Plan): Set<string> {
 
 export function tripActivities(plan: Plan, catalog: Destination[] = destinations, _selections: Record<string, boolean> = {}): TripActivity[] {
   const visited = tripActivityDestinations(plan);
-  return catalog.filter((destination) => visited.has(destination.name)).flatMap((destination) =>
+  return planDestinations(plan, catalog).filter((destination) => visited.has(destination.name)).flatMap((destination) =>
     destination.activities.map((name) => ({
       key: `${destination.name}\u001f${name}`,
       destination: destination.name,
@@ -75,6 +76,7 @@ function clauseIdentities(value: string, catalog: Destination[], destination?: s
 }
 
 export function clientActivityLists(plan: Plan, costs: Record<string, number>, selections: Record<string, boolean> = {}, manualInclusions: string[] = [], manualExclusions: string[] = [], catalog: Destination[] = destinations, packageDefaults: PackageDefaults = initialPackageDefaults()) {
+  catalog = planDestinations(plan, catalog);
   const included: string[] = [];
   const excluded: string[] = [];
   const activities = tripActivities(plan, catalog, selections);
