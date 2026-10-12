@@ -22,6 +22,8 @@ const { generatePlannerState, applyPlanEdit, reconcilePlannerState, syncHotelSel
 const { calculateCosts } = require('../lib/costing.ts');
 const { hotelConfirmationSignature } = require('../lib/quote-readiness.ts');
 const { removeTripDay } = require('../lib/trip-edits.ts');
+const { dayScheduleContext } = require('../lib/day-scheduler.ts');
+const { dayNarrative } = require('../lib/narrative.ts');
 
 const originalCatalog = [...destinations];
 const core = ['Srinagar', 'Gulmarg', 'Pahalgam', 'Sonamarg'];
@@ -52,8 +54,8 @@ function selectedHotel(destination, nights, overrides = {}) {
 function planFor(sequence) {
   const brief = { ...input, departure: dateAfter(sequence.length) };
   let plan = rebuildPlanFromNightSequence(createPlan(brief), sequence);
-  // Explicit operator choices make automatic extra excursions irrelevant to
-  // these tests. Later edits must preserve these choices as well as the quote.
+  // Operator choices must survive unchanged-duration edits. A changed trip
+  // length deliberately replaces these choices with fresh recommendations.
   for (let day = 1; day <= plan.nights; day++) plan = setPlanDayTrip(plan, day, null);
   return plan;
 }
@@ -98,7 +100,37 @@ function assertOtherAgreements(before, after) {
   assert.equal(after.savedItineraryId, before.savedItineraryId, 'Editing the duration detached the saved client');
 }
 function nightCost(hotel) { return hotel.rooms * hotel.nightlyRate + hotel.extraBeds * hotel.extraBedRate + hotel.cnb * hotel.cnbRate; }
-function routeChoices(plan) { return plan.dayPlans.slice(0, plan.nights).map((day) => [day.stay, day.dayTripDestination || null]); }
+function routeChoices(plan) { return plan.dayPlans.map((day) => [day.from, day.to, day.stay, day.dayTripDestination || null, day.label]); }
+function survivingHotelLocations(before, after) {
+  return before.hotelSelections.filter((hotel) => after.plan.hotelPlans.some((stay) => stay.location === hotel.location)).map((hotel) => hotel.location);
+}
+function assertFreshRoute(after) {
+  const recommended = createPlan(after.input);
+  assert.deepEqual(routeChoices(after.plan), routeChoices(recommended), 'The revised duration must use the complete freshly recommended journey');
+  assert.equal(after.plan.nights, recommended.nights);
+  assert.equal(after.plan.days, recommended.days);
+  assert.deepEqual(after.plan.hotelPlans.map((stay) => [stay.location, stay.nights]), recommended.hotelPlans.map((stay) => [stay.location, stay.nights]));
+}
+function assertActivityQuoteRetained(before, after) {
+  const remaining = new Set(after.plan.dayPlans.flatMap((day) => [day.from, day.to, day.stay, day.dayTripDestination]).filter(Boolean));
+  for (const field of ['activityCosts', 'activitySelections']) {
+    const expected = Object.fromEntries(Object.entries(before.costModel[field]).filter(([key]) => remaining.has(key.split('\u001f')[0])));
+    assert.deepEqual(after.costModel[field], expected, `${field} must retain exactly the destinations still represented in the replanned journey`);
+  }
+}
+function assertCostQuantities(state) {
+  const cost = calculateCosts(state.plan, state.hotelSelections, state.costModel);
+  const expectedAccommodation = state.plan.hotelPlans.reduce((sum, stay) => {
+    const hotel = state.hotelSelections.find((selected) => selected.location === stay.location);
+    assert.ok(hotel, `${stay.location} has no hotel selection`);
+    return sum + stay.nights * nightCost(hotel);
+  }, 0);
+  assert.equal(cost.accommodation, expectedAccommodation, 'Accommodation must use the revised nights at the preserved or newly suggested rates');
+  assert.equal(cost.transport, state.plan.days * state.costModel.transportDaily, 'Vehicle days must follow the revised trip length at the agreed daily rate');
+  assert.equal(cost.activities, Object.values(state.costModel.activityCosts).reduce((sum, amount) => sum + amount, 0), 'Existing arranged group experiences must not be charged again for extra days');
+  assert.equal(cost.b2bCost, cost.accommodation + cost.transport + cost.activities + state.costModel.otherAmount);
+  assert.equal(cost.sellingTotal, cost.b2bCost * (1 + state.costModel.profitPct / 100) * 1.05);
+}
 
 const failures = [];
 let checks = 0;
@@ -114,51 +146,100 @@ try {
     activity_timing: { [activityName(destination.name)]: { duration_minutes: 30 } },
   } : destination));
 
-  test('Build Trip Next extends an existing itinerary without rebuilding its selected stays or quote', () => {
-    const before = stateFor();
-    const after = generatePlannerState(before, { departure: dateAfter(7) });
-    assert.equal(after.plan.nights, 7);
-    assert.deepEqual(routeChoices(after.plan).slice(0, before.plan.nights), routeChoices(before.plan));
-    assert.equal(after.plan.dayPlans[6].stay, 'Srinagar', 'The additional day should extend the existing final stay');
-    assertRetainedHotels(before, after);
+  test('Build Trip Next replans five days into seven days while preserving surviving hotel and service agreements', () => {
+    const before = stateFor(['Srinagar', 'Gulmarg', 'Pahalgam', 'Srinagar']);
+    before.plan = setPlanDayTrip(before.plan, 4, 'Sonamarg');
+    before.costModel.activityCosts[activityKey('Sonamarg')] = 2500;
+    before.costModel.activitySelections[activityKey('Sonamarg')] = true;
+    const after = generatePlannerState(before, { departure: dateAfter(6) });
+    assert.equal(before.plan.days, 5);
+    assert.equal(after.plan.days, 7);
+    assertFreshRoute(after);
+    assert.notDeepEqual(routeChoices(after.plan).slice(0, before.plan.nights), routeChoices(before.plan).slice(0, before.plan.nights), 'The longer programme must not merely append days to the old route');
+    assertRetainedHotels(before, after, survivingHotelLocations(before, after));
     assertOtherAgreements(before, after);
-    assert.deepEqual(after.costModel.activityCosts, before.costModel.activityCosts);
-    assert.deepEqual(after.costModel.activitySelections, before.costModel.activitySelections);
+    assertActivityQuoteRetained(before, after);
     const oldCost = calculateCosts(before.plan, before.hotelSelections, before.costModel);
     const newCost = calculateCosts(after.plan, after.hotelSelections, after.costModel);
-    const oneNight = nightCost(before.hotelSelections.find((hotel) => hotel.location === 'Srinagar'));
-    assert.equal(newCost.accommodation - oldCost.accommodation, oneNight);
-    assert.equal(newCost.transport - oldCost.transport, before.costModel.transportDaily);
+    const srinagarNight = nightCost(before.hotelSelections.find((hotel) => hotel.location === 'Srinagar'));
+    assert.equal(newCost.accommodation - oldCost.accommodation, 2 * srinagarNight);
+    assert.equal(newCost.transport - oldCost.transport, 2 * before.costModel.transportDaily);
     assert.equal(newCost.activities, oldCost.activities, 'Unchanged experiences were charged again');
-    assert.equal(newCost.b2bCost - oldCost.b2bCost, oneNight + before.costModel.transportDaily);
-    assert.equal(newCost.sellingTotal, newCost.b2bCost * 1.175 * 1.05, 'The displayed total must use the preserved markup and automatic tax');
+    assert.equal(newCost.b2bCost - oldCost.b2bCost, 2 * (srinagarNight + before.costModel.transportDaily));
+    assertCostQuantities(after);
   });
 
-  test('Build Trip Next shortens only the removed quantities and preserves remaining destination activities', () => {
+  test('Build Trip Next recommends a complete shorter journey and preserves activities for destinations now visited as day trips', () => {
     const before = stateFor();
-    const after = generatePlannerState(before, { departure: dateAfter(5) });
-    assert.equal(after.plan.nights, 5);
-    assert.deepEqual(routeChoices(after.plan), routeChoices(before.plan).slice(0, 5));
-    assertRetainedHotels(before, after);
+    const after = generatePlannerState(before, { departure: dateAfter(4) });
+    assert.equal(after.plan.nights, 4);
+    assertFreshRoute(after);
+    assertRetainedHotels(before, after, ['Srinagar']);
+    assert.deepEqual(after.hotelSelections.map((hotel) => hotel.location), ['Srinagar'], 'Day-trip destinations must not retain overnight charges');
     assertOtherAgreements(before, after);
-    assert.deepEqual(after.costModel.activityCosts, before.costModel.activityCosts);
-    assert.deepEqual(after.costModel.activitySelections, before.costModel.activitySelections);
+    assertActivityQuoteRetained(before, after);
     const oldCost = calculateCosts(before.plan, before.hotelSelections, before.costModel);
     const newCost = calculateCosts(after.plan, after.hotelSelections, after.costModel);
-    assert.equal(oldCost.accommodation - newCost.accommodation, nightCost(before.hotelSelections[0]));
-    assert.equal(oldCost.transport - newCost.transport, before.costModel.transportDaily);
+    const quoted = (location) => nightCost(before.hotelSelections.find((hotel) => hotel.location === location));
+    assert.equal(oldCost.accommodation - newCost.accommodation, quoted('Gulmarg') + 2 * quoted('Pahalgam') - quoted('Srinagar'));
+    assert.equal(oldCost.transport - newCost.transport, 2 * before.costModel.transportDaily);
     assert.equal(oldCost.activities, newCost.activities);
+    assertCostQuantities(after);
   });
 
-  test('repeated date/duration changes keep the same client agreements and restore the original total', () => {
+  test('repeated duration changes recommend each new trip length without changing surviving agreements', () => {
     const before = stateFor();
     let after = before;
-    for (const nights of [7, 8, 6, 7, 6]) after = generatePlannerState(after, { departure: dateAfter(nights) });
-    assertRetainedHotels(before, after);
+    for (const nights of [7, 8, 6, 7, 6]) {
+      const previous = after;
+      after = generatePlannerState(previous, { departure: dateAfter(nights) });
+      assertFreshRoute(after);
+      assertRetainedHotels(previous, after, survivingHotelLocations(previous, after));
+      assertOtherAgreements(previous, after);
+      assertActivityQuoteRetained(previous, after);
+      assertCostQuantities(after);
+    }
+    assertRetainedHotels(before, after, survivingHotelLocations(before, after));
+    assert.notDeepEqual(routeChoices(after.plan), routeChoices(before.plan), 'Returning to the old duration still uses the recommended route rather than resurrecting old operator choices');
+  });
+
+  test('a longer recommended journey suggests hotels only for newly overnighted destinations', () => {
+    const before = stateFor(['Srinagar', 'Srinagar', 'Srinagar', 'Srinagar']);
+    const after = generatePlannerState(before, { departure: dateAfter(7) });
+    assertFreshRoute(after);
+    assertRetainedHotels(before, after, ['Srinagar']);
     assertOtherAgreements(before, after);
-    assert.deepEqual(routeChoices(after.plan), routeChoices(before.plan));
-    assert.deepEqual(after.costModel, before.costModel);
-    assert.deepEqual(calculateCosts(after.plan, after.hotelSelections, after.costModel), calculateCosts(before.plan, before.hotelSelections, before.costModel));
+    const addedLocations = after.plan.hotelPlans.filter((stay) => stay.location !== 'Srinagar').map((stay) => stay.location);
+    assert.deepEqual(addedLocations.sort(), ['Gulmarg', 'Pahalgam', 'Sonamarg']);
+    for (const location of addedLocations) {
+      const hotel = after.hotelSelections.find((selected) => selected.location === location);
+      assert.equal(hotel.hotelId, `master-${location}`);
+      assert.equal(hotel.hotelName, `${location} database hotel`);
+      assert.equal(hotel.nightlyRate, 3600);
+      assert.equal(hotel.extraBedRate, 800);
+      assert.equal(hotel.cnbRate, 300);
+      assert.equal(hotel.nights, after.plan.hotelPlans.find((stay) => stay.location === location).nights);
+    }
+    assertActivityQuoteRetained(before, after);
+    assertCostQuantities(after);
+  });
+
+  test('duration changes regenerate every About This Day instead of retaining manual copy from the old programme', () => {
+    const before = stateFor(['Srinagar', 'Gulmarg', 'Pahalgam', 'Srinagar']);
+    before.plan.dayPlans = before.plan.dayPlans.map((day) => ({ ...day,
+      customAbout: `Old five-day client programme for day ${day.day}.`,
+      customTitle: `Old programme ${day.day}`, customAboutContext: dayScheduleContext(day) }));
+    const after = generatePlannerState(before, { departure: dateAfter(6) });
+    assertFreshRoute(after);
+    for (const day of after.plan.dayPlans) {
+      assert.equal(day.customAbout, undefined, `Day ${day.day} retained text for the old duration`);
+      assert.equal(day.customTitle, undefined, `Day ${day.day} retained an old programme title`);
+      const description = dayNarrative(day, after.input.pickup);
+      assert.ok(description.trim(), `Day ${day.day} has no new description`);
+      assert.ok(!description.includes('Old five-day client programme'));
+    }
+    assertRetainedHotels(before, after, survivingHotelLocations(before, after));
+    assertOtherAgreements(before, after);
   });
 
   test('a new overnight destination alone receives a hotel suggestion', () => {
@@ -278,11 +359,13 @@ try {
   test('changed stay quantities invalidate verification without replacing the agreed hotel', () => {
     const before = stateFor();
     const after = generatePlannerState(before, { departure: dateAfter(7) });
-    assert.equal(after.hotelSelections.find((hotel) => hotel.location === 'Srinagar').rateConfirmed, false);
-    for (const destination of ['Gulmarg', 'Pahalgam']) {
-      assert.equal(after.hotelSelections.find((hotel) => hotel.location === destination).rateConfirmed, true, `${destination} unchanged dates should remain verified`);
+    const dates = (plan, location) => plan.dayPlans.slice(0, plan.nights).filter((day) => day.stay === location).map((day) => day.date);
+    for (const destination of survivingHotelLocations(before, after)) {
+      const sameDates = JSON.stringify(dates(before.plan, destination)) === JSON.stringify(dates(after.plan, destination));
+      assert.equal(after.hotelSelections.find((hotel) => hotel.location === destination).rateConfirmed, sameDates,
+        `${destination} verification must follow its actual revised stay dates`);
     }
-    assertRetainedHotels(before, after);
+    assertRetainedHotels(before, after, survivingHotelLocations(before, after));
   });
 
   test('changing two adults to eight preserves manual room agreements and requires renewed hotel verification', () => {
@@ -310,15 +393,24 @@ try {
   });
 
   test('an unchanged trip brief is idempotent and creates no new hotel suggestions', () => {
-    const before = stateFor();
+    // Establish the current quoted activity programme before the operator
+    // edits its copy, matching the planner's setDayContent action.
+    const before = reconcilePlannerState(stateFor());
+    before.plan.dayPlans = before.plan.dayPlans.map((day) => ({ ...day,
+      customAbout: `Client-approved programme for day ${day.day}.`, customTitle: `Approved day ${day.day}`,
+      customAboutContext: dayScheduleContext(day) }));
     const after = generatePlannerState(before);
     assert.deepEqual(routeChoices(after.plan), routeChoices(before.plan));
     assert.deepEqual(after.hotelSelections, before.hotelSelections);
     assert.deepEqual(after.costModel, before.costModel);
     assertOtherAgreements(before, after);
+    for (const day of after.plan.dayPlans) {
+      assert.equal(day.customAbout, before.plan.dayPlans[day.day - 1].customAbout, 'Unchanged Next must retain approved manual descriptions');
+      assert.equal(day.customTitle, before.plan.dayPlans[day.day - 1].customTitle);
+    }
   });
 
-  test('removing an interior day keeps later day visits with their surviving days and clears only the removed experience', () => {
+  test('removing an interior day recommends the complete shorter journey and retains experiences still visited', () => {
     const before = stateFor(['Srinagar', 'Srinagar', 'Srinagar', 'Srinagar', 'Srinagar']);
     before.plan = setPlanDayTrip(before.plan, 2, 'Gulmarg');
     before.plan = setPlanDayTrip(before.plan, 3, 'Pahalgam');
@@ -328,12 +420,12 @@ try {
     const shortened = removeTripDay(before.plan, 2);
     const after = applyPlanEdit({ ...before, input: shortened.input }, shortened);
     assert.equal(after.plan.days, 5);
-    assert.equal(after.plan.dayPlans[1].dayTripDestination, 'Pahalgam', 'The surviving Pahalgam day shifted incorrectly');
-    assert.equal(after.plan.dayPlans[2].dayTripDestination, 'Sonamarg', 'The surviving Sonamarg day shifted incorrectly');
+    assertFreshRoute(after);
+    assert.equal(after.plan.dayPlans[1].dayTripDestination, 'Gulmarg', 'The newly recommended shorter route should still cover Gulmarg');
+    assert.equal(after.plan.dayPlans[2].dayTripDestination, 'Pahalgam');
+    assert.equal(after.plan.dayPlans[3].dayTripDestination, 'Sonamarg');
     assert.equal(after.input.departure, dateAfter(4));
-    assert.ok(!Object.hasOwn(after.costModel.activityCosts, activityKey('Gulmarg')));
-    assert.ok(!Object.hasOwn(after.costModel.activitySelections, activityKey('Gulmarg')));
-    for (const destination of ['Srinagar', 'Pahalgam', 'Sonamarg']) {
+    for (const destination of core) {
       assert.equal(after.costModel.activityCosts[activityKey(destination)], before.costModel.activityCosts[activityKey(destination)]);
       assert.equal(after.costModel.activitySelections[activityKey(destination)], true);
     }
@@ -341,9 +433,10 @@ try {
     assertOtherAgreements(before, after);
     const oldCost = calculateCosts(before.plan, before.hotelSelections, before.costModel);
     const newCost = calculateCosts(after.plan, after.hotelSelections, after.costModel);
-    assert.equal(oldCost.activities - newCost.activities, before.costModel.activityCosts[activityKey('Gulmarg')]);
+    assert.equal(oldCost.activities, newCost.activities, 'Removing a day must not remove the quote for a destination still in the new programme');
     assert.equal(oldCost.accommodation - newCost.accommodation, nightCost(before.hotelSelections[0]));
     assert.equal(oldCost.transport - newCost.transport, before.costModel.transportDaily);
+    assertCostQuantities(after);
   });
 
   test('shortening respects the early-departure Srinagar rule while preserving every remaining hotel agreement', () => {
@@ -351,12 +444,12 @@ try {
     before.input = { ...before.input, departureTime: '13:00' };
     before.plan = { ...before.plan, input: before.input };
     const after = generatePlannerState(before, { departure: dateAfter(5) });
+    assertFreshRoute(after);
     assert.equal(after.plan.dayPlans[after.plan.nights - 1].stay, 'Srinagar');
-    assertRetainedHotels(before, after);
+    assertRetainedHotels(before, after, survivingHotelLocations(before, after));
     assertOtherAgreements(before, after);
-    assert.equal(after.hotelSelections.find((hotel) => hotel.location === 'Pahalgam').nights, 1);
-    assert.deepEqual(after.costModel.activityCosts, before.costModel.activityCosts);
-    assert.deepEqual(after.costModel.activitySelections, before.costModel.activitySelections);
+    assertActivityQuoteRetained(before, after);
+    assertCostQuantities(after);
   });
 } finally {
   replaceDestinationCatalog(originalCatalog);

@@ -1,4 +1,4 @@
-import { rebuildPlanFromNightSequence, type DayPlan, type Plan, type TripInput } from '@/lib/itinerary';
+import { createPlan, rebuildPlanFromNightSequence, type DayPlan, type Plan, type TripInput } from '@/lib/itinerary';
 import { departureForNights, tripDuration } from '@/lib/trip-dates';
 
 function withoutStaleCopy(day: DayPlan): DayPlan {
@@ -6,7 +6,7 @@ function withoutStaleCopy(day: DayPlan): DayPlan {
     previousCustomAbout: day.customAbout || day.previousCustomAbout };
 }
 
-/** Rebuild logistics around the surviving choices, never run route recommendations again. */
+/** Refresh logistics around choices retained for an unchanged trip length. */
 function rebuildChosenDays(plan: Plan, input: TripInput, sequence: string[], previousDays: DayPlan[]): Plan {
   const departure = plan.dayPlans[plan.days - 1];
   const seedDays = sequence.map((stay, index): DayPlan => {
@@ -33,26 +33,24 @@ function rebuildChosenDays(plan: Plan, input: TripInput, sequence: string[], pre
   }) };
 }
 
-/** Change trip dates/details while keeping the operator's existing route and visits. */
+/** Replan a new trip length; retain operator route choices for other brief edits. */
 export function editTripPlan(plan: Plan, input: TripInput): Plan {
   const duration = tripDuration(input.arrival, input.departure);
   if (!duration) throw new Error('Choose valid travel dates for a trip of 1 to 30 nights.');
+  // A different number of nights changes which destinations, day visits and
+  // overnight stays fit. Start a fresh programme, then let the planner state
+  // reconcile the existing hotel and service quote with its new quantities.
+  if (duration.nights !== plan.nights) return createPlan(input);
   const previousDays = plan.dayPlans.slice(0, plan.nights);
-  const sequence = previousDays.slice(0, duration.nights).map((day) => day.stay);
-  const lastBase = previousDays.at(-1)?.stay || 'Srinagar';
-  while (sequence.length < duration.nights) sequence.push(lastBase);
+  const sequence = previousDays.map((day) => day.stay);
   return rebuildChosenDays(plan, input, sequence, previousDays);
 }
 
-/** Remove a day and shift its surviving visits with their own day, rather than by old index. */
+/** Removing a day changes the trip length, so recommend the whole shorter journey. */
 export function removeTripDay(plan: Plan, dayNumber: number): Plan {
   if (plan.nights <= 1) throw new Error('Keep at least one overnight stay in the trip.');
   if (!Number.isInteger(dayNumber) || dayNumber < 1 || dayNumber > plan.days) throw new Error('Choose an existing trip day to remove.');
-  // Removing departure shortens the trip by its last hotel night.
-  const removeIndex = Math.min(dayNumber - 1, plan.nights - 1);
-  const previousDays = plan.dayPlans.slice(0, plan.nights).filter((_, index) => index !== removeIndex);
-  const sequence = previousDays.map((day) => day.stay);
-  const departure = departureForNights(plan.input.arrival, sequence.length);
+  const departure = departureForNights(plan.input.arrival, plan.nights - 1);
   if (!departure) throw new Error('Choose valid travel dates before changing the trip duration.');
-  return rebuildChosenDays(plan, { ...plan.input, departure }, sequence, previousDays);
+  return editTripPlan(plan, { ...plan.input, departure });
 }
