@@ -12,7 +12,7 @@ import { savePlannerItinerary } from '@/lib/save-itinerary';
 import { clientActivityLists } from '@/lib/activities';
 import { quoteReadiness } from '@/lib/quote-readiness';
 import { composeVectorClientPdf, type PdfArtworkPage, type PdfMasterManifest } from '@/lib/pdf-composition';
-import { accommodationDayNarrative, activeHotelSelections, hotelForNight, hotelSelectionKey, hotelStayLabel, hotelStayType } from '@/lib/accommodation';
+import { accommodationDayNarrative, activeHotelSelections, hotelForNight, hotelNightNumbers, hotelSelectionKey, hotelStayLabel, hotelStayType } from '@/lib/accommodation';
 
 const PAGE_W = 540;
 const PAGE_H = 780;
@@ -158,7 +158,8 @@ function addHotelPages(doc: jsPDF, data: Record<ArtKey,string>, hotels: PdfHotel
     center(doc,hotels.some((hotel) => hotelStayType(hotel) === 'houseboat') ? 'Hotel / Houseboat' : 'Hotel',382,220,11,[255,255,255],true);
     visible.forEach((hotel,i)=>{
       const y=[296,413,537,659][i];
-      center(doc,pdfHotelLocation(hotels,hotel),160,y,10,[255,255,255],true);
+      center(doc,pdfHotelLocation(hotels,hotel),160,y-5,10,[255,255,255],true);
+      center(doc,`${hotel.nights} night${hotel.nights === 1 ? '' : 's'}`,160,y+10,8,[255,255,255]);
       const lines=textLines(doc,hotel.hotelName||'Hotel to be confirmed',187,9.6);
       doc.setTextColor(255,255,255); doc.text(lines.slice(0,3),382,y-(Math.min(lines.length,3)-1)*5,{align:'center',lineHeightFactor:1.1});
     });
@@ -198,7 +199,7 @@ export function pdfHotels(plan: Plan, selections: HotelSelection[], input: TripI
   const active = activeHotelSelections(plan, selections);
   return plan.hotelPlans.flatMap((row)=>{
     const existing=active.filter((hotel)=>hotel.location===row.location).sort((a,b) => Number(hotelStayType(a) === 'houseboat') - Number(hotelStayType(b) === 'houseboat'));
-    if (existing.length) return existing;
+    if (existing.length) return existing.map((hotel) => ({ ...hotel, nights: hotelNightNumbers(plan,hotel).length }));
     return [{
       location:row.location,hotelId:'',hotelName:'Hotel to be confirmed',category:input.hotelCategory,starRating:null,address:'',roomType:'',website:'',nights:row.nights,rooms:1,extraBeds:0,cnb:0,nightlyRate:0,extraBedRate:0,cnbRate:0,source:'',status:'',
     }];

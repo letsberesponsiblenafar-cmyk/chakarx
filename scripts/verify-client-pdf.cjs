@@ -35,7 +35,7 @@ jspdf.jsPDF = function InspectedJsPDF(options) {
     doc.clientText.push({
       page: doc.internal.getCurrentPageInfo().pageNumber,
       text: Array.isArray(value) ? value.flat(Infinity).join('\n') : String(value),
-      x, y, font: doc.getFont().fontName, size: doc.getFontSize(),
+      x, y, font: doc.getFont().fontName, fontStyle: doc.getFont().fontStyle, size: doc.getFontSize(),
     });
     return text.call(this, value, x, y, ...args);
   };
@@ -112,12 +112,37 @@ assert.ok(splitDoc.clientText.some((entry) => entry.text.replace(/\s+/g, ' ').in
   'The generated arrival narrative must follow its houseboat allocation.');
 assert.ok(splitDoc.clientText.some((entry) => entry.text.replace(/\s+/g, ' ').includes('check out from your Srinagar houseboat.')),
   'The following transfer day must check out from the actual previous-night property.');
-assert.ok(!splitDoc.clientText.some((entry) => splitHotelPages.includes(entry.page) && /^Nights\s+\d|\s\d+N$/.test(entry.text)),
-  'Split accommodation must not reintroduce hotel-table night numbers.');
+function assertHotelNightCounts(pdf, expected) {
+  const pages = pdf.clientText.filter((entry) => entry.text === 'Destination').map((entry) => entry.page);
+  const table = pdf.clientText.filter((entry) => pages.includes(entry.page));
+  assert.equal(table.filter((entry) => /^\d+ nights?$/.test(entry.text)).length, expected.length,
+    'Every occupied accommodation row must have one night-count subtitle.');
+  for (const [destination, nights] of expected) {
+    const headings = table.filter((entry) => entry.text === destination);
+    assert.equal(headings.length, 1, `${destination} must have one destination heading.`);
+    const heading = headings[0];
+    const subtitles = table.filter((entry) => entry.page === heading.page && entry.x === heading.x &&
+      entry.y > heading.y && entry.y <= heading.y + 30 && /^\d+ nights?$/.test(entry.text));
+    assert.equal(subtitles.length, 1, `${destination} needs its night count directly beneath its heading.`);
+    const subtitle = subtitles[0];
+    assert.equal(subtitle.text, `${nights} night${nights === 1 ? '' : 's'}`,
+      `${destination} must use its actual allocated night count.`);
+    assert.equal(subtitle.font, 'evolventa', 'Night counts must retain the reference body font.');
+    assert.equal(subtitle.fontStyle, 'normal', 'Night counts must be regular, never bold.');
+    assert.ok(subtitle.size >= 7 && subtitle.size < heading.size,
+      'Night counts must remain readable and smaller than their destination headings.');
+  }
+  assert.ok(!table.some((entry) => /\bNights?\s+\d|\s\d+N$|\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),?\s+\d/i.test(entry.text)),
+    'Hotel rows must not show individual night numbers, ordinal lists, or stay dates.');
+}
+assertHotelNightCounts(splitDoc, [['Srinagar', 2], ['Houseboats', 1], ['Pahalgam', 3], ['Gulmarg', 1]]);
+const staleSplitSelections = splitSelections.map((hotel) => ({ ...hotel, nights: 99 }));
+const staleSplitDoc = buildClientPdf(art, plan, input, staleSplitSelections, splitCosts, input.name, fonts, activityLists);
+assertHotelNightCounts(staleSplitDoc, [['Srinagar', 2], ['Houseboats', 1], ['Pahalgam', 3], ['Gulmarg', 1]]);
 assert.equal(withExclusion.getNumberOfPages(), emptyLists.getNumberOfPages() + 1,
   'An empty exclusion list must omit its page; an explicit exclusion must add it.');
 assert.ok(doc.clientText.some((entry) => entry.text === `${plan.nights} Nights / ${plan.days} Days`),
-  'Removing hotel night labels must keep the tour duration in its summary.');
+  'Hotel night counts must keep the tour duration in its summary.');
 assert.ok(doc.clientText.some((entry) => entry.text === `${plan.nights}N/${plan.days}D Trip Investments`),
   'The package investment section must retain its trip duration.');
 
@@ -126,9 +151,8 @@ assert.ok(hotelPages.length > 0, 'The hotel table needs its destination column.'
 for (const page of hotelPages) {
   const entries = doc.clientText.filter((entry) => entry.page === page);
   assert.ok(entries.some((entry) => entry.text === 'Hotel'), 'The second hotel-table column must name the hotel.');
-  assert.ok(!entries.some((entry) => /^Nights\s+\d|\s\d+N$/.test(entry.text)),
-    'Hotel rows must show only the destination and hotel name, without night counts or numbers.');
 }
+assertHotelNightCounts(doc, [['Srinagar', 3], ['Pahalgam', 3], ['Gulmarg', 1]]);
 for (const hotel of selections) {
   assert.ok(doc.clientText.some((entry) => hotelPages.includes(entry.page) && entry.text === hotel.location),
     `${hotel.location} must remain visible in the hotel table.`);
