@@ -311,15 +311,15 @@ try {
     const rows = pdfHotels(state.plan, state.hotelSelections, state.input);
     assert.equal(rows.length, 1);
     assert.equal(rows[0].hotelId, srBoat(state).hotelId);
-    assert.equal(pdfHotelLocation(rows, rows[0]), 'Srinagar · Houseboat');
+    assert.equal(pdfHotelLocation(rows, rows[0]), 'Houseboats');
   });
 
-  test('client PDF accommodation rows distinguish the two Srinagar properties without night-number suffixes', () => {
+  test('client PDF accommodation table has separate Srinagar and Houseboats rows without night-number suffixes', () => {
     const state = setSrinagarHouseboatNights(stateFor(), [1, 4]);
     const rows = pdfHotels(state.plan, state.hotelSelections, state.input);
     const srinagar = rows.filter((hotel) => hotel.location === 'Srinagar');
     assert.equal(srinagar.length, 2);
-    assert.deepEqual(srinagar.map((hotel) => pdfHotelLocation(rows, hotel)), ['Srinagar · Hotel', 'Srinagar · Houseboat']);
+    assert.deepEqual(srinagar.map((hotel) => pdfHotelLocation(rows, hotel)), ['Srinagar', 'Houseboats']);
     assert.deepEqual(srinagar.map((hotel) => hotel.hotelName), [srHotel(state).hotelName, srBoat(state).hotelName]);
     assert.equal(rows.filter((hotel) => hotel.location === 'Gulmarg').length, 1);
     assert.equal(rows.filter((hotel) => hotel.location === 'Pahalgam').length, 1);

@@ -190,9 +190,8 @@ function addClientList(doc: jsPDF, data: PdfArt, key: 'inclusions' | 'exclusions
     }
   }
 }
-export function pdfHotelLocation(hotels: HotelSelection[], hotel: HotelSelection) {
-  if (hotel.location === 'Srinagar' && hotelStayType(hotel) === 'hotel' && hotels.some((stay) => stay.location === 'Srinagar' && hotelStayType(stay) === 'houseboat')) return 'Srinagar · Hotel';
-  return hotelStayLabel(hotel);
+export function pdfHotelLocation(_hotels: HotelSelection[], hotel: HotelSelection) {
+  return hotelStayType(hotel) === 'houseboat' ? 'Houseboats' : hotel.location;
 }
 
 export function pdfHotels(plan: Plan, selections: HotelSelection[], input: TripInput): PdfHotel[] {

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Hotel as HotelIcon, Minus, Plus, Search, Ship } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import PlannerChrome from '@/components/PlannerChrome';
-import { usePlanner } from '@/components/PlannerProvider';
+import { usePlanner, type HotelSelection } from '@/components/PlannerProvider';
 import { isHouseboatHotel, matchesPackageCategory, sameHotelDestination } from '@/lib/hotels';
 import { hotelRateValidity } from '@/lib/hotel-rate-validity';
 import { hotelConfirmationSignature } from '@/lib/quote-readiness';
@@ -30,6 +30,7 @@ export default function HotelsPage() {
   const { plan, input, hotelSelections, replaceHotel, setHotelRate, setHotelMeta, setSrinagarHouseboatNights, hotelDatabase: db, hotelConnection, hotelConnectionError, refreshHotels, hydrated } = usePlanner();
   const [editing, setEditing] = useState<string | null>(null);
   const [hotelSearch, setHotelSearch] = useState<Record<string, string>>({});
+  const [houseboatOpen, setHouseboatOpen] = useState(false);
 
   if (!hydrated) return <AppShell><PlannerChrome title="Choose your hotels" eyebrow="STEP 02 · HOTELS"><div className="empty-panel"><HotelIcon size={28}/><h2>Loading hotel stays…</h2></div></PlannerChrome></AppShell>;
   if (!plan) return <AppShell><PlannerChrome title="Choose your hotels" eyebrow="STEP 02 · HOTELS"><div className="empty-panel"><HotelIcon size={28}/><h2>Choose your destinations first</h2><Link className="primary-cta inline" href="/planner/destinations">Choose destinations <ChevronRight size={16}/></Link></div></PlannerChrome></AppShell>;
@@ -39,6 +40,7 @@ export default function HotelsPage() {
   const houseboatNightNumbers = selected.filter((hotel) => sameHotelDestination(hotel.location, 'Srinagar') && hotelStayType(hotel) === 'houseboat').flatMap((hotel) => hotelNightNumbers(plan, hotel));
   const houseboatNights = new Set(houseboatNightNumbers);
   const hotelNightsCount = srinagarNights.length - houseboatNights.size;
+  const houseboat = selected.find((hotel) => sameHotelDestination(hotel.location, 'Srinagar') && hotelStayType(hotel) === 'houseboat');
   const readyCount = selected.filter((hotel) => !needsStayName(hotel.hotelName) && hotel.nightlyRate > 0 && hotel.rooms > 0).length;
   const rateProblems = selected.flatMap((hotel) => {
     const label = hotelStayLabel(hotel);
@@ -71,40 +73,64 @@ export default function HotelsPage() {
     setSrinagarHouseboatNights([...next].sort((a, b) => a - b));
   }
 
-  return <AppShell><PlannerChrome title="Choose your hotels" eyebrow="STEP 02 · HOTELS">
-    <section className="journey-intro hotels-simple-intro"><div><span className="eyebrow">OVERNIGHT STAYS</span><h2>Stays for the route you chose.</h2><p>Choose a hotel or houseboat for your Srinagar nights. Adjust each stay, room setup and internal rate below, then verify the whole selection once at the end.</p></div><div className="journey-intro-count"><strong>{readyCount}/{selected.length}</strong><span>stays priced</span></div></section>
-    <div className={`hotel-connection ${hotelConnection}`} role="status"><div><b>{hotelConnection === 'ready' ? `${db.length} hotels available` : hotelConnection === 'loading' ? 'Loading hotel suggestions…' : 'Hotel database needs attention'}</b><span>{hotelConnection === 'ready' ? 'Showing the hotel master and its recorded supplier rates.' : hotelConnectionError || 'Checking the hotel database.'}</span></div>{hotelConnection === 'error' && <button type="button" className="secondary-link" onClick={() => void refreshHotels()}>Retry</button>}</div>
-
-    {srinagarNights.length > 0 && <section className="srinagar-stay-split" aria-labelledby="srinagar-stay-heading">
-      <div className="srinagar-split-heading"><div><span className="eyebrow">YOUR SRINAGAR NIGHTS</span><h2 id="srinagar-stay-heading">Hotel, houseboat, or a little of both.</h2><p>Choose a stay for each night. Your hotel and houseboat have their own room setup and rates.</p></div><div className="srinagar-split-summary" aria-live="polite"><span><HotelIcon size={17}/><strong>{hotelNightsCount}</strong> hotel night{hotelNightsCount === 1 ? '' : 's'}</span><span><Ship size={17}/><strong>{houseboatNights.size}</strong> houseboat night{houseboatNights.size === 1 ? '' : 's'}</span></div></div>
-      <div className="srinagar-split-tools"><span>{srinagarNights.length} Srinagar night{srinagarNights.length === 1 ? '' : 's'}</span><div><button type="button" onClick={() => setSrinagarHouseboatNights([])} disabled={houseboatNights.size === 0}>All hotel</button><button type="button" onClick={() => setSrinagarHouseboatNights(srinagarNights.map((night) => night.day))} disabled={houseboatNights.size === srinagarNights.length}>All houseboat</button></div></div>
-      <div className="srinagar-night-options">{srinagarNights.map((night) => <div className="srinagar-night-option" key={night.day}><div><span>Night {String(night.day).padStart(2, '0')}</span><strong>{displayDate(night.date)}</strong></div><div className="srinagar-night-toggle" role="group" aria-label={`Stay for Srinagar night ${night.day}`}><button type="button" aria-pressed={!houseboatNights.has(night.day)} onClick={() => setNightType(night.day, false)}><HotelIcon size={15}/>Hotel</button><button type="button" aria-pressed={houseboatNights.has(night.day)} onClick={() => setNightType(night.day, true)}><Ship size={15}/>Houseboat</button></div></div>)}</div>
-    </section>}
-
-    <div className="simple-hotel-list">{selected.map((hotel, index) => {
+  const currentPlan = plan;
+  function stayFooter(hotel: HotelSelection) {
+    const record = db.find((item) => item.id === hotel.hotelId);
+    const window = hotelStayWindow(currentPlan, hotel);
+    const rateStatus = record ? hotelRateValidity(record, window.arrival, window.departure) : 'unverified';
+    const total = hotel.nights * (hotel.rooms * hotel.nightlyRate + hotel.extraBeds * hotel.extraBedRate + hotel.cnb * hotel.cnbRate);
+    return (
+        <div className="simple-hotel-footer"><span>{rateStatus === 'outside' && hotel.status !== 'user-edited' ? 'Recorded rate is outside these dates. Enter the current supplier rate.' : record?.rateValidity ? `Supplier rate validity: ${record.rateValidity}` : 'Confirm rate and availability with the supplier.'}</span><strong>{money(total)} <small>stay cost</small></strong></div>
+    );
+  }
+  function stayDetails(hotel: HotelSelection) {
       const key = hotelSelectionKey(hotel);
       const type = hotelStayType(hotel);
       const boat = type === 'houseboat';
-      const label = hotelStayLabel(hotel);
       const fieldLabel = boat ? `${hotel.location} houseboat` : hotel.location;
-      const nightNumbers = new Set(hotelNightNumbers(plan, hotel));
-      const nights = plan.dayPlans.slice(0, plan.nights).filter((day) => nightNumbers.has(day.day));
       const record = db.find((item) => item.id === hotel.hotelId);
-      const window = hotelStayWindow(plan, hotel);
-      const rateStatus = record ? hotelRateValidity(record, window.arrival, window.departure) : 'unverified';
+      const window = hotelStayWindow(currentPlan, hotel);
       const query = (hotelSearch[key] || '').trim().toLowerCase();
       const options = db.filter((item) => sameHotelDestination(item.destination, hotel.location) && isHouseboatHotel(item) === boat && (!query || `${item.name} ${item.normalizedCategory}`.toLowerCase().includes(query))).sort((a, b) => {
         const score = (item: typeof a) => (matchesPackageCategory(item, input.hotelCategory) ? 4 : 0) + (item.mapB2B && item.mapB2B > 0 ? 2 : 0) + (hotelRateValidity(item, window.arrival, window.departure) === 'matching' ? 1 : 0);
         return score(b) - score(a) || a.name.localeCompare(b.name);
       }).slice(0, 12);
       const custom = !hotel.hotelId;
-      const total = hotel.nights * (hotel.rooms * hotel.nightlyRate + hotel.extraBeds * hotel.extraBedRate + hotel.cnb * hotel.cnbRate);
-      return <article className={`simple-hotel-card${boat ? ' houseboat-hotel-card' : ''}`} key={key}>
-        <div className="simple-hotel-head"><div><span className="eyebrow">STAY {String(index + 1).padStart(2, '0')}{boat ? ' · HOUSEBOAT' : ''}</span><h2>{label}</h2><div className="simple-night-dates">{nights.map((day) => <span key={day.day}>Night {day.day} · {displayDate(day.date)}</span>)}</div></div><span className="simple-night-count">{hotel.nights} night{hotel.nights === 1 ? '' : 's'}</span></div>
+    return <>
         <div className="simple-hotel-choice"><div><span className="overline">SELECTED {boat ? 'HOUSEBOAT' : 'HOTEL'}</span>{custom ? <input aria-label={`Custom ${type} in ${hotel.location}`} className="simple-custom-name" value={needsStayName(hotel.hotelName) ? '' : hotel.hotelName} placeholder={`Type ${type} name`} onChange={(event) => setHotelMeta(key, { hotelName: event.target.value || (boat ? 'Houseboat to be added' : 'Hotel to be added'), status: 'user-edited' })}/> : <><h3>{hotel.hotelName}</h3><p>{record?.normalizedCategory || hotel.category}{record?.roomType ? ` · ${record.roomType}` : ''}{record?.mapB2B ? ` · ${money(record.mapB2B)} recorded B2B rate` : ''}</p></>}</div><div className="simple-hotel-actions"><button type="button" className="secondary-link" aria-expanded={editing === key} onClick={() => setEditing(editing === key ? null : key)}>{custom ? 'Search database' : `Change ${type}`}</button>{!custom && <button type="button" className="simple-text-button" onClick={() => startCustom(key, type)}>Use custom {type}</button>}</div></div>
         {editing === key && <div className="simple-hotel-search"><label><Search size={16}/><input aria-label={`Find ${type} in ${hotel.location}`} autoFocus value={hotelSearch[key] || ''} placeholder={`Search ${hotel.location} ${boat ? 'houseboats' : 'hotels'}`} onChange={(event) => setHotelSearch((current) => ({ ...current, [key]: event.target.value }))}/></label><div className="simple-hotel-results">{options.length ? options.map((option) => <button type="button" key={option.id} onClick={() => { replaceHotel(key, option.id); setEditing(null); }}><span><b>{option.name}</b><small>{option.normalizedCategory}{matchesPackageCategory(option, input.hotelCategory) ? ' · package match' : ''}</small></span><strong>{option.mapB2B ? money(option.mapB2B) : 'Rate needed'}</strong></button>) : <p>No matching {boat ? 'houseboats' : 'hotels'}. Try another name or enter a custom {type} below.</p>}</div>{!custom && <button type="button" className="simple-text-button" onClick={() => startCustom(key, type)}>Enter a custom {type} instead</button>}</div>}
         <div className="simple-hotel-fields"><section><div className="simple-field-title"><b>Rooms &amp; guests</b><span>{input.adults} adults · {input.youngAges.length} children</span></div><div className="simple-counts"><CountInput label="Rooms" value={hotel.rooms} min={1} onChange={(value) => setHotelMeta(key, { rooms: value })}/><CountInput label="Extra beds" value={hotel.extraBeds} min={0} onChange={(value) => setHotelMeta(key, { extraBeds: value })}/><CountInput label="CNB" value={hotel.cnb} min={0} onChange={(value) => setHotelMeta(key, { cnb: value })}/></div></section><section><div className="simple-field-title"><b>Internal rates</b><span>Per night · private</span></div><div className="simple-rates"><RateInput label={`${fieldLabel} room rate`} value={hotel.nightlyRate} onChange={(value) => setHotelRate(key, 'nightlyRate', value)}/><RateInput label={`${fieldLabel} extra bed rate`} value={hotel.extraBedRate} onChange={(value) => setHotelRate(key, 'extraBedRate', value)}/><RateInput label={`${fieldLabel} CNB rate`} value={hotel.cnbRate} onChange={(value) => setHotelRate(key, 'cnbRate', value)}/></div></section></div>
-        <div className="simple-hotel-footer"><span>{rateStatus === 'outside' && hotel.status !== 'user-edited' ? 'Recorded rate is outside these dates. Enter the current supplier rate.' : record?.rateValidity ? `Supplier rate validity: ${record.rateValidity}` : 'Confirm rate and availability with the supplier.'}</span><strong>{money(total)} <small>stay cost</small></strong></div>
+    </>;
+  }
+  function houseboatOptions() {
+    return <div className="houseboat-add-on">
+      <button type="button" className="houseboat-disclosure" aria-expanded={houseboatOpen} aria-controls="srinagar-houseboat-options" onClick={() => setHouseboatOpen((open) => !open)}>
+        <span className="houseboat-disclosure-title"><Ship size={18}/>{houseboat ? 'Edit Houseboat' : 'Add Houseboat'}</span>
+        <span className="houseboat-disclosure-summary">{houseboat ? `${houseboat.nights} night${houseboat.nights === 1 ? '' : 's'}${needsStayName(houseboat.hotelName) ? '' : ` · ${houseboat.hotelName}`}` : 'Optional · Srinagar'}<ChevronRight size={16}/></span>
+      </button>
+      {houseboatOpen && <section id="srinagar-houseboat-options" className="houseboat-options" aria-label="Srinagar houseboat stay">
+        <div className="houseboat-options-heading"><div><h3>Choose houseboat nights</h3><p>Selected nights move from the hotel to your houseboat.</p></div><button type="button" className="simple-text-button" disabled={houseboatNights.size === srinagarNights.length} onClick={() => setSrinagarHouseboatNights(srinagarNights.map((night) => night.day))}>Use all nights</button></div>
+        <div className="houseboat-night-options" role="group" aria-label="Choose Srinagar houseboat nights">{srinagarNights.map((night) => <button type="button" key={night.day} aria-label={`Houseboat for night ${night.day}, ${displayDate(night.date)}`} aria-pressed={houseboatNights.has(night.day)} onClick={() => setNightType(night.day, !houseboatNights.has(night.day))}><span>Night {night.day}</span><strong>{displayDate(night.date)}</strong>{houseboatNights.has(night.day) && <Ship size={14}/>}</button>)}</div>
+        <div className="houseboat-allocation" aria-live="polite"><span>{hotelNightsCount} hotel night{hotelNightsCount === 1 ? '' : 's'} · {houseboatNights.size} houseboat night{houseboatNights.size === 1 ? '' : 's'}</span>{houseboatNights.size > 0 && <button type="button" className="simple-text-button" onClick={() => { setSrinagarHouseboatNights([]); setHouseboatOpen(false); }}>Remove houseboat</button>}</div>
+        {houseboat && <div className="houseboat-stay-details">{stayDetails(houseboat)}{stayFooter(houseboat)}</div>}
+      </section>}
+    </div>;
+  }
+
+  return <AppShell><PlannerChrome title="Choose your hotels" eyebrow="STEP 02 · HOTELS">
+    <section className="journey-intro hotels-simple-intro"><div><span className="eyebrow">OVERNIGHT STAYS</span><h2>Stays for the route you chose.</h2><p>Your suggested hotels are ready below. Adjust rooms and rates, or add an optional houseboat to your Srinagar stay.</p></div><div className="journey-intro-count"><strong>{readyCount}/{selected.length}</strong><span>stays priced</span></div></section>
+    <div className={`hotel-connection ${hotelConnection}`} role="status"><div><b>{hotelConnection === 'ready' ? `${db.length} hotels available` : hotelConnection === 'loading' ? 'Loading hotel suggestions…' : 'Hotel database needs attention'}</b><span>{hotelConnection === 'ready' ? 'Showing the hotel master and its recorded supplier rates.' : hotelConnectionError || 'Checking the hotel database.'}</span></div>{hotelConnection === 'error' && <button type="button" className="secondary-link" onClick={() => void refreshHotels()}>Retry</button>}</div>
+
+    <div className="simple-hotel-list">{plan.hotelPlans.map((stay, index) => {
+      const hotel = hotelSelections.find((item) => sameHotelDestination(item.location, stay.location) && hotelStayType(item) === 'hotel');
+      const isSrinagar = sameHotelDestination(stay.location, 'Srinagar');
+      const nightNumbers = new Set(hotel ? hotelNightNumbers(plan, hotel) : []);
+      const nights = plan.dayPlans.slice(0, plan.nights).filter((day) => nightNumbers.has(day.day));
+      return <article className="simple-hotel-card" key={stay.location} aria-label={`${stay.location} accommodation`}>
+        <div className="simple-hotel-head"><div><span className="eyebrow">STAY {String(index + 1).padStart(2, '0')}</span><h2>{stay.location}</h2><div className="simple-night-dates">{nights.map((day) => <span key={day.day}>Night {day.day} · {displayDate(day.date)}</span>)}</div></div><span className="simple-night-count">{hotel?.nights || 0} hotel night{hotel?.nights === 1 ? '' : 's'}</span></div>
+        {hotel && hotel.nights > 0 ? stayDetails(hotel) : <p className="hotel-nights-empty">{isSrinagar && houseboat ? 'All Srinagar nights are assigned to the houseboat.' : 'Choose overnight nights for this stay on the Destinations page.'}</p>}
+        {isSrinagar && srinagarNights.length > 0 && houseboatOptions()}
+        {hotel && hotel.nights > 0 && stayFooter(hotel)}
       </article>;
     })}</div>
 

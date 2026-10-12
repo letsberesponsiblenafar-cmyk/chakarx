@@ -1,205 +1,97 @@
-.srinagar-stay-split {
-  margin: 0 0 20px;
-  padding: 25px;
-  border: 1px solid #deceb4;
-  border-radius: 18px;
-  background: #fcf8ef;
-}
-
-.srinagar-split-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 24px;
-}
-
-.srinagar-split-heading h2 {
-  margin: 7px 0 9px;
-  color: var(--brown);
-  font-family: var(--serif);
-  font-size: 29px;
-  font-weight: 600;
-  line-height: 1.15;
-}
-
-.srinagar-split-heading p {
-  max-width: 570px;
-  margin: 0;
-  color: #77664f;
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.srinagar-split-summary {
-  display: grid;
-  gap: 9px;
-  flex: none;
-  padding: 14px 17px;
-  border: 1px solid #e6d9c4;
+.houseboat-add-on {
+  margin-top: 18px;
+  border: 1px solid #dfd4c2;
   border-radius: 12px;
-  background: #fffdf8;
+  overflow: hidden;
 }
 
-.srinagar-split-summary span {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #675338;
-  font-size: 12px;
-}
-
-.srinagar-split-summary svg {
-  color: #977842;
-}
-
-.srinagar-split-summary strong {
-  min-width: 13px;
-  color: #3f2b16;
-  font-size: 16px;
-}
-
-.srinagar-split-tools {
+.houseboat-disclosure {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 14px;
-  margin: 24px 0 11px;
-}
-
-.srinagar-split-tools > span {
-  color: #7b6749;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.srinagar-split-tools > div {
-  display: flex;
-  gap: 8px;
-}
-
-.srinagar-split-tools button {
-  padding: 7px 11px;
-  border: 1px solid #dfd0b7;
-  border-radius: 8px;
-  background: #fffdf8;
-  color: #715733;
-  cursor: pointer;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.srinagar-split-tools button:disabled {
-  opacity: .45;
-  cursor: default;
-}
-
-.srinagar-night-options {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 9px;
-}
-
-.srinagar-night-option {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 13px 14px;
-  border: 1px solid #e7dccb;
-  border-radius: 12px;
-  background: #fffdf9;
-}
-
-.srinagar-night-option > div:first-child {
-  display: grid;
-  gap: 3px;
-}
-
-.srinagar-night-option > div:first-child > span {
-  color: #917955;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-}
-
-.srinagar-night-option > div:first-child > strong {
-  color: #493820;
-  font-size: 14px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.srinagar-night-toggle {
-  display: flex;
-  flex: none;
-  gap: 3px;
-  padding: 3px;
-  border: 1px solid #e6dcca;
-  border-radius: 10px;
-  background: #f4eee4;
-}
-
-.srinagar-night-toggle button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  min-height: 35px;
-  padding: 7px 10px;
+  gap: 16px;
+  width: 100%;
+  min-height: 56px;
+  padding: 14px 16px;
   border: 0;
-  border-radius: 7px;
-  background: transparent;
-  color: #857359;
+  background: #faf6ee;
+  color: #60482c;
+  text-align: left;
   cursor: pointer;
-  font-size: 11px;
+}
+
+.houseboat-disclosure-title,
+.houseboat-disclosure-summary {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.houseboat-disclosure-title {
+  flex: none;
+  font-size: 13px;
   font-weight: 700;
-  transition: color .15s, background .15s, box-shadow .15s;
 }
 
-.srinagar-night-toggle button[aria-pressed="true"] {
-  background: #49351e;
-  color: #fffaf0;
-  box-shadow: 0 2px 5px #3724101c;
+.houseboat-disclosure-title svg { color: #96713d; }
+
+.houseboat-disclosure-summary {
+  justify-content: flex-end;
+  min-width: 0;
+  color: #89775f;
+  font-size: 11px;
+  line-height: 1.4;
 }
 
-.srinagar-night-toggle button:hover:not([aria-pressed="true"]) {
-  background: #eae0d1;
-  color: #4c371c;
+.houseboat-disclosure-summary svg {
+  flex: none;
+  transition: transform .15s ease;
 }
 
-.srinagar-stay-split button:focus-visible {
-  outline: 2px solid #a7813e;
-  outline-offset: 3px;
+.houseboat-disclosure[aria-expanded="true"] .houseboat-disclosure-summary svg {
+  transform: rotate(90deg);
 }
 
-.houseboat-hotel-card {
-  border-color: #c8d5d3;
-}
+.houseboat-disclosure:hover { background: #f3ecdf; }
+.houseboat-add-on button:focus-visible { outline: 2px solid #a7813e; outline-offset: -3px; }
+.houseboat-options { padding: 18px 16px; border-top: 1px solid #e5d9c7; }
+.houseboat-options-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.houseboat-options-heading h3 { margin: 0 0 5px; color: #493820; font-family: var(--serif); font-size: 23px; font-weight: 600; }
+.houseboat-options-heading p { margin: 0; color: #87785f; font-size: 12px; line-height: 1.5; }
+.houseboat-options-heading button { flex: none; }
+.houseboat-options-heading button:disabled { opacity: .4; cursor: default; }
 
-.houseboat-hotel-card .simple-night-count {
-  background: #3f5c56;
+.houseboat-night-options { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
+.houseboat-night-options button {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  min-width: 105px;
+  padding: 10px 27px 10px 13px;
+  border: 1px solid #dfd3be;
+  border-radius: 9px;
+  background: #fffdfa;
+  color: #75654f;
+  text-align: left;
+  cursor: pointer;
 }
-
-.houseboat-hotel-card .simple-hotel-choice {
-  background: #eff4f1;
-}
-
-@media (max-width: 1000px) {
-  .srinagar-night-options { grid-template-columns: 1fr; }
-}
+.houseboat-night-options span { font-size: 10px; }
+.houseboat-night-options strong { font-size: 13px; font-weight: 700; }
+.houseboat-night-options svg { position: absolute; top: 50%; right: 8px; transform: translateY(-50%); }
+.houseboat-night-options button[aria-pressed="true"] { border-color: #58756b; background: #edf4ef; color: #304e42; }
+.houseboat-night-options button:hover { border-color: #8b9e8e; }
+.houseboat-allocation { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 13px; color: #837158; font-size: 11px; }
+.houseboat-stay-details { margin-top: 18px; padding-top: 18px; border-top: 1px solid #e8decf; }
+.houseboat-stay-details .simple-hotel-choice { background: #eff4f1; }
+.hotel-nights-empty { margin: 0; color: #87785f; font-size: 13px; line-height: 1.6; }
 
 @media (max-width: 680px) {
-  .srinagar-stay-split { padding: 19px 16px; }
-  .srinagar-split-heading { flex-direction: column; gap: 16px; }
-  .srinagar-split-heading h2 { font-size: 26px; }
-  .srinagar-split-summary { display: flex; flex-wrap: wrap; width: 100%; gap: 18px; }
-  .srinagar-split-tools { margin-top: 19px; }
-}
-
-@media (max-width: 380px) {
-  .srinagar-night-option { padding: 11px; gap: 8px; }
-  .srinagar-night-toggle button { padding: 7px; gap: 4px; }
-  .srinagar-night-toggle svg { width: 13px; }
-  .srinagar-split-tools { align-items: flex-start; flex-direction: column; }
+  .houseboat-disclosure { padding: 13px; gap: 10px; }
+  .houseboat-disclosure-summary { max-width: 52%; }
+  .houseboat-options { padding: 16px 12px; }
+  .houseboat-options-heading { align-items: flex-start; gap: 10px; }
+  .houseboat-options-heading h3 { font-size: 21px; }
+  .houseboat-options-heading button { padding-top: 5px; }
+  .houseboat-night-options button { min-width: 92px; flex: 1 0 92px; }
+  .houseboat-allocation { flex-wrap: wrap; }
 }

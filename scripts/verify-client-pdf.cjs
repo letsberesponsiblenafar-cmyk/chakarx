@@ -99,11 +99,13 @@ const splitSelections = selections.map((hotel) => hotel.location === 'Srinagar' 
 const splitCosts = calculateCosts(plan, splitSelections, { transportDaily: 8000, otherAmount: 0, profitPct: 10 });
 const splitDoc = buildClientPdf(art, plan, input, splitSelections, splitCosts, input.name, fonts, activityLists);
 const splitHotelPages = splitDoc.clientText.filter((entry) => entry.text === 'Destination').map((entry) => entry.page);
-for (const value of ['Srinagar · Hotel', 'Srinagar · Houseboat', 'Lake Heritage Houseboat', 'Srinagar Sample Hotel']) {
+for (const value of ['Srinagar', 'Houseboats', 'Lake Heritage Houseboat', 'Srinagar Sample Hotel']) {
   assert.equal(splitDoc.clientText.filter((entry) => splitHotelPages.includes(entry.page) && entry.text === value).length, 1,
     `The client hotel table must show ${value} once.`);
 }
 assert.ok(splitDoc.clientText.some((entry) => entry.text === 'Hotel / Houseboat'));
+assert.ok(!splitDoc.clientText.some((entry) => splitHotelPages.includes(entry.page) && /Srinagar · (?:Hotel|Houseboat)/.test(entry.text)),
+  'The hotel table must keep Srinagar and Houseboats as separate destination rows.');
 assert.equal(splitDoc.clientText.filter((entry) => entry.text === 'Overnight: Srinagar · Houseboat').length, 1,
   'Only the allocated houseboat night should have a houseboat overnight label.');
 assert.ok(splitDoc.clientText.some((entry) => entry.text.replace(/\s+/g, ' ').includes('Check in to your Srinagar houseboat.')),
@@ -190,8 +192,8 @@ async function verifyFinalPdf() {
   const splitParser = new PDFParse({ data: splitBytes });
   let splitText;
   try { splitText = (await splitParser.getText()).text; } finally { await splitParser.destroy(); }
-  assert.match(splitText, /Srinagar\s*·\s*Hotel/);
-  assert.match(splitText, /Srinagar\s*·\s*Houseboat/);
+  assert.match(splitText, /Houseboats/);
+  assert.match(splitText, /Srinagar Sample Hotel/);
   assert.match(splitText, /Lake Heritage Houseboat/);
   assert.ok(splitText.includes(Math.round(splitCosts.sellingTotal).toLocaleString('en-IN')), 'The split-stay price must reach the client PDF.');
   const target = path.join(os.tmpdir(), 'chakar-client-pdf-check.pdf');
