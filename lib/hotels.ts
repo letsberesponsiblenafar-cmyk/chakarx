@@ -6,6 +6,9 @@ export function sameHotelDestination(a:string,b:string){
   const normalize=(value:string)=>value.trim().toLowerCase().replace('sonamarg','sonmarg');
   return normalize(a)===normalize(b);
 }
+export function isHouseboatHotel(hotel: Partial<Pick<Hotel, 'name' | 'roomType' | 'sourceCategory' | 'sourceType'>>) {
+  return /\bhouse[\s-]*boats?\b/i.test([hotel.name, hotel.roomType, hotel.sourceCategory, hotel.sourceType].filter(Boolean).join(' '));
+}
 const packageCategoryMap:Record<PackageHotelBand,string[]>= {
   Signature:['Budget','3 Star'],
   'Signature Plus':['3 Star Premium','3 Star Deluxe'],
@@ -26,7 +29,7 @@ export function suggestedHotel(destination:string,category:string,hotels:Hotel[]
   };
   return [...nearby].sort((a,b)=>score(a)-score(b)||(a.mapB2B??Number.POSITIVE_INFINITY)-(b.mapB2B??Number.POSITIVE_INFINITY)||a.name.localeCompare(b.name))[0]??null;
 }
-export function hotelCandidates(destination:string,category:string){return hotelDatabase.filter((hotel)=>sameHotelDestination(hotel.destination,destination)&&matchesPackageCategory(hotel,category)).sort((a,b)=>(a.mapB2B??Number.POSITIVE_INFINITY)-(b.mapB2B??Number.POSITIVE_INFINITY)||a.name.localeCompare(b.name));}
+export function hotelCandidates(destination:string,category:string){return hotelDatabase.filter((hotel)=>sameHotelDestination(hotel.destination,destination)&&matchesPackageCategory(hotel,category)&&(destination!=='Srinagar'||!isHouseboatHotel(hotel))).sort((a,b)=>(a.mapB2B??Number.POSITIVE_INFINITY)-(b.mapB2B??Number.POSITIVE_INFINITY)||a.name.localeCompare(b.name));}
 export function firstHotelCandidate(destination:string,category:string){return hotelCandidates(destination,category)[0]??null;}
 export function roomsRequired(adults:number){return Math.max(1,Math.ceil(Math.max(1,adults)/2));}
 export function cnbChildren(ages:number[]){return ages.filter((age)=>age<=5).length;}

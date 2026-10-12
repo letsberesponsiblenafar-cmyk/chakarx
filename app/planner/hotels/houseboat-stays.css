@@ -1,0 +1,205 @@
+.srinagar-stay-split {
+  margin: 0 0 20px;
+  padding: 25px;
+  border: 1px solid #deceb4;
+  border-radius: 18px;
+  background: #fcf8ef;
+}
+
+.srinagar-split-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.srinagar-split-heading h2 {
+  margin: 7px 0 9px;
+  color: var(--brown);
+  font-family: var(--serif);
+  font-size: 29px;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.srinagar-split-heading p {
+  max-width: 570px;
+  margin: 0;
+  color: #77664f;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.srinagar-split-summary {
+  display: grid;
+  gap: 9px;
+  flex: none;
+  padding: 14px 17px;
+  border: 1px solid #e6d9c4;
+  border-radius: 12px;
+  background: #fffdf8;
+}
+
+.srinagar-split-summary span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #675338;
+  font-size: 12px;
+}
+
+.srinagar-split-summary svg {
+  color: #977842;
+}
+
+.srinagar-split-summary strong {
+  min-width: 13px;
+  color: #3f2b16;
+  font-size: 16px;
+}
+
+.srinagar-split-tools {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin: 24px 0 11px;
+}
+
+.srinagar-split-tools > span {
+  color: #7b6749;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.srinagar-split-tools > div {
+  display: flex;
+  gap: 8px;
+}
+
+.srinagar-split-tools button {
+  padding: 7px 11px;
+  border: 1px solid #dfd0b7;
+  border-radius: 8px;
+  background: #fffdf8;
+  color: #715733;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.srinagar-split-tools button:disabled {
+  opacity: .45;
+  cursor: default;
+}
+
+.srinagar-night-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.srinagar-night-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 14px;
+  border: 1px solid #e7dccb;
+  border-radius: 12px;
+  background: #fffdf9;
+}
+
+.srinagar-night-option > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.srinagar-night-option > div:first-child > span {
+  color: #917955;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.srinagar-night-option > div:first-child > strong {
+  color: #493820;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.srinagar-night-toggle {
+  display: flex;
+  flex: none;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid #e6dcca;
+  border-radius: 10px;
+  background: #f4eee4;
+}
+
+.srinagar-night-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 35px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #857359;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  transition: color .15s, background .15s, box-shadow .15s;
+}
+
+.srinagar-night-toggle button[aria-pressed="true"] {
+  background: #49351e;
+  color: #fffaf0;
+  box-shadow: 0 2px 5px #3724101c;
+}
+
+.srinagar-night-toggle button:hover:not([aria-pressed="true"]) {
+  background: #eae0d1;
+  color: #4c371c;
+}
+
+.srinagar-stay-split button:focus-visible {
+  outline: 2px solid #a7813e;
+  outline-offset: 3px;
+}
+
+.houseboat-hotel-card {
+  border-color: #c8d5d3;
+}
+
+.houseboat-hotel-card .simple-night-count {
+  background: #3f5c56;
+}
+
+.houseboat-hotel-card .simple-hotel-choice {
+  background: #eff4f1;
+}
+
+@media (max-width: 1000px) {
+  .srinagar-night-options { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 680px) {
+  .srinagar-stay-split { padding: 19px 16px; }
+  .srinagar-split-heading { flex-direction: column; gap: 16px; }
+  .srinagar-split-heading h2 { font-size: 26px; }
+  .srinagar-split-summary { display: flex; flex-wrap: wrap; width: 100%; gap: 18px; }
+  .srinagar-split-tools { margin-top: 19px; }
+}
+
+@media (max-width: 380px) {
+  .srinagar-night-option { padding: 11px; gap: 8px; }
+  .srinagar-night-toggle button { padding: 7px; gap: 4px; }
+  .srinagar-night-toggle svg { width: 13px; }
+  .srinagar-split-tools { align-items: flex-start; flex-direction: column; }
+}

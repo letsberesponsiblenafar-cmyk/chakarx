@@ -2,12 +2,13 @@ import type { Plan } from '@/lib/itinerary';
 import type { CostModel, HotelSelection } from '@/components/PlannerProvider';
 import { priceTrip } from '@/lib/pricing';
 import { quotedActivityCost, tripActivities } from '@/lib/activities';
+import { activeHotelSelections, hotelNightNumbers, hotelStayLabel } from '@/lib/accommodation';
 
 export function calculateCosts(plan: Plan, hotels: HotelSelection[], model: CostModel) {
-  const accommodation = plan.hotelPlans.reduce((sum, stay) => {
-    const h = hotels.find((hotel) => hotel.location === stay.location);
-    if (!h) return sum;
-    return sum + stay.nights * h.rooms * h.nightlyRate + stay.nights * h.extraBeds * h.extraBedRate + stay.nights * h.cnb * h.cnbRate;
+  const activeStays = activeHotelSelections(plan, hotels);
+  const accommodation = activeStays.reduce((sum, h) => {
+    const nights = hotelNightNumbers(plan, h).length;
+    return sum + nights * h.rooms * h.nightlyRate + nights * h.extraBeds * h.extraBedRate + nights * h.cnb * h.cnbRate;
   }, 0);
   // A private vehicle is reserved throughout the package, including local
   // sightseeing and the final drop. Route-leg charges alone omit those days.
@@ -18,9 +19,9 @@ export function calculateCosts(plan: Plan, hotels: HotelSelection[], model: Cost
   const activities = tripActivities(plan, undefined, model.activitySelections).reduce((sum, activity) => sum + (quotedActivityCost(model.activityCosts, activity, model.activitySelections) ?? 0), 0);
   const priced = priceTrip({ accommodation, vehicleDays, transportDaily: model.transportDaily, other: model.otherAmount + activities, profitPct: model.profitPct });
   const people = plan.input.adults + plan.input.youngAges.length;
-  const missingHotelRates = plan.hotelPlans.filter((stay) => {
-    const h = hotels.find((hotel) => hotel.location === stay.location);
-    return !h || !h.hotelName || h.hotelName === 'Hotel to be added' || h.nightlyRate <= 0;
-  }).map((stay) => stay.location);
+  const missingHotelRates = [
+    ...plan.hotelPlans.filter((stay) => !activeStays.some((hotel) => hotel.location === stay.location)).map((stay) => stay.location),
+    ...activeStays.filter((hotel) => !hotel.hotelName?.trim() || /^(?:hotel|houseboat) to be (?:added|confirmed)$/i.test(hotel.hotelName.trim()) || !Number.isFinite(hotel.nightlyRate) || hotel.nightlyRate <= 0).map(hotelStayLabel),
+  ];
   return { ...priced, meals, activities, preGst: priced.b2bCost, people, missingHotelRates };
 }

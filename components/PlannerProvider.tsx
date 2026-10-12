@@ -5,14 +5,16 @@ import { editTripPlan, removeTripDay } from '@/lib/trip-edits';
 import { tripActivityDestinations } from '@/lib/activities';
 import { departureForNights } from '@/lib/trip-dates';
 import { hotelDatabase as importedHotels, hotelCategories, mealOptions, transportOptions, travelStyles, interests, destinations, destinationByName, replaceDestinationCatalog, type Destination, type Hotel } from '@/lib/data';
-import { firstHotelCandidate, roomsRequired, cnbChildren, extraBedsRequired, matchesPackageCategory, suggestedHotel } from '@/lib/hotels';
+import { firstHotelCandidate, roomsRequired, cnbChildren, extraBedsRequired, matchesPackageCategory, suggestedHotel, isHouseboatHotel, sameHotelDestination } from '@/lib/hotels';
 import { stayDateWindow } from '@/lib/hotel-rate-validity';
+import { hotelSelectionKey, hotelStayType, hotelNightDates, type AccommodationType } from '@/lib/accommodation';
 import { dayScheduleContext } from '@/lib/day-scheduler';
 import { initialPackageDefaults, validatePackageDefaults, type PackageDefaults } from '@/lib/package-defaults';
 
 export type HotelSelection = {
   location: string; hotelId: string; hotelName: string; category: string; starRating: number | null; address: string; roomType: string; website: string;
   nights: number; rooms: number; extraBeds: number; cnb: number; nightlyRate: number; extraBedRate: number; cnbRate: number; source: string; status: string; rateConfirmed?: boolean; confirmedSignature?: string;
+  accommodationType?: AccommodationType; nightNumbers?: number[];
 };
 export type CostModel = { transportDaily: number; transportIsCustom: boolean; mealPerPersonNight: number; activityBudget: number; activityCosts: Record<string, number>; activitySelections: Record<string, boolean>; manualInclusions: string[]; manualExclusions: string[]; contingencyPct: number; profitPct: number; otherAmount: number };
 export type HotelDefaults = { rooms: number; extraBeds: number; cnb: number; nightlyRate: number; extraBedRate: number; cnbRate: number };
@@ -46,6 +48,7 @@ type PlannerContextValue = PlannerState & {
   setDayContent: (day: number, patch: { title?: string; about?: string }) => void;
   setStayAllocation: (entries: { location: string; nights: number }[]) => void;
   setNightSequence: (sequence: string[]) => void;
+  setSrinagarHouseboatNights: (nightNumbers: number[]) => void;
   addDay: () => void;
   removeDay: (day: number) => void;
   replaceHotel: (location: string, hotelId: string) => void;
@@ -110,42 +113,95 @@ function selectionFromHotel(location: string, hotel: Hotel, nights: number, inpu
   };
 }
 
-function selectionFallback(location: string, nights: number, input: TripInput, db: Hotel[], arrival?: string, departure?: string): HotelSelection {
-  const candidate = suggestedHotel(location, input.hotelCategory, db, arrival, departure);
-  if (candidate) return selectionFromHotel(location, candidate, nights, input);
+function selectionFallback(location: string, nights: number, input: TripInput, type: AccommodationType = 'hotel'): HotelSelection {
+  const boat = type === 'houseboat';
   return {
-    location, hotelId: '', hotelName: 'Hotel to be added', category: input.hotelCategory, starRating: null, address: '', roomType: '', website: '',
+    location, hotelId: '', hotelName: boat ? 'Houseboat to be added' : 'Hotel to be added', category: input.hotelCategory, starRating: null, address: '', roomType: '', website: '',
     nights, rooms: roomsRequired(input.adults), extraBeds: extraBedsRequired(input.youngAges), cnb: cnbChildren(input.youngAges),
-    nightlyRate: 0, extraBedRate: 0, cnbRate: 0, source: 'No hotel record', status: 'Add or attach a hotel before confirmation', rateConfirmed: false,
+    nightlyRate: 0, extraBedRate: 0, cnbRate: 0, source: boat ? 'No houseboat record' : 'No hotel record', status: `Add or attach a ${type} before confirmation`, rateConfirmed: false,
+    ...(boat ? { accommodationType: type } : {}),
   };
 }
 
+function selectedProperty(hotel?: HotelSelection) {
+  return hotel && (hotel.hotelId || (typeof hotel.hotelName === 'string' && hotel.hotelName.trim() &&
+    !['Hotel to be added', 'Hotel to be confirmed', 'Houseboat to be added', 'Houseboat to be confirmed'].includes(hotel.hotelName)));
+}
+
+function syncProperty(plan: Plan, existing: HotelSelection | undefined, db: Hotel[], input: TripInput,
+  location: string, nights: number, type: AccommodationType = 'hotel', nightNumbers?: number[]): HotelSelection {
+  const allocation = nightNumbers === undefined ? {} : { accommodationType: type, nightNumbers };
+  // Selected properties are quote snapshots. A different number or assignment
+  // of nights must never reload a supplier's rate or replace a chosen property.
+  if (selectedProperty(existing)) {
+    const unchanged = existing!.nights === nights && JSON.stringify(existing!.nightNumbers) === JSON.stringify(nightNumbers);
+    return unchanged ? existing! : { ...existing!, ...allocation, nights, rateConfirmed: false, confirmedSignature: undefined };
+  }
+  // Do not attach a suggested property to an unused, cached accommodation type.
+  if (!nights && existing) return { ...existing, ...allocation, nights: 0 };
+  const days = (plan.dayPlans || []).slice(0, plan.nights || 0).filter((day, index) =>
+    nightNumbers === undefined || nightNumbers.includes(day.day || index + 1));
+  const window = stayDateWindow(days, location);
+  const properties = location === 'Srinagar' ? db.filter((hotel) => isHouseboatHotel(hotel) === (type === 'houseboat')) : db;
+  const candidate = suggestedHotel(location, input.hotelCategory, properties, window.arrival, window.departure);
+  return { ...(candidate ? selectionFromHotel(location, candidate, nights, input) : selectionFallback(location, nights, input, type)), ...allocation };
+}
+
 export function syncHotelSelections(plan: Plan, current: HotelSelection[], db: Hotel[], input: TripInput) {
-  return plan.hotelPlans.map((row) => {
-    const window = stayDateWindow((plan.dayPlans || []).slice(0, plan.nights || 0), row.location);
-    const existing = current.find((h) => h.location === row.location);
-    // A selected hotel is part of this client's quote, not a live master-rate
-    // subscription. Only an explicit hotel replacement loads another quote.
-    if (existing && (existing.hotelId || (typeof existing.hotelName === 'string' && existing.hotelName.trim() && !['Hotel to be added', 'Hotel to be confirmed'].includes(existing.hotelName)))) {
-      return existing.nights === row.nights ? existing : { ...existing, nights: row.nights, rateConfirmed: false, confirmedSignature: undefined };
-    }
-    const candidate = suggestedHotel(row.location, input.hotelCategory, db, window.arrival, window.departure);
-    return candidate ? selectionFromHotel(row.location, candidate, row.nights, input) : selectionFallback(row.location, row.nights, input, db, window.arrival, window.departure);
+  return plan.hotelPlans.flatMap((row) => {
+    const existing = current.find((hotel) => hotel.location === row.location && (row.location !== 'Srinagar' || hotelStayType(hotel) === 'hotel'));
+    const boat = row.location === 'Srinagar' ? current.find((hotel) => hotel.location === row.location && hotelStayType(hotel) === 'houseboat') : undefined;
+    if (!boat) return [syncProperty(plan, existing, db, input, row.location, row.nights)];
+    const available = plan.dayPlans.slice(0, plan.nights).flatMap((day, index) => day.stay === row.location ? [day.day || index + 1] : []);
+    const count = Math.min(available.length, Math.max(0, Math.round(boat.nights) || 0));
+    // Keep chosen houseboat nights where the revised route still stays in
+    // Srinagar. If one moves to another destination, retain the houseboat
+    // quantity on another Srinagar night. New extra nights default to a hotel.
+    const preferred = boat.nightNumbers === undefined ? available : boat.nightNumbers;
+    const boatNights = [...new Set(preferred)].filter((night) => available.includes(night)).slice(0, count);
+    for (const night of available) if (boatNights.length < count && !boatNights.includes(night)) boatNights.push(night);
+    boatNights.sort((a, b) => a - b);
+    const hotelNights = available.filter((night) => !boatNights.includes(night));
+    const selections: HotelSelection[] = [];
+    if (existing || hotelNights.length) selections.push(syncProperty(plan, existing, db, input, row.location, hotelNights.length, 'hotel', hotelNights));
+    selections.push(syncProperty(plan, boat, db, input, row.location, boatNights.length, 'houseboat', boatNights));
+    return selections;
   });
+}
+
+/** Assign only Srinagar's actual overnight dates; hotels take the remainder. */
+export function setSrinagarHouseboatNights(state: PlannerState, nightNumbers: number[]): PlannerState {
+  if (!state.plan) return state;
+  const plan = state.plan;
+  const available = plan.dayPlans.slice(0, plan.nights).flatMap((day, index) => day.stay === 'Srinagar' ? [day.day || index + 1] : []);
+  if (!Array.isArray(nightNumbers) || new Set(nightNumbers).size !== nightNumbers.length ||
+    nightNumbers.some((night) => !Number.isInteger(night) || !available.includes(night))) {
+    throw new Error('Choose each houseboat night from the Srinagar overnight dates.');
+  }
+  const current = syncHotelSelections(plan, state.hotelSelections, state.hotelDatabase, plan.input);
+  const boat = current.find((hotel) => hotel.location === 'Srinagar' && hotelStayType(hotel) === 'houseboat');
+  if (!available.length || (!boat && !nightNumbers.length)) return state;
+  const hotel = current.find((item) => item.location === 'Srinagar' && hotelStayType(item) === 'hotel');
+  const boatNights = [...nightNumbers].sort((a, b) => a - b);
+  const hotelNights = available.filter((night) => !boatNights.includes(night));
+  const stays = current.filter((item) => item.location !== 'Srinagar');
+  if (hotel || hotelNights.length) {
+    stays.push(syncProperty(plan, hotel, state.hotelDatabase, plan.input, 'Srinagar', hotelNights.length, 'hotel', hotelNights));
+  }
+  stays.push(syncProperty(plan, boat, state.hotelDatabase, plan.input, 'Srinagar', boatNights.length, 'houseboat', boatNights));
+  return stateWithScheduledPlan({ ...state, hotelSelections: stays }, plan);
 }
 
 function stateWithScheduledPlan(state: PlannerState, plan: Plan | null): PlannerState {
   if (!plan) return { ...state, plan };
   const previousPlan = state.plan;
   const hotelSelections = syncHotelSelections(plan, state.hotelSelections, state.hotelDatabase, plan.input).map((hotel) => {
-    const existing = state.hotelSelections.find((item) => item.location === hotel.location);
-    const dates = (route: Plan) => route.dayPlans.slice(0, route.nights).filter((day) => day.stay === hotel.location).map((day) => day.date);
+    const existing = state.hotelSelections.find((item) => hotelSelectionKey(item) === hotelSelectionKey(hotel));
     if (existing && previousPlan) {
       const unchanged = existing.nights === hotel.nights && previousPlan.input.mealPlan === plan.input.mealPlan && previousPlan.input.hotelCategory === plan.input.hotelCategory &&
         previousPlan.input.adults === plan.input.adults && JSON.stringify(previousPlan.input.youngAges) === JSON.stringify(plan.input.youngAges) &&
-        JSON.stringify(dates(previousPlan)) === JSON.stringify(dates(plan));
-      // A route update changes nights, not the operator's chosen room, hotel or
-      // negotiated price. Only the affected stay needs verification again.
+        JSON.stringify(hotelNightDates(previousPlan, existing)) === JSON.stringify(hotelNightDates(plan, hotel));
+      // Only the affected accommodation's changed stay dates need verification.
       return unchanged ? hotel : { ...hotel, rateConfirmed: false, confirmedSignature: undefined };
     }
     return hotel;
@@ -392,6 +448,9 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
         } catch { return s; }
       });
     },
+    setSrinagarHouseboatNights(nightNumbers) {
+      setState((s) => setSrinagarHouseboatNights(s, nightNumbers));
+    },
     addDay() {
       setState((s) => {
         if (!s.plan || s.plan.nights >= 30) return s;
@@ -414,14 +473,21 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     replaceHotel(location, hotelId) {
       setState((s) => {
         const rec = s.hotelDatabase.find((h) => h.id === hotelId); if (!rec) return s;
-        return { ...s, hotelSelections: s.hotelSelections.map((h) => h.location === location ? selectionFromHotel(location, rec, h.nights, s.input) : h) };
+        const selected = s.hotelSelections.find((hotel) => hotelSelectionKey(hotel) === location);
+        if (!selected || !sameHotelDestination(rec.destination, selected.location) ||
+          (selected.location === 'Srinagar' && isHouseboatHotel(rec) !== (hotelStayType(selected) === 'houseboat'))) return s;
+        return { ...s, hotelSelections: s.hotelSelections.map((hotel) => hotelSelectionKey(hotel) === location
+          ? { ...selectionFromHotel(hotel.location, rec, hotel.nights, s.input),
+            ...(hotel.accommodationType ? { accommodationType: hotel.accommodationType } : {}),
+            ...(hotel.nightNumbers !== undefined ? { accommodationType: hotelStayType(hotel), nightNumbers: hotel.nightNumbers } : {}) } : hotel) };
       });
     },
     setHotelRate(location, field, value) {
-      setState((s) => ({ ...s, hotelSelections: s.hotelSelections.map((h) => h.location === location ? { ...h, [field]: Math.max(0, value), status: 'user-edited', rateConfirmed: false } : h) }));
+      setState((s) => ({ ...s, hotelSelections: s.hotelSelections.map((h) => hotelSelectionKey(h) === location ? { ...h, [field]: Math.max(0, value), status: 'user-edited', rateConfirmed: false } : h) }));
     },
     setHotelMeta(location, patch) {
-      setState((s) => ({ ...s, hotelSelections: s.hotelSelections.map((h) => h.location === location ? { ...h, ...patch, rateConfirmed: typeof patch.rateConfirmed === 'boolean' ? patch.rateConfirmed : false } : h) }));
+      setState((s) => ({ ...s, hotelSelections: s.hotelSelections.map((h) => hotelSelectionKey(h) === location
+        ? { ...h, ...patch, accommodationType: hotelStayType(h), rateConfirmed: typeof patch.rateConfirmed === 'boolean' ? patch.rateConfirmed : false } : h) }));
     },
     setHotelDefaults(patch) { setState((s) => ({ ...s, hotelDefaults: { ...s.hotelDefaults, ...patch } })); },
     applyHotelDefaults() { setState((s) => ({ ...s, hotelSelections: s.hotelSelections.map((h) => ({ ...h, rooms: s.hotelDefaults.rooms, extraBeds: s.hotelDefaults.extraBeds, cnb: s.hotelDefaults.cnb, nightlyRate: s.hotelDefaults.nightlyRate || h.nightlyRate, extraBedRate: s.hotelDefaults.extraBedRate || h.extraBedRate, cnbRate: s.hotelDefaults.cnbRate || h.cnbRate, status: 'common hotel policy applied', rateConfirmed: false })) })); },

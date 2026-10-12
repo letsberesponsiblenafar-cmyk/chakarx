@@ -6,12 +6,13 @@ import { jsPDF } from 'jspdf';
 import PlannerChrome from '@/components/PlannerChrome';
 import { usePlanner, type CostModel, type HotelSelection } from '@/components/PlannerProvider';
 import { calculateCosts } from '@/lib/costing';
-import { dayNarrative, dayTitle } from '@/lib/narrative';
+import { dayTitle } from '@/lib/narrative';
 import type { DayPlan, Plan, TripInput } from '@/lib/itinerary';
 import { savePlannerItinerary } from '@/lib/save-itinerary';
 import { clientActivityLists } from '@/lib/activities';
 import { quoteReadiness } from '@/lib/quote-readiness';
 import { composeVectorClientPdf, type PdfArtworkPage, type PdfMasterManifest } from '@/lib/pdf-composition';
+import { accommodationDayNarrative, activeHotelSelections, hotelForNight, hotelSelectionKey, hotelStayLabel, hotelStayType } from '@/lib/accommodation';
 
 const PAGE_W = 540;
 const PAGE_H = 780;
@@ -93,13 +94,13 @@ function addSummary(doc: jsPDF, data: Record<ArtKey,string>, plan: Plan, input: 
   doc.setTextColor(30,24,18); doc.text(lines.slice(0,2), 80, 646, { lineHeightFactor: 1.13 });
   doc.setFont('evolventa','normal'); doc.setFontSize(10); doc.text('Number of persons',80,lines.length>1?681:668);
 }
-function dayLayout(doc: jsPDF, day: DayPlan, pickup: string, quote?: CostModel) {
+function dayLayout(doc: jsPDF, day: DayPlan, pickup: string, story: string) {
   const title = `${date(day.date, true)} - ${dayTitle(day,pickup)}`;
   const titleLines = textLines(doc, title, 346, 10, true);
-  const storyLines = textLines(doc, dayNarrative(day,pickup,quote), 350, 8.9);
+  const storyLines = textLines(doc, story, 350, 8.9);
   return { titleLines, storyLines, height: titleLines.length * 12 + 12 + storyLines.length * 11 + 14 };
 }
-function addDaywise(doc: jsPDF, data: Record<ArtKey,string>, plan: Plan, pickup: string, quote?: CostModel) {
+function addDaywise(doc: jsPDF, data: Record<ArtKey,string>, plan: Plan, pickup: string, quote?: CostModel, selections: HotelSelection[] = []) {
   let index = 0;
   while (index < plan.dayPlans.length) {
     artworkPage(doc, data, 'daywise');
@@ -108,14 +109,16 @@ function addDaywise(doc: jsPDF, data: Record<ArtKey,string>, plan: Plan, pickup:
     let y = 150; let onPage = 0;
     while (index < plan.dayPlans.length && onPage < 5) {
       const day = plan.dayPlans[index];
-      const layout = dayLayout(doc,day,pickup,quote);
+      const layout = dayLayout(doc,day,pickup,accommodationDayNarrative(plan,selections,day,pickup,quote));
       if (onPage > 0 && y + layout.height > 602) break;
       doc.setFont('evolventa','bold'); doc.setFontSize(10.5); doc.setTextColor(58,40,13);
       doc.text(`Day ${day.day}-`, 30, y + 2);
       doc.setFont('evolventa','bold'); doc.setFontSize(10); doc.setTextColor(31,25,19);
       doc.text(layout.titleLines, 84, y, { lineHeightFactor: 1.2 });
       let bodyY = y + layout.titleLines.length * 12;
-      doc.setFont('evolventa','bold'); doc.setFontSize(8.9); doc.text(day.label === 'Departure day' ? `Departure: ${printable(day.to)} (previous night: ${printable(day.stay)})` : `Overnight: ${printable(day.stay)}`, 84, bodyY + 2);
+      const overnightHotel = hotelForNight(plan, selections, day.day);
+      const overnightLabel = overnightHotel ? hotelStayLabel(overnightHotel) : day.stay;
+      doc.setFont('evolventa','bold'); doc.setFontSize(8.9); doc.text(day.label === 'Departure day' ? `Departure: ${printable(day.to)} (previous night: ${printable(day.stay)})` : `Overnight: ${printable(overnightLabel)}`, 84, bodyY + 2);
       bodyY += 12;
       doc.setFont('evolventa','normal'); doc.setFontSize(8.9); doc.setTextColor(38,33,29);
       doc.text(layout.storyLines, 84, bodyY + 2, { lineHeightFactor: 1.22 });
@@ -152,10 +155,10 @@ function addHotelPages(doc: jsPDF, data: Record<ArtKey,string>, hotels: PdfHotel
     const visible=rows.slice(start,start+4);
     artworkPage(doc,data,'hotels',false,(data as PdfArt).hotelRows?.[visible.length],visible.length);
     center(doc,'Destination',159,220,11,[255,255,255]);
-    center(doc,'Hotel',382,220,11,[255,255,255],true);
+    center(doc,hotels.some((hotel) => hotelStayType(hotel) === 'houseboat') ? 'Hotel / Houseboat' : 'Hotel',382,220,11,[255,255,255],true);
     visible.forEach((hotel,i)=>{
       const y=[296,413,537,659][i];
-      center(doc,hotel.location,160,y,10,[255,255,255],true);
+      center(doc,pdfHotelLocation(hotels,hotel),160,y,10,[255,255,255],true);
       const lines=textLines(doc,hotel.hotelName||'Hotel to be confirmed',187,9.6);
       doc.setTextColor(255,255,255); doc.text(lines.slice(0,3),382,y-(Math.min(lines.length,3)-1)*5,{align:'center',lineHeightFactor:1.1});
     });
@@ -187,12 +190,19 @@ function addClientList(doc: jsPDF, data: PdfArt, key: 'inclusions' | 'exclusions
     }
   }
 }
-function pdfHotels(plan: Plan, selections: HotelSelection[], input: TripInput): PdfHotel[] {
-  return plan.hotelPlans.map((row)=>{
-    const existing=selections.find((hotel)=>hotel.location===row.location);
-    return {...(existing || {
+export function pdfHotelLocation(hotels: HotelSelection[], hotel: HotelSelection) {
+  if (hotel.location === 'Srinagar' && hotelStayType(hotel) === 'hotel' && hotels.some((stay) => stay.location === 'Srinagar' && hotelStayType(stay) === 'houseboat')) return 'Srinagar · Hotel';
+  return hotelStayLabel(hotel);
+}
+
+export function pdfHotels(plan: Plan, selections: HotelSelection[], input: TripInput): PdfHotel[] {
+  const active = activeHotelSelections(plan, selections);
+  return plan.hotelPlans.flatMap((row)=>{
+    const existing=active.filter((hotel)=>hotel.location===row.location).sort((a,b) => Number(hotelStayType(a) === 'houseboat') - Number(hotelStayType(b) === 'houseboat'));
+    if (existing.length) return existing;
+    return [{
       location:row.location,hotelId:'',hotelName:'Hotel to be confirmed',category:input.hotelCategory,starRating:null,address:'',roomType:'',website:'',nights:row.nights,rooms:1,extraBeds:0,cnb:0,nightlyRate:0,extraBedRate:0,cnbRate:0,source:'',status:'',
-    }),nights:row.nights};
+    }];
   });
 }
 
@@ -209,13 +219,13 @@ export function buildClientPdf(data: PdfArt, plan: Plan, input: TripInput, selec
   addCover(doc,data,customerName);
   artworkPage(doc,data,'letter');
   addSummary(doc,data,plan,input);
-  addDaywise(doc,data,plan,input.pickup,quote);
+  addDaywise(doc,data,plan,input.pickup,quote,selections);
   addPackage(doc,data,plan,input,hotels,costs);
   addHotelPages(doc,data,hotels);
   addClientList(doc,data,'inclusions',[
-    `Accommodation at the listed hotels for ${plan.nights} night${plan.nights===1?'':'s'}.`,
+    `Accommodation at the listed ${hotels.some((hotel) => hotelStayType(hotel) === 'houseboat') ? (hotels.some((hotel) => hotelStayType(hotel) === 'hotel') ? 'hotels and houseboats' : 'houseboats') : 'hotels'} for ${plan.nights} night${plan.nights===1?'':'s'}.`,
     `${input.transport} private transport for the itinerary, including sightseeing and transfers.`,
-    input.mealPlan==='None'?'':`${input.mealPlan} at the hotels.`,
+    input.mealPlan==='None'?'':`${input.mealPlan} at the selected accommodation.`,
     'Road tolls and applicable vehicle charges.',
     ...activityLists.included.map((name)=>/[.!?]$/.test(name) ? name : `${name}.`),
   ].filter(Boolean));
@@ -303,7 +313,7 @@ export default function ClientPdf() {
 
   return <PlannerChrome title="Client-ready itinerary PDF" eyebrow="STEP 06 · CLIENT PDF">
     <section className="pdf-hero"><div className="pdf-brand-lockup"><span className="original-logo" role="img" aria-label="Chakar Experience"/><span>DISCOVER KASHMIR · HEAVEN ON EARTH</span></div><h2>{customerName}&apos;s Kashmir journey</h2><p>The client document follows the supplied Chakar itinerary: cover and letter, tour summary, compact day-wise itinerary, package and hotel tables, tailored inclusions and exclusions, policies, testimonials and thank-you page.</p><div className={`pdf-save-state ${saveState}`} role="status">{saveState==='saving'?'Saving this client itinerary to the workspace…':saveState==='saved'?'Saved to Saved Itineraries. You can edit and download it again anytime.':<><span>Automatic save failed: {saveError}</span><button type="button" onClick={()=>void ensureSaved().catch(()=>{})}>Retry save</button></>}</div>{quoteIssues.length>0&&<div className="pdf-block-warning" role="alert"><Info size={15}/><div><b>Client download is locked until the quote is complete.</b><ul>{quoteIssues.map((issue)=><li key={issue}>{issue}</li>)}</ul></div></div>}<button className="primary-cta inline" type="button" onClick={download} disabled={downloading||quoteIssues.length>0}><Download size={17}/>{downloading?'Preparing PDF…':'Download client PDF'}</button></section>
-    <section className="pdf-preview"><div className="section-head"><div><span className="eyebrow">DOCUMENT CONTENT</span><h2>Review this itinerary</h2><p>These values are pulled from the live planner. Activity pricing controls the tailored inclusion and exclusion pages.</p></div></div><div className="pdf-review-grid"><div className="pdf-review-cover"><img src={ART.cover} alt="Discover Kashmir cover artwork"/><span className="pdf-preview-logo"><span className="original-logo" role="img" aria-label="Chakar Experience"/></span><span>Dear {customerName},</span></div><div className="pdf-review-details"><div><small>Tour summary</small><b>{currentPlan.nights} nights / {currentPlan.days} days</b><span>{date(input.arrival)} – {date(input.departure)}</span><span>{input.pickup} pick-up · {input.adults} adults · {input.youngAges.length} {input.youngAges.length===1?'child':'children'}</span></div><div><small>Package type</small><b>{input.hotelCategory} · {uiMoney(currentCosts.sellingTotal)}</b><span>{input.transport} · {input.mealPlan} · {roomSummary(hotels)}</span></div><div><small>Hotel type</small>{hotels.map((hotel)=><span key={hotel.location}>{hotel.location} · {hotel.hotelName}</span>)}</div></div></div><div className="pdf-review-days"><h3>Day-wise itinerary</h3>{currentPlan.dayPlans.map((day)=><div key={day.day}><b>Day {day.day} · {date(day.date,true)} · {dayTitle(day,input.pickup)}</b><p>{dayNarrative(day,input.pickup,costModel)}</p></div>)}</div><div className="pdf-fixed-pages"><b>Document sections</b><span>Cover letter</span><span>Tailored inclusions</span><span>{clientActivityLists(currentPlan,costModel.activityCosts,costModel.activitySelections,costModel.manualInclusions,costModel.manualExclusions,destinationCatalog,packageDefaults).excluded.length ? 'Tailored exclusions' : 'No exclusion page needed'}</span><span>Policies</span><span>Testimonials</span><span>Thank you</span></div></section>
+    <section className="pdf-preview"><div className="section-head"><div><span className="eyebrow">DOCUMENT CONTENT</span><h2>Review this itinerary</h2><p>These values are pulled from the live planner. Activity pricing controls the tailored inclusion and exclusion pages.</p></div></div><div className="pdf-review-grid"><div className="pdf-review-cover"><img src={ART.cover} alt="Discover Kashmir cover artwork"/><span className="pdf-preview-logo"><span className="original-logo" role="img" aria-label="Chakar Experience"/></span><span>Dear {customerName},</span></div><div className="pdf-review-details"><div><small>Tour summary</small><b>{currentPlan.nights} nights / {currentPlan.days} days</b><span>{date(input.arrival)} – {date(input.departure)}</span><span>{input.pickup} pick-up · {input.adults} adults · {input.youngAges.length} {input.youngAges.length===1?'child':'children'}</span></div><div><small>Package type</small><b>{input.hotelCategory} · {uiMoney(currentCosts.sellingTotal)}</b><span>{input.transport} · {input.mealPlan} · {roomSummary(hotels)}</span></div><div><small>Accommodation</small>{hotels.map((hotel)=><span key={hotelSelectionKey(hotel)}>{pdfHotelLocation(hotels,hotel)} · {hotel.hotelName}</span>)}</div></div></div><div className="pdf-review-days"><h3>Day-wise itinerary</h3>{currentPlan.dayPlans.map((day)=><div key={day.day}><b>Day {day.day} · {date(day.date,true)} · {dayTitle(day,input.pickup)}</b><p>{accommodationDayNarrative(currentPlan,hotelSelections,day,input.pickup,costModel)}</p></div>)}</div><div className="pdf-fixed-pages"><b>Document sections</b><span>Cover letter</span><span>Tailored inclusions</span><span>{clientActivityLists(currentPlan,costModel.activityCosts,costModel.activitySelections,costModel.manualInclusions,costModel.manualExclusions,destinationCatalog,packageDefaults).excluded.length ? 'Tailored exclusions' : 'No exclusion page needed'}</span><span>Policies</span><span>Testimonials</span><span>Thank you</span></div></section>
     <div className="next-row"><Link className="secondary-link" href="/planner/costing"><ChevronLeft size={16}/> Back to costing</Link><div className="pdf-next-actions"><Link className="secondary-link" href="/saved-itineraries"><FolderOpen size={16}/> Saved Itineraries</Link><button className="primary-cta inline" type="button" onClick={reset}>Build New</button></div></div>
   </PlannerChrome>;
 }

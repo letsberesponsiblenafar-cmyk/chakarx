@@ -90,6 +90,28 @@ const activityLists = clientActivityLists(plan, {}, {}, [], [], undefined, initi
 const doc = buildClientPdf(art, plan, input, selections, costs, input.name, fonts, activityLists);
 const emptyLists = buildClientPdf(art, plan, input, selections, costs, input.name, fonts, { included: [], excluded: [] });
 const withExclusion = buildClientPdf(art, plan, input, selections, costs, input.name, fonts, { included: [], excluded: ['Airfare'] });
+const srinagarNightNumbers = plan.dayPlans.slice(0, plan.nights).filter((day) => day.stay === 'Srinagar').map((day) => day.day);
+const splitSelections = selections.map((hotel) => hotel.location === 'Srinagar' ? { ...hotel,
+  accommodationType: 'hotel', nights: srinagarNightNumbers.length - 1, nightNumbers: srinagarNightNumbers.slice(1) } : hotel).concat({
+    ...selections.find((hotel) => hotel.location === 'Srinagar'), accommodationType: 'houseboat',
+    hotelName: 'Lake Heritage Houseboat', hotelId: '', nights: 1, nightNumbers: srinagarNightNumbers.slice(0, 1), nightlyRate: 5100,
+  });
+const splitCosts = calculateCosts(plan, splitSelections, { transportDaily: 8000, otherAmount: 0, profitPct: 10 });
+const splitDoc = buildClientPdf(art, plan, input, splitSelections, splitCosts, input.name, fonts, activityLists);
+const splitHotelPages = splitDoc.clientText.filter((entry) => entry.text === 'Destination').map((entry) => entry.page);
+for (const value of ['Srinagar · Hotel', 'Srinagar · Houseboat', 'Lake Heritage Houseboat', 'Srinagar Sample Hotel']) {
+  assert.equal(splitDoc.clientText.filter((entry) => splitHotelPages.includes(entry.page) && entry.text === value).length, 1,
+    `The client hotel table must show ${value} once.`);
+}
+assert.ok(splitDoc.clientText.some((entry) => entry.text === 'Hotel / Houseboat'));
+assert.equal(splitDoc.clientText.filter((entry) => entry.text === 'Overnight: Srinagar · Houseboat').length, 1,
+  'Only the allocated houseboat night should have a houseboat overnight label.');
+assert.ok(splitDoc.clientText.some((entry) => entry.text.replace(/\s+/g, ' ').includes('Check in to your Srinagar houseboat.')),
+  'The generated arrival narrative must follow its houseboat allocation.');
+assert.ok(splitDoc.clientText.some((entry) => entry.text.replace(/\s+/g, ' ').includes('check out from your Srinagar houseboat.')),
+  'The following transfer day must check out from the actual previous-night property.');
+assert.ok(!splitDoc.clientText.some((entry) => splitHotelPages.includes(entry.page) && /^Nights\s+\d|\s\d+N$/.test(entry.text)),
+  'Split accommodation must not reintroduce hotel-table night numbers.');
 assert.equal(withExclusion.getNumberOfPages(), emptyLists.getNumberOfPages() + 1,
   'An empty exclusion list must omit its page; an explicit exclusion must add it.');
 assert.ok(doc.clientText.some((entry) => entry.text === `${plan.nights} Nights / ${plan.days} Days`),
@@ -161,6 +183,17 @@ async function verifyFinalPdf() {
   await assert.rejects(composeVectorClientPdf(overlayBytes, masterBytes, artwork, missingCover),
     /artwork is missing: cover/, 'Missing native artwork must stop the download.');
   const bytes = await composeVectorClientPdf(overlayBytes, masterBytes, artwork, manifest);
+  const splitBytes = await composeVectorClientPdf(splitDoc.output('arraybuffer'), masterBytes, clientPdfArtwork(splitDoc), manifest);
+  const splitTarget = path.join(root, 'tmp', 'pdfs', 'chakar-houseboat-pdf-check.pdf');
+  fs.mkdirSync(path.dirname(splitTarget), { recursive: true });
+  fs.writeFileSync(splitTarget, Buffer.from(splitBytes));
+  const splitParser = new PDFParse({ data: splitBytes });
+  let splitText;
+  try { splitText = (await splitParser.getText()).text; } finally { await splitParser.destroy(); }
+  assert.match(splitText, /Srinagar\s*·\s*Hotel/);
+  assert.match(splitText, /Srinagar\s*·\s*Houseboat/);
+  assert.match(splitText, /Lake Heritage Houseboat/);
+  assert.ok(splitText.includes(Math.round(splitCosts.sellingTotal).toLocaleString('en-IN')), 'The split-stay price must reach the client PDF.');
   const target = path.join(os.tmpdir(), 'chakar-client-pdf-check.pdf');
   fs.writeFileSync(target, Buffer.from(bytes));
   const final = await PDFDocument.load(bytes);
@@ -202,7 +235,7 @@ async function verifyFinalPdf() {
     'The native master must not retain mutable client values.');
   for (const hotel of selections) assert.ok(text.includes(hotel.hotelName), 'Hotel names must remain searchable after composition.');
   if (final.getPageCount() < 10 || costs.sellingTotal <= 0) throw new Error('Client PDF is incomplete.');
-  process.stdout.write(JSON.stringify({ target, pages: final.getPageCount(), bytes: fs.statSync(target).size, customerTotal: Math.round(costs.sellingTotal),
+  process.stdout.write(JSON.stringify({ target, splitTarget, splitHotelPages, splitCustomerTotal: Math.round(splitCosts.sellingTotal), pages: final.getPageCount(), bytes: fs.statSync(target).size, customerTotal: Math.round(costs.sellingTotal),
     nativeHeadingFonts: quality.fontNames.filter((name) => /TheSeasons/.test(name)).length,
     vectorPatterns: quality.patterns, fullPageBitmaps: quality.fullPageBitmaps }) + '\n');
 }

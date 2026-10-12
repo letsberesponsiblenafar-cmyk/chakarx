@@ -7,8 +7,9 @@ import AppShell from '@/components/AppShell';
 import PlannerChrome from '@/components/PlannerChrome';
 import { usePlanner } from '@/components/PlannerProvider';
 import { quotedActivityCost, tripActivities } from '@/lib/activities';
-import { dayNarrative, dayTitle } from '@/lib/narrative';
+import { dayTitle } from '@/lib/narrative';
 import type { DayPlan } from '@/lib/itinerary';
+import { accommodationDayNarrative, hotelForNight, hotelStayLabel } from '@/lib/accommodation';
 import './itinerary-refinement.css';
 
 function displayDate(value: string) {
@@ -48,13 +49,13 @@ export default function ItineraryPage() {
     <section className="journey-intro itinerary-review-intro"><div><span className="eyebrow">YOUR CLIENT'S JOURNEY</span><h2>A complete plan for every day.</h2><p>Selected sightseeing and included activities follow each day's visit destination, without repeating places. The overnight line shows where your client stays. Edit any day description to tailor the journey.</p><div className="itinerary-planning-window"><Clock3 size={15}/><span><b>8:00 am – 10:00 pm</b> standard day · adjusted for arrival and departure</span></div></div><Link className="secondary-link" href="/planner/destinations">Review destinations <ChevronRight size={15}/></Link></section>
     {(planningIssues.length > 0 || unscheduledActivities.length > 0) && <aside className="itinerary-planning-alert" aria-label="Planning checks"><AlertTriangle size={19}/><div><b>Review these journey checks</b><p>These checks are for your team and do not appear in the client PDF.</p><ul>{planningIssues.map((issue, index) => <li key={`${issue.day}-${index}`}><strong>Day {issue.day}:</strong> {issue.message}</li>)}{unscheduledActivities.map((activity) => <li key={activity.key}><strong>{activity.destination}:</strong> {activity.name} is included in the price but has not been assigned to a day. Review the journey or adjust the activity selection.</li>)}</ul><Link href="/planner/activities-transport">Review activities &amp; transport <ChevronRight size={14}/></Link></div></aside>}
     <div className="itinerary-review-list">{plan.dayPlans.map((day) => {
-      const hotel = hotelSelections.find((stay) => stay.location === day.stay);
+      const hotel = hotelForNight(plan, hotelSelections, day.day);
       const editing = editingDay === day.day;
       const advisories = day.timing?.advisories || [];
-      const suggested = dayNarrative({ ...day, customAbout: undefined }, input.pickup || 'Srinagar', costModel);
-      const copy = dayNarrative(day, input.pickup || 'Srinagar', costModel);
+      const suggested = accommodationDayNarrative(plan, hotelSelections, { ...day, customAbout: undefined }, input.pickup || 'Srinagar', costModel);
+      const copy = accommodationDayNarrative(plan, hotelSelections, day, input.pickup || 'Srinagar', costModel);
       return <article className="itinerary-review-card" key={day.day}>
-        <div className="itinerary-review-top"><div className="itinerary-review-number">{String(day.day).padStart(2, '0')}</div><div><span className="eyebrow">{displayDate(day.date)}</span><h3>{dayTitle(day, input.pickup || 'Srinagar')}</h3><p>{day.label === 'Departure day' ? `Departure: ${day.to}${day.departureTime ? ` · ${day.departureTime}` : ''}` : `Overnight: ${day.stay}${hotel?.hotelName && hotel.hotelName !== 'Hotel to be added' ? ` · ${hotel.hotelName}` : ''}`}</p></div><button type="button" className="secondary-link" onClick={() => setEditingDay(editing ? null : day.day)}>{editing ? 'Done' : 'Edit description'}</button></div>
+        <div className="itinerary-review-top"><div className="itinerary-review-number">{String(day.day).padStart(2, '0')}</div><div><span className="eyebrow">{displayDate(day.date)}</span><h3>{dayTitle(day, input.pickup || 'Srinagar')}</h3><p>{day.label === 'Departure day' ? `Departure: ${day.to}${day.departureTime ? ` · ${day.departureTime}` : ''}` : `Overnight: ${hotel ? hotelStayLabel(hotel) : day.stay}${hotel?.hotelName && hotel.hotelName !== 'Hotel to be added' ? ` · ${hotel.hotelName}` : ''}`}</p></div><button type="button" className="secondary-link" onClick={() => setEditingDay(editing ? null : day.day)}>{editing ? 'Done' : 'Edit description'}</button></div>
         <div className="itinerary-day-context"><span><Route size={15}/>{dayRoute(day)}</span><span><Clock3 size={15}/>{durationLabel(day.timing?.driveMinutes ?? day.drive.hours * 60)} estimated driving{day.timing ? ` · ${durationLabel(day.timing.scheduledMinutes)} estimated visits & activities` : ''}</span></div>
         {advisories.length > 0 && <details className="itinerary-planning-estimates"><summary><Clock3 size={14}/>Planning estimates</summary><p>These estimates do not remove selected places. You can edit the day description below.</p><ul>{advisories.map((message, index) => <li key={index}>{message}</li>)}</ul></details>}
         {!hasProgramme(day) && day.label !== 'Departure day' && !day.transfer && <p className="itinerary-empty-programme"><AlertTriangle size={14}/>No visits are assigned to this day. Add a destination visit or an included activity before sharing.</p>}

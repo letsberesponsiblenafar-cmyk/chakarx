@@ -2,13 +2,14 @@ import type { CostModel, HotelSelection } from '@/components/PlannerProvider';
 import type { Hotel } from '@/lib/data';
 import { arrivalDayVisitAllowed, requiresSrinagarFinalNight, type Plan, type TripInput } from '@/lib/itinerary';
 import { activitySelected, quotedActivityCost, tripActivities } from '@/lib/activities';
-import { hotelRateValidity, stayDateWindow } from '@/lib/hotel-rate-validity';
-import { sameHotelDestination } from '@/lib/hotels';
+import { hotelRateValidity } from '@/lib/hotel-rate-validity';
+import { isHouseboatHotel, sameHotelDestination } from '@/lib/hotels';
+import { hotelNightDates, hotelNightNumbers, hotelSelectionKey, hotelStayLabel, hotelStayType, hotelStayWindow } from '@/lib/accommodation';
 
 export function hotelConfirmationSignature(plan: Plan, hotel: HotelSelection, mealPlan: string) {
-  const window = stayDateWindow(plan.dayPlans.slice(0, plan.nights), hotel.location);
-  const nightDates = plan.dayPlans.slice(0, plan.nights).filter((day) => day.stay === hotel.location).map((day) => day.date);
-  return JSON.stringify([hotel.location, window.arrival, window.departure, hotel.hotelId, hotel.hotelName, hotel.rooms, hotel.extraBeds, hotel.cnb, hotel.nightlyRate, hotel.extraBedRate, hotel.cnbRate, mealPlan, hotel.nights, nightDates]);
+  const window = hotelStayWindow(plan, hotel);
+  const nightDates = hotelNightDates(plan, hotel);
+  return JSON.stringify([hotelSelectionKey(hotel), window.arrival, window.departure, hotel.hotelId, hotel.hotelName, hotel.rooms, hotel.extraBeds, hotel.cnb, hotel.nightlyRate, hotel.extraBedRate, hotel.cnbRate, mealPlan, hotel.nights, nightDates]);
 }
 
 export function planInputsNeedRefresh(plan: Plan, input: TripInput) {
@@ -43,28 +44,47 @@ export function quoteReadiness(
   for (const location of new Set(plan.dayPlans.slice(0, plan.nights).map((day) => day.stay))) {
     if (!plan.hotelPlans.some((stay) => stay.location === location)) issues.push(`Add the ${location} overnight allocation to Hotels.`);
   }
-  for (const selected of hotels) {
-    if (!plan.hotelPlans.some((stay) => stay.location === selected.location)) issues.push(`Remove the ${selected.location} hotel; this destination has no overnight stay in the current route.`);
-    if (hotels.filter((hotel) => hotel.location === selected.location).length > 1) issues.push(`Keep one hotel selection for ${selected.location}.`);
+  // Zero-night selections retain the agreed quote when an operator switches
+  // between a Srinagar hotel and houseboat; they are not part of this package.
+  const selectedStays = hotels.filter((hotel) => hotel.nights > 0);
+  for (const selected of selectedStays) {
+    const label = hotelStayLabel(selected);
+    if (!plan.hotelPlans.some((stay) => stay.location === selected.location)) issues.push(`Remove the ${label} accommodation; this destination has no overnight stay in the current route.`);
+    if (hotelStayType(selected) === 'houseboat' && selected.location !== 'Srinagar') issues.push('Houseboat accommodation can only be assigned to Srinagar nights.');
+    if (selectedStays.filter((hotel) => hotelSelectionKey(hotel) === hotelSelectionKey(selected)).length > 1) issues.push(`Keep one ${hotelStayType(selected)} selection for ${selected.location}.`);
   }
   for (const stay of plan.hotelPlans) {
-    const routeNights = plan.dayPlans.slice(0, plan.nights).filter((day) => day.stay === stay.location).length;
-    if (routeNights !== stay.nights) issues.push(`Update the ${stay.location} hotel nights to match the overnight route.`);
-    const selected = hotels.find((hotel) => hotel.location === stay.location);
-    if (!selected || !selected.hotelName || selected.hotelName === 'Hotel to be added' || selected.nightlyRate <= 0) {
+    const routeNights = plan.dayPlans.slice(0, plan.nights).map((day, index) => ({ location: day.stay, night: day.day || index + 1 })).filter((day) => day.location === stay.location).map((day) => day.night);
+    if (routeNights.length !== stay.nights) issues.push(`Update the ${stay.location} hotel nights to match the overnight route.`);
+    const allocations = selectedStays.filter((hotel) => hotel.location === stay.location);
+    if (!allocations.length) {
       issues.push(`Add a hotel and positive room rate for ${stay.location}.`);
       continue;
     }
-    if (selected.nights !== stay.nights) issues.push(`Update the ${stay.location} hotel allocation to ${stay.nights} night${stay.nights === 1 ? '' : 's'} to match the route.`);
-    if (selected.rooms < 1) issues.push(`Set the number of rooms in ${stay.location}.`);
-    if (!selected.rateConfirmed || selected.confirmedSignature !== hotelConfirmationSignature(plan, selected, input.mealPlan)) issues.push(`Verify the ${stay.location} rate, dates, meal plan and availability in Hotels.`);
-    const record = selected.hotelId ? hotelMaster.find((hotel) => hotel.id === selected.hotelId) : null;
-    if (selected.hotelId && !record) issues.push(`Reselect the hotel in ${stay.location}; its master record is unavailable.`);
-    if (record && !sameHotelDestination(record.destination, stay.location)) issues.push(`Select a hotel in ${stay.location}; the current hotel belongs to ${record.destination}.`);
-    if (record && selected.status !== 'user-edited') {
-      const window = stayDateWindow(plan.dayPlans.slice(0, plan.nights), stay.location);
-      if (hotelRateValidity(record, window.arrival, window.departure) === 'outside') issues.push(`The ${stay.location} master rate is outside the stay dates. Enter a current rate in Hotels.`);
+    const coverage = new Map(routeNights.map((night) => [night, 0]));
+    for (const selected of allocations) {
+      const label = hotelStayLabel(selected);
+      const nights = hotelNightNumbers(plan, selected);
+      const rawNights = selected.nightNumbers;
+      const invalidExplicitNights = rawNights !== undefined && (
+        rawNights.length !== selected.nights || new Set(rawNights).size !== rawNights.length ||
+        rawNights.some((night) => !Number.isInteger(night) || !coverage.has(night))
+      );
+      if (invalidExplicitNights || nights.length !== selected.nights) issues.push(`Update the ${label} ${hotelStayType(selected)} allocation to ${nights.length} night${nights.length === 1 ? '' : 's'} to match the overnight route.`);
+      for (const night of nights) coverage.set(night, (coverage.get(night) || 0) + 1);
+      if (!selected.hotelName?.trim() || /^(?:hotel|houseboat) to be (?:added|confirmed)$/i.test(selected.hotelName.trim()) || !Number.isFinite(selected.nightlyRate) || selected.nightlyRate <= 0) issues.push(`Add a ${hotelStayType(selected)} and positive room rate for ${label}.`);
+      if (selected.rooms < 1) issues.push(`Set the number of rooms in ${label}.`);
+      if (!selected.rateConfirmed || selected.confirmedSignature !== hotelConfirmationSignature(plan, selected, input.mealPlan)) issues.push(`Verify the ${label} rate, dates, meal plan and availability in Hotels.`);
+      const record = selected.hotelId ? hotelMaster.find((hotel) => hotel.id === selected.hotelId) : null;
+      if (selected.hotelId && !record) issues.push(`Reselect the ${hotelStayType(selected)} in ${label}; its master record is unavailable.`);
+      if (record && !sameHotelDestination(record.destination, stay.location)) issues.push(`Select accommodation in ${stay.location}; the current property belongs to ${record.destination}.`);
+      if (record && isHouseboatHotel(record) !== (hotelStayType(selected) === 'houseboat')) issues.push(`Select a ${hotelStayType(selected)} property for ${label}.`);
+      if (record && selected.status !== 'user-edited') {
+        const window = hotelStayWindow(plan, selected);
+        if (hotelRateValidity(record, window.arrival, window.departure) === 'outside') issues.push(`The ${label} master rate is outside the stay dates. Enter a current rate in Hotels.`);
+      }
     }
+    if ([...coverage.values()].some((count) => count !== 1)) issues.push(`Assign every ${stay.location} night to exactly one hotel${stay.location === 'Srinagar' ? ' or houseboat' : ''}.`);
   }
   if (!Number.isFinite(model.transportDaily) || model.transportDaily <= 0 || !input.transport?.trim()) {
     issues.push('Choose a vehicle and enter its positive daily rate.');
@@ -80,7 +100,7 @@ export function quoteReadiness(
       issues.push(`${activity.destination}: ${activity.name} is priced but has no time in the itinerary. Adjust the journey or remove it.`);
     }
     if (/houseboat stay/i.test(activity.name) && quotedActivityCost(model.activityCosts, activity, model.activitySelections) !== null &&
-      !hotels.some((hotel) => hotel.location === activity.destination && /houseboat/i.test(`${hotel.hotelName} ${hotel.roomType}`))) {
+      !selectedStays.some((hotel) => hotel.location === activity.destination && hotelStayType(hotel) === 'houseboat' && hotelNightNumbers(plan, hotel).length > 0)) {
       issues.push('Houseboat stay is included as an activity, but no houseboat hotel is selected. Select the houseboat or remove the activity.');
     }
   }

@@ -3,6 +3,7 @@ import type { DayBlock, DayPlan } from '@/lib/itinerary';
 import { quotedActivityCost } from '@/lib/activities';
 
 export type NarrativeQuote = { activityCosts: Record<string, number>; activitySelections?: Record<string, boolean> };
+export type NarrativeAccommodation = { current?: 'hotel' | 'houseboat'; previous?: 'hotel' | 'houseboat' };
 
 // Route language follows the supplied Chakar itinerary playbook and sample packages.
 // Client copy is composed from the operator's selected route and destination guide.
@@ -227,9 +228,13 @@ function travelCopy(from: string, to: string, via: string[] = []) {
   return `Drive to ${to} ${corridor}.`;
 }
 
-export function dayNarrative(day: DayPlan, pickup: string, quote?: NarrativeQuote) {
+export function dayNarrative(day: DayPlan, pickup: string, quote?: NarrativeQuote, accommodation: NarrativeAccommodation = {}) {
   if (day.customAbout?.trim()) return day.customAbout.trim();
   const arrivalAt = /airport|station|terminal/i.test(pickup) ? 'at' : 'in';
+  const currentStay = accommodation.current || 'hotel';
+  const previousStay = accommodation.previous || 'hotel';
+  const changingStay = day.day > 1 && day.from === day.stay && currentStay !== previousStay;
+  const overnight = currentStay === 'houseboat' ? `Overnight on your houseboat in ${day.stay}.` : `Overnight in ${day.stay}.`;
   if (day.label === 'Departure day') {
     const earlyCheckout = day.timing?.startMinutes !== undefined
       ? day.timing.startMinutes < 7 * 60 : Boolean(day.departureTime && day.departureTime < '08:00');
@@ -237,8 +242,8 @@ export function dayNarrative(day: DayPlan, pickup: string, quote?: NarrativeQuot
     const originCopy = visitCopy(day, day.stay, plannedStops(day, day.stay), quote);
     const finalCopy = day.stay !== day.to ? visitCopy(day, day.to, plannedStops(day, day.to), quote) : '';
     return day.stay === day.to
-      ? [`${opening} from your ${day.stay} hotel.`, originCopy, `Your driver will transfer you to your departure point in ${day.to} for your onward journey.`].filter(Boolean).join(' ')
-      : [`${opening} from your ${day.stay} hotel.`, originCopy,
+      ? [`${opening} from your ${day.stay} ${previousStay}.`, originCopy, `Your driver will transfer you to your departure point in ${day.to} for your onward journey.`].filter(Boolean).join(' ')
+      : [`${opening} from your ${day.stay} ${previousStay}.`, originCopy,
         travelCopy(day.stay, day.to, day.drive.via),
         finalCopy, 'Continue to your departure point for the onward journey.'].filter(Boolean).join(' ');
   }
@@ -249,8 +254,8 @@ export function dayNarrative(day: DayPlan, pickup: string, quote?: NarrativeQuot
     const sights = plannedStops(day, destination);
     const opening = day.day === 1
       ? `Arrive ${arrivalAt} ${pickup} and meet your Chakar representative.`
-      : day.transfer
-        ? `After breakfast, check out from your ${day.from} hotel.`
+      : day.transfer || changingStay
+        ? `After breakfast, check out from your ${day.from} ${previousStay}.`
         : `After breakfast, begin your day from ${day.stay}.`;
     const originCopy = day.from !== destination && day.from !== day.stay
       ? visitCopy(day, day.from, [], quote, { introduction: false, activitiesOnly: true }) : '';
@@ -258,12 +263,14 @@ export function dayNarrative(day: DayPlan, pickup: string, quote?: NarrativeQuot
     const hotelBaseCopy = day.stay !== destination
       ? visitCopy(day, day.stay, additionalVisit ? plannedStops(day, day.stay) : [], quote, { introduction: false, activitiesOnly: !additionalVisit }) : '';
     const returnTransfer = day.transfer
-      ? `Continue to ${day.stay} and check in to your hotel.`
-      : `Return to ${day.stay} after your visit.`;
+      ? `Continue to ${day.stay} and check in to your ${currentStay}.`
+      : changingStay || (day.day === 1 && currentStay === 'houseboat')
+        ? `Return to ${day.stay} after your visit and check in to your ${currentStay}.`
+        : `Return to ${day.stay} after your visit.`;
     const access = destinationByName(destination)?.hub_route;
     const trailReturn = access && access.access_mode !== 'road'
       ? `${access.access_mode === 'trek' ? 'Walk back' : 'Return along the pilgrimage route'} to ${access.road_endpoint} before the onward road transfer.` : '';
-    return [opening, originCopy, travelCopy(day.from, destination, day.drive.via), visitCopy(day, destination, sights, quote), trailReturn, returnTransfer, hotelBaseCopy, `Overnight in ${day.stay}.`].filter(Boolean).join(' ');
+    return [opening, originCopy, travelCopy(day.from, destination, day.drive.via), visitCopy(day, destination, sights, quote), trailReturn, returnTransfer, hotelBaseCopy, overnight].filter(Boolean).join(' ');
   }
 
   const localStops = plannedStops(day, day.stay);
@@ -277,17 +284,20 @@ export function dayNarrative(day: DayPlan, pickup: string, quote?: NarrativeQuot
     const opening = localArrival
       ? `Arrive ${arrivalAt} ${pickup} and meet your Chakar representative.${arrivalAt === 'at' ? ` Transfer to ${day.stay}.` : ''}`
       : `Arrive ${arrivalAt} ${pickup} and meet your Chakar representative. ${travelCopy(day.from, day.stay, day.drive.via)}`;
-    const checkIn = `Check in to your ${day.stay} hotel.`;
-    return [opening, checkInFirst ? checkIn : '', destinationCopy, !checkInFirst ? checkIn : '', `Overnight in ${day.stay}.`].filter(Boolean).join(' ');
+    const checkIn = `Check in to your ${day.stay} ${currentStay}.`;
+    return [opening, checkInFirst ? checkIn : '', destinationCopy, !checkInFirst ? checkIn : '', overnight].filter(Boolean).join(' ');
   }
   if (day.transfer) {
     const originStops = plannedStops(day, day.from);
     const originCopy = originStops.length || day.scheduledActivities?.some((activity) => activity.destination === day.from)
       ? visitCopy(day, day.from, originStops, quote) : '';
-    const opening = `After breakfast, check out from your ${day.from} hotel.`;
-    const transfer = `${travelCopy(day.from, day.stay, day.drive.via)} Check in on arrival.`;
-    return [opening, originCopy, transfer, destinationCopy, `Overnight in ${day.stay}.`].filter(Boolean).join(' ');
+    const opening = `After breakfast, check out from your ${day.from} ${previousStay}.`;
+    const transfer = `${travelCopy(day.from, day.stay, day.drive.via)} ${currentStay === 'houseboat' ? 'Check in to your houseboat on arrival.' : 'Check in on arrival.'}`;
+    return [opening, originCopy, transfer, destinationCopy, overnight].filter(Boolean).join(' ');
   }
   const programme = localStops.length || day.scheduledActivities?.some((activity) => activity.destination === day.stay);
-  return [programme ? `After breakfast, set out for ${day.stay === 'Srinagar' ? 'Srinagar local sightseeing' : `${day.stay} sightseeing`}.` : `Begin the day with breakfast at your ${day.stay} hotel.`, destinationCopy, `Overnight in ${day.stay}.`].filter(Boolean).join(' ');
+  return [changingStay ? `After breakfast, check out from your ${day.from} ${previousStay}.` : '',
+    programme ? `${changingStay ? 'Set out' : 'After breakfast, set out'} for ${day.stay === 'Srinagar' ? 'Srinagar local sightseeing' : `${day.stay} sightseeing`}.`
+      : changingStay ? '' : `Begin the day with breakfast at your ${day.stay} ${previousStay}.`,
+    destinationCopy, changingStay ? `Check in to your ${day.stay} ${currentStay}.` : '', overnight].filter(Boolean).join(' ');
 }
