@@ -10,6 +10,7 @@ import { calculateCosts } from '@/lib/costing';
 import { quotedActivityCost, tripActivities } from '@/lib/activities';
 import { quoteReadiness } from '@/lib/quote-readiness';
 import { activeHotelSelections, hotelNightNumbers, hotelSelectionKey, hotelStayLabel } from '@/lib/accommodation';
+import { effectiveHotelSelection } from '@/lib/hotel-options';
 import './costing.css';
 
 function money(value: number) { return `₹${Math.round(value).toLocaleString('en-IN')}`; }
@@ -53,7 +54,7 @@ export default function CostingPage() {
   const withinBudget = groupBudget === 0 || costs.sellingTotal <= groupBudget;
   const perPerson = costs.people > 0 ? costs.sellingTotal / costs.people : 0;
   const includedCount = tripActivities(plan, destinationCatalog, costModel.activitySelections).filter((activity) => quotedActivityCost(costModel.activityCosts, activity, costModel.activitySelections) !== null).length;
-  const stays = activeHotelSelections(plan, hotelSelections).map((hotel) => ({ ...hotel, nights: hotelNightNumbers(plan, hotel).length }));
+  const stays = activeHotelSelections(plan, hotelSelections).map((hotel) => ({ ...effectiveHotelSelection(hotel, plan.input.hotelOptionMode), nights: hotelNightNumbers(plan, hotel).length }));
   const quoteIssues = quoteReadiness(plan, input, hotelSelections, costModel, hotelDatabase, hotelConnection, destinationConnection);
 
   return <AppShell><PlannerChrome title="Trip costing" eyebrow="STEP 05 · COSTING">

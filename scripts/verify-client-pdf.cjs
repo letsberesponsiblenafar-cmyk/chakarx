@@ -36,6 +36,7 @@ jspdf.jsPDF = function InspectedJsPDF(options) {
       page: doc.internal.getCurrentPageInfo().pageNumber,
       text: Array.isArray(value) ? value.flat(Infinity).join('\n') : String(value),
       x, y, font: doc.getFont().fontName, fontStyle: doc.getFont().fontStyle, size: doc.getFontSize(),
+      lineWidths: (Array.isArray(value) ? value.flat(Infinity) : [String(value)]).map((line) => doc.getTextWidth(String(line))),
     });
     return text.call(this, value, x, y, ...args);
   };
@@ -45,7 +46,8 @@ jspdf.jsPDF = function InspectedJsPDF(options) {
 const { createPlan, rebuildPlanFromNightSequence, setPlanDayTrip, setPlanDeparturePoint } = require('../lib/itinerary.ts');
 const { calculateCosts } = require('../lib/costing.ts');
 const { clientActivityLists } = require('../lib/activities.ts');
-const { buildClientPdf, clientPdfArtwork } = require('../components/ClientPdf.tsx');
+const { buildClientPdf, clientPdfArtwork, pdfHotelName } = require('../components/ClientPdf.tsx');
+const { effectiveHotelSelection, hotelOptionNames } = require('../lib/hotel-options.ts');
 const { composeVectorClientPdf } = require('../lib/pdf-composition.ts');
 const { initialPackageDefaults } = require('../lib/package-defaults.ts');
 const { PDFDocument, PDFDict, PDFName, PDFRawStream } = require('pdf-lib');
@@ -160,6 +162,64 @@ for (const hotel of selections) {
     `${hotel.hotelName} must remain visible in the hotel table.`);
 }
 
+const multipleInput = { ...input, hotelOptionMode: 'multiple' };
+const multiplePlan = { ...plan, input: multipleInput };
+const multipleSelections = splitSelections.map((hotel) => hotel.accommodationType === 'houseboat' ? hotel : {
+  ...hotel, alternatives: [
+    { ...hotel, hotelId: '', hotelName: `${hotel.location} Riverside Heritage Residency`, nightlyRate: 2500, extraBedRate: 800 },
+    { ...hotel, hotelId: '', hotelName: `${hotel.location} Grand Mountain View Resort and Spa`, nightlyRate: 4200, extraBedRate: 1200 },
+  ],
+});
+const quoteModel = { transportDaily: 8000, otherAmount: 0, profitPct: 10 };
+const multipleCosts = calculateCosts(multiplePlan, multipleSelections, quoteModel);
+const highestOnlyCosts = calculateCosts(plan, multipleSelections.map((hotel) => effectiveHotelSelection(hotel, 'multiple')), quoteModel);
+assert.equal(multipleCosts.sellingTotal, highestOnlyCosts.sellingTotal,
+  'The client total must price one highest complete property quote per stay, never add the alternatives.');
+const multipleDoc = buildClientPdf(art, multiplePlan, multipleInput, multipleSelections, multipleCosts, input.name, fonts, activityLists);
+const multipleHotelPages = multipleDoc.clientText.filter((entry) => entry.text === 'Destination').map((entry) => entry.page);
+for (const hotel of multipleSelections) {
+  const label = pdfHotelName(hotel, multipleInput);
+  const property = multipleDoc.clientText.find((entry) => multipleHotelPages.includes(entry.page) && entry.text.replace(/\s+/g, ' ') === label);
+  assert.ok(property, `Every selected property must reach the hotel table in price order: ${label}`);
+  assert.equal((label.match(/ or similar/g) || []).length, hotel.alternatives?.length ? 1 : 0,
+    'Only multiple selected properties should end with one or similar suffix.');
+  if (hotel.alternatives?.length) {
+    assert.deepEqual(hotelOptionNames(hotel, 'multiple'), [hotel.alternatives[0].hotelName, hotel.hotelName, hotel.alternatives[1].hotelName]);
+    assert.equal(pdfHotelName(hotel, input), hotel.hotelName,
+      'Single-hotel mode must ignore retained alternatives and keep its exact property name.');
+  }
+}
+assertHotelNightCounts(multipleDoc, [['Srinagar', 2], ['Houseboats', 1], ['Pahalgam', 3], ['Gulmarg', 1]]);
+assert.ok(multipleDoc.clientText.some((entry) => entry.text === `Rs. ${Math.round(multipleCosts.sellingTotal).toLocaleString('en-IN')}/-`),
+  'The highest selected property prices must reach the client investment box.');
+assert.ok(!multipleDoc.clientText.some((entry) => multipleHotelPages.includes(entry.page) && /Rs\.|nightly|B2B|supplier/i.test(entry.text)),
+  'The hotel table must never reveal internal alternative supplier rates.');
+assert.equal(multipleDoc.getNumberOfPages(), splitDoc.getNumberOfPages(),
+  'Three ordinary property options must fit the existing table without adding pages.');
+
+function assertHotelNamesFit(pdf) {
+  const pages = pdf.clientText.filter((entry) => entry.text === 'Destination').map((entry) => entry.page);
+  const properties = pdf.clientText.filter((entry) => pages.includes(entry.page) && entry.x === 382 && entry.fontStyle === 'normal' && entry.size === 9.6);
+  for (const entry of properties) {
+    const lines = entry.text.split('\n');
+    assert.ok(lines.length <= 8 && entry.lineWidths.every((width) => width <= 187.1),
+      'All hotel option text must fit its cell width at the original readable font size.');
+    const center = [296, 413, 537, 659].find((y) => Math.abs(entry.y + (lines.length - 1) * 9.6 * 1.15 / 2 - y) < 0.01);
+    assert.ok(center && entry.y >= center - 45 && entry.y + (lines.length - 1) * 9.6 * 1.15 <= center + 45,
+      'Wrapped property names must remain inside their occupied row.');
+  }
+}
+assertHotelNamesFit(multipleDoc);
+const longHotel = { ...multipleSelections[0], hotelName: 'Srinagar The Grand Heritage Riverside Palace Resort with Mountain Views and Premium Garden Suites '.repeat(3).trim() };
+longHotel.alternatives = longHotel.alternatives.map((hotel, index) => ({ ...hotel, hotelName: `${index + 1} ${hotel.hotelName} ${'Private Garden Residence and Valley View Suites '.repeat(5).trim()}` }));
+const longNameDoc = buildClientPdf(art, multiplePlan, multipleInput, [longHotel, ...multipleSelections.slice(1)], multipleCosts, input.name, fonts, activityLists);
+assertHotelNamesFit(longNameDoc);
+const longPropertyText = longNameDoc.clientText.filter((entry) => entry.x === 382 && entry.fontStyle === 'normal' && entry.size === 9.6).map((entry) => entry.text.replace(/\s+/g, ' ')).join(' ');
+assert.ok(longPropertyText.includes(pdfHotelName(longHotel, multipleInput)),
+  'Even unusually long property names must be retained completely across continuation rows.');
+assert.ok(longNameDoc.clientText.some((entry) => entry.text === 'Continued'),
+  'Long property names need a continuation row instead of clipping or shrinking text.');
+
 const normalize = (value) => value.replace(/\s+/g, ' ').trim().replace(/[.!?]$/, '').toLowerCase();
 for (const [key, heading] of [['inclusions', 'YOUR PACKAGE INCLUDES'], ['exclusions', 'NOT INCLUDED IN THIS PACKAGE']]) {
   const listPages = doc.clientText.filter((entry) => entry.text === heading).map((entry) => entry.page);
@@ -210,6 +270,26 @@ async function verifyFinalPdf() {
     /artwork is missing: cover/, 'Missing native artwork must stop the download.');
   const bytes = await composeVectorClientPdf(overlayBytes, masterBytes, artwork, manifest);
   const splitBytes = await composeVectorClientPdf(splitDoc.output('arraybuffer'), masterBytes, clientPdfArtwork(splitDoc), manifest);
+  const multipleBytes = await composeVectorClientPdf(multipleDoc.output('arraybuffer'), masterBytes, clientPdfArtwork(multipleDoc), manifest);
+  const longNameBytes = await composeVectorClientPdf(longNameDoc.output('arraybuffer'), masterBytes, clientPdfArtwork(longNameDoc), manifest);
+  const longNameTarget = path.join(root, 'tmp', 'pdfs', 'chakar-long-hotel-names-pdf-check.pdf');
+  const multipleTarget = path.join(root, 'tmp', 'pdfs', 'chakar-multiple-hotels-pdf-check.pdf');
+  fs.mkdirSync(path.dirname(multipleTarget), { recursive: true });
+  fs.writeFileSync(multipleTarget, Buffer.from(multipleBytes));
+  fs.writeFileSync(longNameTarget, Buffer.from(longNameBytes));
+  const multipleFinal = await PDFDocument.load(multipleBytes);
+  const multipleQuality = nativeObjects(multipleFinal);
+  assert.equal(multipleQuality.fullPageBitmaps, 0, 'Multiple options must preserve native PDF quality.');
+  assert.ok(multipleQuality.patterns > 0 && multipleQuality.fontNames.some((name) => /TheSeasons/.test(name)),
+    'Multiple options must retain native table gradients and reference heading fonts.');
+  const multipleParser = new PDFParse({ data: multipleBytes });
+  let multipleText;
+  try { multipleText = (await multipleParser.getText()).text; } finally { await multipleParser.destroy(); }
+  assert.ok(multipleText.includes(Math.round(multipleCosts.sellingTotal).toLocaleString('en-IN')),
+    'Composed multiple-hotel PDF must retain the highest-option package total.');
+  const compactText = multipleText.replace(/\s+/g, ' ');
+  for (const hotel of multipleSelections) assert.ok(compactText.includes(pdfHotelName(hotel, multipleInput)),
+    'All slash-separated alternatives must remain searchable in the final PDF.');
   const splitTarget = path.join(root, 'tmp', 'pdfs', 'chakar-houseboat-pdf-check.pdf');
   fs.mkdirSync(path.dirname(splitTarget), { recursive: true });
   fs.writeFileSync(splitTarget, Buffer.from(splitBytes));
@@ -261,7 +341,7 @@ async function verifyFinalPdf() {
     'The native master must not retain mutable client values.');
   for (const hotel of selections) assert.ok(text.includes(hotel.hotelName), 'Hotel names must remain searchable after composition.');
   if (final.getPageCount() < 10 || costs.sellingTotal <= 0) throw new Error('Client PDF is incomplete.');
-  process.stdout.write(JSON.stringify({ target, splitTarget, splitHotelPages, splitCustomerTotal: Math.round(splitCosts.sellingTotal), pages: final.getPageCount(), bytes: fs.statSync(target).size, customerTotal: Math.round(costs.sellingTotal),
+  process.stdout.write(JSON.stringify({ target, splitTarget, splitHotelPages, splitCustomerTotal: Math.round(splitCosts.sellingTotal), multipleTarget, multipleHotelPages, multipleCustomerTotal: Math.round(multipleCosts.sellingTotal), longNameTarget, longNameHotelPages: longNameDoc.clientText.filter((entry) => entry.text === 'Destination').map((entry) => entry.page), pages: final.getPageCount(), bytes: fs.statSync(target).size, customerTotal: Math.round(costs.sellingTotal),
     nativeHeadingFonts: quality.fontNames.filter((name) => /TheSeasons/.test(name)).length,
     vectorPatterns: quality.patterns, fullPageBitmaps: quality.fullPageBitmaps }) + '\n');
 }

@@ -1,0 +1,88 @@
+.hotel-option-shortlist {
+  display: grid;
+  gap: 7px;
+  margin: 10px 0 0;
+}
+
+.hotel-option-row {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid #e8dece;
+  border-radius: 9px;
+  background: #fffdfa;
+}
+
+.hotel-option-label {
+  color: #8a775d;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.hotel-option-row select {
+  min-width: 0;
+  width: 100%;
+  height: 30px;
+  padding: 3px 22px 3px 0;
+  border: 0;
+  border-radius: 3px;
+  background-color: transparent;
+  color: #493722;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.hotel-option-row select:focus-visible {
+  outline: 2px solid #a78345;
+  outline-offset: 3px;
+}
+
+.hotel-option-row.has-rate-review { grid-template-columns: 112px minmax(0, 1fr) auto; }
+.hotel-option-review-button {
+  padding: 5px 7px;
+  border: 1px solid #dfceb2;
+  border-radius: 6px;
+  background: #faf3e6;
+  color: #7a592a;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.hotel-option-rate-review {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin: -4px 0 12px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: #faf3e6;
+  color: #806844;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.hotel-option-rate-review strong { color: #5b482d; font-weight: 600; }
+.hotel-option-rate-review button { flex: none; border: 0; background: transparent; padding: 3px 0; color: #795823; font-size: 10px; font-weight: 600; text-decoration: underline; }
+
+.hotel-options-pricing,
+.hotel-options-availability {
+  margin: 2px 0 0;
+  color: #87755b;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.hotel-options-pricing strong { color: #5b482d; font-weight: 600; }
+
+@media (max-width: 680px) {
+  .hotel-option-row { grid-template-columns: minmax(0, 1fr); gap: 2px; padding: 9px 11px; }
+  .hotel-option-row.has-rate-review { grid-template-columns: minmax(0, 1fr) auto; }
+  .hotel-option-label { grid-column: 1 / -1; font-size: 9px; }
+  .hotel-option-row select { height: 28px; }
+  .hotel-option-rate-review { align-items: flex-start; flex-wrap: wrap; gap: 4px; }
+}

@@ -3,12 +3,14 @@ import type { CostModel, HotelSelection } from '@/components/PlannerProvider';
 import { priceTrip } from '@/lib/pricing';
 import { quotedActivityCost, tripActivities } from '@/lib/activities';
 import { activeHotelSelections, hotelNightNumbers, hotelStayLabel } from '@/lib/accommodation';
+import { effectiveHotelSelection, hotelOptions } from '@/lib/hotel-options';
 
 export function calculateCosts(plan: Plan, hotels: HotelSelection[], model: CostModel) {
   const activeStays = activeHotelSelections(plan, hotels);
   const accommodation = activeStays.reduce((sum, h) => {
     const nights = hotelNightNumbers(plan, h).length;
-    return sum + nights * h.rooms * h.nightlyRate + nights * h.extraBeds * h.extraBedRate + nights * h.cnb * h.cnbRate;
+    const quoted = effectiveHotelSelection(h, plan.input.hotelOptionMode);
+    return sum + nights * quoted.rooms * quoted.nightlyRate + nights * quoted.extraBeds * quoted.extraBedRate + nights * quoted.cnb * quoted.cnbRate;
   }, 0);
   // A private vehicle is reserved throughout the package, including local
   // sightseeing and the final drop. Route-leg charges alone omit those days.
@@ -21,7 +23,7 @@ export function calculateCosts(plan: Plan, hotels: HotelSelection[], model: Cost
   const people = plan.input.adults + plan.input.youngAges.length;
   const missingHotelRates = [
     ...plan.hotelPlans.filter((stay) => !activeStays.some((hotel) => hotel.location === stay.location)).map((stay) => stay.location),
-    ...activeStays.filter((hotel) => !hotel.hotelName?.trim() || /^(?:hotel|houseboat) to be (?:added|confirmed)$/i.test(hotel.hotelName.trim()) || !Number.isFinite(hotel.nightlyRate) || hotel.nightlyRate <= 0).map(hotelStayLabel),
+    ...activeStays.filter((hotel) => hotelOptions(hotel, plan.input.hotelOptionMode).some((option) => !option.hotelName?.trim() || /^(?:hotel|houseboat) to be (?:added|confirmed)$/i.test(option.hotelName.trim()) || !Number.isFinite(option.nightlyRate) || option.nightlyRate <= 0)).map(hotelStayLabel),
   ];
   return { ...priced, meals, activities, preGst: priced.b2bCost, people, missingHotelRates };
 }

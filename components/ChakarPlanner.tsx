@@ -8,6 +8,7 @@ import { ROUTE_VERSION } from '@/lib/itinerary';
 import { calculateCosts } from '@/lib/costing';
 import { departureForNights, tripDuration } from '@/lib/trip-dates';
 import { planInputsNeedRefresh } from '@/lib/quote-readiness';
+import './hotel-option-preference.css';
 
 function datePlus(n:number){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}
 function fmtDate(s:string){return new Date(`${s}T12:00:00`).toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'})}
@@ -88,6 +89,7 @@ export default function ChakarPlanner(){
       <div className="build-form-divider"><span>03</span><b>Package preferences</b></div>
       <div className="form-section"><label>Itinerary category</label><div className="pill-set category-pills">{hotelCategories.map(x=><button type="button" key={x} className={input.hotelCategory===x?'active':''} onClick={()=>setInputField('hotelCategory',x)}>{x}</button>)}</div></div>
       <div className="form-section"><label>Meal plan</label><div className="pill-set">{mealOptions.map(x=><button type="button" key={x} className={input.mealPlan===x?'active':''} onClick={()=>setInputField('mealPlan',x)}>{x}</button>)}</div></div>
+      <div className="form-section hotel-option-preference"><label>Hotel options per destination</label><div className="pill-set" role="group" aria-label="Hotel options per destination"><button type="button" className={input.hotelOptionMode!=='multiple'?'active':''} aria-pressed={input.hotelOptionMode!=='multiple'} onClick={()=>setInputField('hotelOptionMode','single')}>Keep one hotel</button><button type="button" className={input.hotelOptionMode==='multiple'?'active':''} aria-pressed={input.hotelOptionMode==='multiple'} onClick={()=>setInputField('hotelOptionMode','multiple')}>Two or more hotels</button></div><small className="field-note">{input.hotelOptionMode==='multiple'?'Offer up to three similar hotels at each stop. The quote uses the highest selected stay cost.':'Choose one hotel for each destination, with its own quoted rate.'}</small></div>
       {quickError&&<div className="form-error">{quickError}</div>}
       <button className="primary-cta next-button" onClick={submit} disabled={busy}>{busy?<><Sparkles size={17}/>Building…</>:<>Next <ChevronRight size={17}/></>}</button>
       <div className="trust-note"><strong>Planning boundary</strong><span>Destination intelligence, route rules and package logic are source-backed. Live road, hotel availability and supplier rates remain verification inputs.</span></div>

@@ -10,6 +10,7 @@ import { snapshotPlanDestinations, srinagarLogisticsGuide, withPlanDestinations 
 export type TripInput = {
   name: string; arrival: string; departure: string; arrivalTime?: string; departureTime?: string; pickup: string; adults: number; youngAges: number[]; budget: number;
   hotelCategory: string; transport: string; mealPlan: string; style: typeof travelStyles[number]; interests: string[];
+  hotelOptionMode?: 'single' | 'multiple';
 };
 export type RouteLeg = Route & { from: string; to: string; via?: string[]; known: boolean; preference: 'PREFERRED' | 'ALLOWED' | 'AVOID' | 'NOT_ALLOWED'; vehicleDaysCharged: number; rationale: string; preferredAlternative?: string };
 export type DayBlock = { name: string; description: string; startMinute?: number; reason: string; tags: string[]; destination?: string; sights?: string[]; librarySights?: { destination: string; name: string; visitName: string }[]; source?: string; conditional?: boolean; kind?: 'sightseeing' | 'arrival' | 'transfer' | 'departure' | 'custom' | 'free-time'; intelligence?: { status: 'STANDARD' | 'OPTIONAL' | 'CONDITIONAL' | 'EXTRA' | 'EXCLUDED' | 'SEASONAL' | 'LIVE_CHECK'; extraCost?: boolean; note?: string } };
@@ -304,13 +305,14 @@ function validateInput(input: TripInput) {
   if (!hotelCategories.includes(input.hotelCategory)) throw new Error('Invalid itinerary category.');
   if (typeof input.transport !== 'string' || !input.transport.trim() || input.transport.length > 80) throw new Error('Enter a valid vehicle name.');
   if (!mealOptions.includes(input.mealPlan)) throw new Error('Invalid meal plan.');
+  if (input.hotelOptionMode !== undefined && !['single', 'multiple'].includes(input.hotelOptionMode)) throw new Error('Choose one hotel or multiple hotel options.');
   if (!Number.isFinite(input.budget) || input.budget < 0) throw new Error('Budget must be a valid non-negative amount.');
 }
 
 export function validatedTripInput(input: TripInput): TripInput {
   validateInput(input);
   const normalizedMix = normalizeChildrenAndAdults(input.adults, input.youngAges);
-  return { ...input, youngAges: normalizedMix.children, adults: normalizedMix.adults, budget: Math.max(0, input.budget) };
+  return { ...input, hotelOptionMode: input.hotelOptionMode || 'single', youngAges: normalizedMix.children, adults: normalizedMix.adults, budget: Math.max(0, input.budget) };
 }
 
 export function createPlan(input: TripInput, catalog?: Destination[]): Plan {
