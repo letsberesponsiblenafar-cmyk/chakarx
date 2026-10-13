@@ -42,6 +42,28 @@
   outline-offset: 3px;
 }
 
+.hotel-option-property { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.hotel-option-custom-name {
+  min-width: 0;
+  width: 100%;
+  height: 30px;
+  padding: 3px 7px;
+  border: 1px solid #e4d8c6;
+  border-radius: 5px;
+  background: #fff;
+  color: #493722;
+  font-family: inherit;
+  font-size: 12px;
+}
+.hotel-option-custom-name::placeholder { color: #a2927a; font-size: 11px; }
+.hotel-option-custom-name:focus-visible { outline: 2px solid #a78345; outline-offset: 2px; }
+.hotel-option-row select.hotel-option-custom-source { flex: 0 0 110px; width: 110px; color: #87755b; font-size: 10px; font-weight: 500; }
+.hotel-option-row-actions { display: flex; align-items: center; gap: 4px; }
+.hotel-option-clear { display: grid; place-items: center; flex: none; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: #8b765b; cursor: pointer; }
+.hotel-option-clear:hover { background: #f3e9dc; color: #73412c; }
+.hotel-option-clear:focus-visible,
+.hotel-option-review-button:focus-visible { outline: 2px solid #a78345; outline-offset: 2px; }
+
 .hotel-option-row.has-rate-review { grid-template-columns: 112px minmax(0, 1fr) auto; }
 .hotel-option-review-button {
   padding: 5px 7px;
@@ -84,5 +106,13 @@
   .hotel-option-row.has-rate-review { grid-template-columns: minmax(0, 1fr) auto; }
   .hotel-option-label { grid-column: 1 / -1; font-size: 9px; }
   .hotel-option-row select { height: 28px; }
+  .hotel-option-row select.hotel-option-custom-source { flex-basis: 94px; width: 94px; }
+  .hotel-option-property { gap: 5px; }
   .hotel-option-rate-review { align-items: flex-start; flex-wrap: wrap; gap: 4px; }
+}
+
+@media (max-width: 420px) {
+  .hotel-option-row.is-custom-option { grid-template-columns: minmax(0, 1fr) auto; }
+  .hotel-option-row.is-custom-option .hotel-option-property { flex-wrap: wrap; }
+  .hotel-option-row select.hotel-option-custom-source { flex-basis: 100%; width: 100%; height: 22px; }
 }

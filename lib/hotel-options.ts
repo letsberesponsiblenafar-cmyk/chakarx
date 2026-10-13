@@ -6,19 +6,26 @@ import { isHouseboatHotel, matchesPackageCategory, sameHotelDestination } from '
 export type HotelOptionMode = 'single' | 'multiple';
 /** A supplier quote, separate from the stay's shared rooms and overnight dates. */
 export type HotelOptionQuote = {
+  /** Stable identity for an operator-entered alternative without a master record. */
+  customId?: string;
   hotelId: string; hotelName: string; category: string; starRating: number | null;
   address: string; roomType: string; website: string;
   nightlyRate: number; extraBedRate: number; cnbRate: number; source: string; status: string;
 };
 
 export function hotelOptionFromSelection(hotel: HotelOptionQuote): HotelOptionQuote {
-  const { hotelId, hotelName, category, starRating, address, roomType, website, nightlyRate, extraBedRate, cnbRate, source, status } = hotel;
-  return { hotelId, hotelName, category, starRating, address, roomType, website, nightlyRate, extraBedRate, cnbRate, source, status };
+  const { customId, hotelId, hotelName, category, starRating, address, roomType, website, nightlyRate, extraBedRate, cnbRate, source, status } = hotel;
+  return { ...(customId ? { customId } : {}), hotelId, hotelName, category, starRating, address, roomType, website, nightlyRate, extraBedRate, cnbRate, source, status };
 }
 
 const normalizedName = (value: string) => value.trim().toLowerCase().replace(/\s+/g, ' ');
+export function hotelOptionIdentity(option: HotelOptionQuote) { return option.customId || option.hotelId; }
+/** An empty custom slot expresses operator intent, without adding a quoted property. */
+export function isUnusedHotelOption(option: HotelOptionQuote) {
+  return Boolean(option.customId) && !option.hotelName.trim() && option.nightlyRate === 0 && option.extraBedRate === 0 && option.cnbRate === 0;
+}
 export function sameHotelOption(left: HotelOptionQuote, right: HotelOptionQuote) {
-  return Boolean(left.hotelId && right.hotelId && left.hotelId === right.hotelId) ||
+  return Boolean(hotelOptionIdentity(left) && hotelOptionIdentity(left) === hotelOptionIdentity(right)) ||
     Boolean(normalizedName(left.hotelName) && normalizedName(left.hotelName) === normalizedName(right.hotelName));
 }
 export function hotelOptionNightlyCost(option: HotelOptionQuote, occupancy: Pick<HotelSelection, 'rooms' | 'extraBeds' | 'cnb'>) {
@@ -28,6 +35,7 @@ export function hotelOptionNightlyCost(option: HotelOptionQuote, occupancy: Pick
 export function hotelOptions(hotel: HotelSelection, mode: HotelOptionMode = 'single'): HotelOptionQuote[] {
   const options = [hotelOptionFromSelection(hotel)];
   if (mode === 'multiple') for (const alternative of (hotel.alternatives || []).slice(0, 2)) {
+    if (isUnusedHotelOption(alternative)) continue;
     if (!options.some((option) => sameHotelOption(option, alternative))) options.push(hotelOptionFromSelection(alternative));
   }
   return options.sort((a, b) => hotelOptionNightlyCost(a, hotel) - hotelOptionNightlyCost(b, hotel) || a.hotelName.localeCompare(b.hotelName));
@@ -51,7 +59,7 @@ export function hotelOptionCategory(primary: HotelSelection, database: Hotel[]) 
 
 /** The same compatible inventory powers automatic suggestions and the compact selectors. */
 export function hotelAlternativeCandidates(primary: HotelSelection, database: Hotel[], packageCategory: string, arrival?: string, departure?: string) {
-  const primaryIsBoat = primary.accommodationType === 'houseboat' || isHouseboatHotel({ name: primary.hotelName, roomType: primary.roomType, sourceCategory: primary.category, sourceType: primary.source });
+  const primaryIsBoat = primary.accommodationType ? primary.accommodationType === 'houseboat' : isHouseboatHotel({ name: primary.hotelName, roomType: primary.roomType, sourceCategory: primary.category, sourceType: primary.source });
   const category = hotelOptionCategory(primary, database);
   if (!(primary.nightlyRate > 0) || !primary.hotelName.trim() || /^(?:hotel|houseboat) to be (?:added|confirmed)$/i.test(primary.hotelName.trim())) return [];
   return database.filter((hotel) => {

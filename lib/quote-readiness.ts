@@ -5,7 +5,7 @@ import { activitySelected, quotedActivityCost, tripActivities } from '@/lib/acti
 import { hotelRateValidity } from '@/lib/hotel-rate-validity';
 import { isHouseboatHotel, sameHotelDestination, matchesPackageCategory } from '@/lib/hotels';
 import { hotelNightDates, hotelNightNumbers, hotelSelectionKey, hotelStayLabel, hotelStayType, hotelStayWindow } from '@/lib/accommodation';
-import { hotelOptions, hotelOptionCategory } from '@/lib/hotel-options';
+import { hotelOptions, hotelOptionCategory, hotelOptionIdentity, isUnusedHotelOption } from '@/lib/hotel-options';
 
 export function hotelConfirmationSignature(plan: Plan, hotel: HotelSelection, mealPlan: string) {
   const window = hotelStayWindow(plan, hotel);
@@ -80,17 +80,20 @@ export function quoteReadiness(
       if (!selected.rateConfirmed || selected.confirmedSignature !== hotelConfirmationSignature(plan, selected, input.mealPlan)) issues.push(`Verify the ${label} rate, dates, meal plan and availability in Hotels.`);
       const options = hotelOptions(selected, plan.input.hotelOptionMode);
       const category = hotelOptionCategory(selected, hotelMaster);
-      if (plan.input.hotelOptionMode === 'multiple' && (selected.alternatives || []).length + 1 !== options.length) issues.push(`Keep up to three different properties for ${label}.`);
+      const enteredAlternatives = (selected.alternatives || []).filter((option) => !isUnusedHotelOption(option));
+      if (plan.input.hotelOptionMode === 'multiple' && enteredAlternatives.length + 1 !== options.length) issues.push(`Keep up to three different properties for ${label}.`);
       for (const option of options) {
         const optionLabel = options.length > 1 ? `${label}: ${option.hotelName || 'unnamed option'}` : label;
         if (!option.hotelName?.trim() || /^(?:hotel|houseboat) to be (?:added|confirmed)$/i.test(option.hotelName.trim()) || !Number.isFinite(option.nightlyRate) || option.nightlyRate <= 0) issues.push(`Add a ${hotelStayType(selected)} and positive room rate for ${optionLabel}.`);
-        if (options.length > 1 && category !== null && option.hotelId !== selected.hotelId && option.category !== category) issues.push(`Use the same hotel category for every ${label} option.`);
-        if (options.length > 1 && option.hotelId !== selected.hotelId && !matchesPackageCategory({ normalizedCategory: option.category }, input.hotelCategory)) issues.push(`Choose ${input.hotelCategory} properties for the ${label} alternatives.`);
+        if ([option.extraBedRate, option.cnbRate].some((rate) => !Number.isFinite(rate) || rate < 0)) issues.push(`Enter valid, non-negative extra-bed and child rates for ${optionLabel}.`);
+        const alternative = hotelOptionIdentity(option) !== hotelOptionIdentity(selected);
+        if (options.length > 1 && category !== null && alternative && option.category !== category) issues.push(`Use the same hotel category for every ${label} option.`);
+        if (options.length > 1 && alternative && !option.customId && !matchesPackageCategory({ normalizedCategory: option.category }, input.hotelCategory)) issues.push(`Choose ${input.hotelCategory} properties for the ${label} alternatives.`);
         const record = option.hotelId ? hotelMaster.find((hotel) => hotel.id === option.hotelId) : null;
         if (option.hotelId && !record) issues.push(`Reselect the ${hotelStayType(selected)} in ${optionLabel}; its master record is unavailable.`);
         if (record && !sameHotelDestination(record.destination, stay.location)) issues.push(`Select accommodation in ${stay.location}; the current property belongs to ${record.destination}.`);
         if (record && isHouseboatHotel(record) !== (hotelStayType(selected) === 'houseboat')) issues.push(`Select a ${hotelStayType(selected)} property for ${optionLabel}.`);
-        if (!record && options.length > 1 && option.hotelId !== selected.hotelId && isHouseboatHotel({ name: option.hotelName, roomType: option.roomType, sourceCategory: option.category, sourceType: option.source }) !== (hotelStayType(selected) === 'houseboat')) issues.push(`Select a ${hotelStayType(selected)} property for ${optionLabel}.`);
+        if (!record && !option.customId && options.length > 1 && alternative && isHouseboatHotel({ name: option.hotelName, roomType: option.roomType, sourceCategory: option.category, sourceType: option.source }) !== (hotelStayType(selected) === 'houseboat')) issues.push(`Select a ${hotelStayType(selected)} property for ${optionLabel}.`);
         if (record && option.status !== 'user-edited') {
           const window = hotelStayWindow(plan, selected);
           if (hotelRateValidity(record, window.arrival, window.departure) === 'outside') issues.push(`The ${optionLabel} master rate is outside the stay dates. Enter a current rate in Hotels.`);

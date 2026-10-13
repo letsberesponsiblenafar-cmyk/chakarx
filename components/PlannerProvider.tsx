@@ -11,7 +11,8 @@ import { hotelSelectionKey, hotelStayType, hotelNightDates, type AccommodationTy
 import { dayScheduleContext } from '@/lib/day-scheduler';
 import { initialPackageDefaults, validatePackageDefaults, type PackageDefaults } from '@/lib/package-defaults';
 import { withPlanDestinations } from '@/lib/plan-destinations';
-import { hotelAlternativeCandidates, hotelOptionFromSelection, sameHotelOption, type HotelOptionQuote } from '@/lib/hotel-options';
+import { hotelAlternativeCandidates, hotelOptionCategory, hotelOptionFromSelection, hotelOptionIdentity, sameHotelOption, type HotelOptionQuote } from '@/lib/hotel-options';
+import { hotelConfirmationSignature } from '@/lib/quote-readiness';
 
 export type HotelSelection = {
   location: string; hotelId: string; hotelName: string; category: string; starRating: number | null; address: string; roomType: string; website: string;
@@ -57,6 +58,7 @@ type PlannerContextValue = PlannerState & {
   removeDay: (day: number) => void;
   replaceHotel: (location: string, hotelId: string) => void;
   replaceHotelAlternative: (location: string, index: number, hotelId: string) => void;
+  setCustomHotelAlternative: (location: string, index: number, patch: Partial<Pick<HotelOptionQuote, 'hotelName' | 'nightlyRate' | 'extraBedRate' | 'cnbRate'>>) => void;
   setHotelOptionRate: (location: string, hotelId: string, field: 'nightlyRate' | 'extraBedRate' | 'cnbRate', value: number) => void;
   setHotelRate: (location: string, field: 'nightlyRate' | 'extraBedRate' | 'cnbRate', value: number) => void;
   setHotelMeta: (location: string, patch: Partial<HotelSelection>) => void;
@@ -138,9 +140,15 @@ function selectedProperty(hotel?: HotelSelection) {
 export function populateHotelOptions(plan: Plan, hotel: HotelSelection, db: Hotel[], input: TripInput): HotelSelection {
   if ((plan.input ? plan.input.hotelOptionMode : input.hotelOptionMode) !== 'multiple' || !hotel.nights || !selectedProperty(hotel)) return hotel;
   const cached = Array.isArray(hotel.alternatives) ? hotel.alternatives : [];
+  const customCategory = hotelOptionCategory(hotel, db) || input.hotelCategory;
   const alternatives: HotelOptionQuote[] = [];
   for (const alternative of cached) {
-    if (alternatives.length < 2 && !sameHotelOption(hotel, alternative) && !alternatives.some((option) => sameHotelOption(option, alternative))) alternatives.push(alternative);
+    // Explicit custom slots, including unused placeholders, must keep their
+    // positions and never be filled by a subsequent inventory refresh. Their
+    // category is inherited from the primary; it is not an editable quote field.
+    if (alternatives.length < 2 && (alternative.customId || (!sameHotelOption(hotel, alternative) && !alternatives.some((option) => sameHotelOption(option, alternative))))) {
+      alternatives.push(alternative.customId && alternative.category !== customCategory ? { ...alternative, category: customCategory } : alternative);
+    }
   }
   const days = plan.dayPlans.slice(0, plan.nights).filter((day, index) => hotel.nightNumbers === undefined || hotel.nightNumbers.includes(day.day || index + 1));
   const window = stayDateWindow(days, hotel.location);
@@ -169,7 +177,10 @@ function syncProperty(plan: Plan, existing: HotelSelection | undefined, db: Hote
   const window = stayDateWindow(days, location);
   const properties = location === 'Srinagar' ? db.filter((hotel) => isHouseboatHotel(hotel) === (type === 'houseboat')) : db;
   const candidate = suggestedHotel(location, input.hotelCategory, properties, window.arrival, window.departure);
-  return populateHotelOptions(plan, { ...(candidate ? selectionFromHotel(location, candidate, nights, input) : selectionFallback(location, nights, input, type)), ...allocation }, db, input);
+  return populateHotelOptions(plan, {
+    ...(candidate ? selectionFromHotel(location, candidate, nights, input) : selectionFallback(location, nights, input, type)),
+    ...(existing?.alternatives ? { alternatives: existing.alternatives } : {}), ...allocation,
+  }, db, input);
 }
 
 export function replaceHotelAlternativeInState(state: PlannerState, location: string, index: number, hotelId: string): PlannerState {
@@ -184,20 +195,52 @@ export function replaceHotelAlternativeInState(state: PlannerState, location: st
   const quote = hotelOptionFromSelection(selectionFromHotel(selected.location, record, selected.nights, state.input));
   if (sameHotelOption(selected, quote) || (selected.alternatives || []).some((option, optionIndex) => optionIndex !== index && sameHotelOption(option, quote))) return state;
   const alternatives = [...(selected.alternatives || [])];
-  if (index > alternatives.length) return state;
+  while (index > alternatives.length) alternatives.push(blankCustomHotelAlternative(selected, state.plan.input, alternatives.length, state.hotelDatabase));
   alternatives[index] = quote;
   return { ...state, hotelSelections: selections.map((hotel) => hotel === selected ? { ...hotel, alternatives, rateConfirmed: false, confirmedSignature: undefined } : hotel) };
 }
 
-export function setHotelOptionRateInState(state: PlannerState, location: string, hotelId: string, field: 'nightlyRate' | 'extraBedRate' | 'cnbRate', value: number): PlannerState {
+function blankCustomHotelAlternative(selected: HotelSelection, input: TripInput, index: number, database: Hotel[]): HotelOptionQuote {
+  const type = hotelStayType(selected);
+  return {
+    customId: `custom-option-${Date.now()}-${index}-${Math.random().toString(36).slice(2)}`,
+    hotelId: '', hotelName: '', category: hotelOptionCategory(selected, database) || input.hotelCategory,
+    starRating: null, address: '', roomType: type === 'houseboat' ? 'Houseboat' : '', website: '',
+    nightlyRate: 0, extraBedRate: 0, cnbRate: 0, source: type === 'houseboat' ? 'Custom houseboat' : 'Custom hotel', status: 'user-edited',
+  };
+}
+
+/** Enter an independent custom quote without creating or changing master data. */
+export function setCustomHotelAlternativeInState(state: PlannerState, location: string, index: number,
+  patch: Partial<Pick<HotelOptionQuote, 'hotelName' | 'nightlyRate' | 'extraBedRate' | 'cnbRate'>>): PlannerState {
+  if (!state.plan || state.plan.input.hotelOptionMode !== 'multiple' || !Number.isInteger(index) || index < 0 || index > 1) return state;
+  if (patch.hotelName !== undefined && typeof patch.hotelName !== 'string') return state;
+  for (const field of ['nightlyRate', 'extraBedRate', 'cnbRate'] as const) {
+    if (patch[field] !== undefined && (!Number.isFinite(patch[field]) || patch[field]! < 0)) return state;
+  }
+  const selections = syncHotelSelections(state.plan, state.hotelSelections, state.hotelDatabase, state.plan.input);
+  const selected = selections.find((hotel) => hotelSelectionKey(hotel) === location);
+  if (!selected) return state;
+  const alternatives = [...(selected.alternatives || [])];
+  while (alternatives.length <= index) alternatives.push(blankCustomHotelAlternative(selected, state.plan.input, alternatives.length, state.hotelDatabase));
+  const current = alternatives[index];
+  const custom = current.customId ? current : blankCustomHotelAlternative(selected, state.plan.input, index, state.hotelDatabase);
+  alternatives[index] = { ...custom, ...patch, status: 'user-edited' };
+  const replacement = { ...selected, alternatives };
+  const quoteUnchanged = hotelConfirmationSignature(state.plan, selected, state.input.mealPlan) === hotelConfirmationSignature(state.plan, replacement, state.input.mealPlan);
+  return { ...state, hotelSelections: selections.map((hotel) => hotel === selected
+    ? { ...replacement, ...(!quoteUnchanged ? { rateConfirmed: false, confirmedSignature: undefined } : {}) } : hotel) };
+}
+
+export function setHotelOptionRateInState(state: PlannerState, location: string, optionId: string, field: 'nightlyRate' | 'extraBedRate' | 'cnbRate', value: number): PlannerState {
   if (!Number.isFinite(value)) return state;
   const amount = Math.max(0, value);
   const selections = state.plan ? syncHotelSelections(state.plan, state.hotelSelections, state.hotelDatabase, state.plan.input) : state.hotelSelections;
   return { ...state, hotelSelections: selections.map((hotel) => {
     if (hotelSelectionKey(hotel) !== location) return hotel;
-    if (hotel.hotelId === hotelId) return { ...hotel, [field]: amount, status: 'user-edited', rateConfirmed: false, confirmedSignature: undefined };
-    if (!(hotel.alternatives || []).some((option) => option.hotelId === hotelId)) return hotel;
-    return { ...hotel, alternatives: hotel.alternatives!.map((option) => option.hotelId === hotelId ? { ...option, [field]: amount, status: 'user-edited' } : option), rateConfirmed: false, confirmedSignature: undefined };
+    if (hotelOptionIdentity(hotel) === optionId) return { ...hotel, [field]: amount, status: 'user-edited', rateConfirmed: false, confirmedSignature: undefined };
+    if (!(hotel.alternatives || []).some((option) => hotelOptionIdentity(option) === optionId)) return hotel;
+    return { ...hotel, alternatives: hotel.alternatives!.map((option) => hotelOptionIdentity(option) === optionId ? { ...option, [field]: amount, status: 'user-edited' } : option), rateConfirmed: false, confirmedSignature: undefined };
   }) };
 }
 
@@ -215,7 +258,7 @@ export function replaceHotelInState(state: PlannerState, location: string, hotel
   const days = state.plan?.dayPlans.slice(0, state.plan.nights).filter((day, index) => selected.nightNumbers === undefined || selected.nightNumbers.includes(day.day || index + 1)) || [];
   const window = stayDateWindow(days, selected.location);
   const allowed = new Set(hotelAlternativeCandidates(fresh, state.hotelDatabase, state.input.hotelCategory, window.arrival, window.departure).map((hotel) => hotel.id));
-  fresh.alternatives = (selected.alternatives || []).filter((option) => allowed.has(option.hotelId) && option.nightlyRate >= fresh.nightlyRate * 0.7 && option.nightlyRate <= fresh.nightlyRate * 1.3);
+  fresh.alternatives = (selected.alternatives || []).filter((option) => option.customId || (allowed.has(option.hotelId) && option.nightlyRate >= fresh.nightlyRate * 0.7 && option.nightlyRate <= fresh.nightlyRate * 1.3));
   const replacement = state.plan ? populateHotelOptions(state.plan, fresh, state.hotelDatabase, state.plan.input) : fresh;
   return { ...state, hotelSelections: selections.map((hotel) => hotel === selected ? replacement : hotel) };
 }
@@ -559,6 +602,9 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     },
     replaceHotelAlternative(location, index, hotelId) {
       setState((s) => replaceHotelAlternativeInState(s, location, index, hotelId));
+    },
+    setCustomHotelAlternative(location, index, patch) {
+      setState((s) => setCustomHotelAlternativeInState(s, location, index, patch));
     },
     setHotelOptionRate(location, hotelId, field, value) {
       setState((s) => setHotelOptionRateInState(s, location, hotelId, field, value));
