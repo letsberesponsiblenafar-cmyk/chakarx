@@ -42,9 +42,10 @@ assert.equal(short.dayPlans.at(-1).to, 'Srinagar');
 
 const medium = createPlan(input(8));
 for (const name of core) assert.ok(visits(medium).has(name), `Eight-day trip missed ${name}`);
-assert.deepEqual(medium.dayPlans.slice(0, -1).map((day) => day.stay), ['Srinagar','Gulmarg','Srinagar','Pahalgam','Srinagar','Sonamarg','Srinagar']);
+assert.deepEqual(medium.dayPlans.slice(0, -1).map((day) => day.stay), ['Srinagar','Gulmarg','Srinagar','Pahalgam','Srinagar','Srinagar','Srinagar']);
+assert.ok(visits(medium).has('Naranag'), 'Eight days must leave room for a destination beyond the core three valleys.');
 assert.ok(medium.dayPlans.slice(1, -1).every((day) => day.from === 'Srinagar' || day.stay === 'Srinagar' || day.from === day.stay), 'The suggested route must return through Srinagar between core stays');
-for (const name of ['Gulmarg','Pahalgam','Sonamarg']) {
+for (const name of ['Gulmarg','Pahalgam']) {
   const arrival = medium.dayPlans.find((day) => day.stay === name);
   const returnDay = medium.dayPlans[arrival.day];
   const first = arrival.blocks.filter((block) => block.destination === name && block.kind !== 'free-time').map((block) => block.name);
@@ -73,8 +74,8 @@ assert.ok(easyArrivalStops.length >= 1 && easyArrivalStops.length <= 2, 'Long ar
 assert.ok(easyArrivalStops.every((block) => destinationByName('Pahalgam').local_sightseeing
   .find((sight) => sight.name === block.name)?.arrival_suitable === true), 'Arrival stops should stay close to the Pahalgam hotel base');
 assert.ok(fullPahalgamDay.blocks.filter((block) => block.destination === 'Pahalgam' && block.kind === 'sightseeing').length >= 3);
-for (const major of ['Aru Valley', 'Betaab Valley', 'Chandanwari']) assert.ok(fullPahalgamDay.blocks
-  .some((block) => block.destination === 'Pahalgam' && block.name === major), `${major} belongs to the following full Pahalgam day.`);
+for (const major of ['Aru Valley', 'Betaab Valley', 'Chandanwari']) assert.ok(twoPahalgamNights.dayPlans.slice(3).some((day) => day.blocks
+  .some((block) => block.destination === 'Pahalgam' && block.name === major)), `${major} belongs to the full visit or return morning after the heavy arrival.`);
 const allPahalgamStops = twoPahalgamNights.dayPlans.flatMap((day) => day.blocks
   .filter((block) => block.destination === 'Pahalgam' && block.kind === 'sightseeing').flatMap((block) => block.sights || [block.name]));
 for (const name of enabledSightseeing(destinationByName('Pahalgam'))) assert.equal(allPahalgamStops
@@ -83,7 +84,7 @@ assert.doesNotMatch(dayNarrative(longTransfer, 'Srinagar'), /Aru Valley|Betaab V
 assert.doesNotMatch(dayNarrative(longTransfer, 'Srinagar'), /own pace|rest of the day/i);
 assert.match(dayNarrative(longTransfer, 'Srinagar'), /Lidder River|Pahalgam town/i);
 assert.match(dayNarrative(longTransfer, 'Srinagar'), /Tangmarg and Srinagar/);
-assert.match(dayNarrative(fullPahalgamDay, 'Srinagar'), /Aru Valley|Betaab Valley/);
+assert.match(dayNarrative(fullPahalgamDay, 'Srinagar'), /Aru Valley|Betaab Valley|Chandanwari|Baisaran/);
 const handEdited = { ...twoPahalgamNights, dayPlans: twoPahalgamNights.dayPlans.map((day) => day.day === 4 ? { ...day, customTitle: 'Old Pahalgam day', customAbout: 'Old Pahalgam plan.' } : day.day === 1 ? { ...day, customAbout: 'Personal arrival note.' } : day) };
 const changedThirdDay = retargetDay(handEdited, 3, 'Sonamarg');
 assert.equal(changedThirdDay.dayPlans[3].from, 'Sonamarg', 'Changing an overnight must update the next day’s origin.');
@@ -101,8 +102,10 @@ const arrivalAtPahalgam = onePahalgamNight.dayPlans[2];
 const departureFromPahalgam = onePahalgamNight.dayPlans[3];
 const arrivalStops = arrivalAtPahalgam.blocks.filter((block) => block.destination === 'Pahalgam' && block.kind !== 'free-time').map((block) => block.name);
 const morningStops = departureFromPahalgam.blocks.filter((block) => block.destination === 'Pahalgam' && block.kind !== 'free-time').map((block) => block.name);
-assert.ok(arrivalStops.length >= 1 && arrivalStops.length <= 2, 'A long transfer into a one-night stop should have one or two easy nearby sights');
-assert.ok(arrivalStops.every((name) => destinationByName('Pahalgam').local_sightseeing.find((sight) => sight.name === name)?.arrival_suitable === true), 'A long transfer must leave major valley excursions for another day');
+assert.ok(arrivalStops.length >= 1 && arrivalAtPahalgam.timing.scheduledMinutes < departureFromPahalgam.timing.scheduledMinutes,
+  'A heavy arrival should be lighter than the return, without forcing every major visit onto one day');
+assert.ok(arrivalStops.some((name) => destinationByName('Pahalgam').local_sightseeing.find((sight) => sight.name === name)?.arrival_suitable === true),
+  'A heavy arrival still needs a concrete nearby programme');
 assert.ok(morningStops.length >= 1, 'A one-night stop needs sightseeing before the onward drive');
 assert.ok(morningStops.every((name) => !arrivalStops.includes(name)), 'The departure morning must show new sights');
 for (const name of morningStops) assert.ok(dayNarrative(departureFromPahalgam, 'Srinagar').includes(sightseeingSentence(destinationByName('Pahalgam').local_sightseeing.find((sight) => sight.name === name))), `The return morning missed the authored sentence for ${name}`);

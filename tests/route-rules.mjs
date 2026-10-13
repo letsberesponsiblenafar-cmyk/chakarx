@@ -69,10 +69,12 @@ try {
   }
 
   const ten = await planFor(10);
-  assert.ok(ten.hotelPlans.some((stay) => stay.location === 'Doodhpathri'));
+  assert.ok(ten.dayPlans.some((day) => day.stay === 'Doodhpathri' || day.dayTripDestination === 'Doodhpathri'));
+  assert.ok(ten.dayPlans.some((day) => day.dayTripDestination === 'Naranag'), 'Ten days must retain its extra excursion instead of consuming every day with hotel transfers.');
   assert.ok(ten.dayPlans.slice(1, -1).every((day) => day.from === 'Srinagar' || day.stay === 'Srinagar' || day.from === day.stay), 'Doodhpathri must not create a cross-valley overnight transfer');
 
   const eleven = await planFor(11);
+  assert.ok(eleven.hotelPlans.some((stay) => stay.location === 'Doodhpathri'));
   assert.ok(eleven.dayPlans.some((day) => day.dayTripDestination === 'Naranag'), 'Spare Srinagar day should visit Naranag');
 
   const sixteen = await planFor(16);

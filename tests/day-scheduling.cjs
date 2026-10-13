@@ -305,8 +305,9 @@ try {
     const arrival = allocated(plan.dayPlans[1]);
     const fullDay = allocated(plan.dayPlans[2]);
     assert.ok(nearby.some((item) => arrival.includes(activityKey('Pahalgam', item.name))), 'The long transfer still needs a concrete nearby programme.');
-    assert.ok(major.every((item) => !arrival.includes(activityKey('Pahalgam', item.name))), 'Major valleys belong to the following full day.');
-    assert.ok(major.every((item) => fullDay.includes(activityKey('Pahalgam', item.name))), 'A selected major valley disappeared because of its duration.');
+    assert.ok(fullDay.length > arrival.length, 'The full day should still take more visits than the heavy transfer day.');
+    assert.ok(plan.dayPlans[2].timing.scheduledMinutes < major.length * 180,
+      'Eight three-hour visits must be shared with the arrival/return rather than all forced onto one full day.');
     const all = plan.dayPlans.flatMap(allocated);
     for (const item of selected) assert.equal(all.filter((name) => name === activityKey('Pahalgam', item.name)).length, 1,
       `${item.name} was dropped or repeated across Pahalgam days.`);

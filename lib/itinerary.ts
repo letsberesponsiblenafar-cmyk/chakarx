@@ -27,7 +27,7 @@ export type Plan = {
   destinationSnapshot?: Destination[];
 };
 
-export const ROUTE_VERSION = 'kashmir-timed-library-2026-10-11';
+export const ROUTE_VERSION = 'kashmir-balanced-visits-2026-10-13';
 const transportRates: Record<string, number> = { Sedan: 3400, Ertiga: 4200, Innova: 5200, 'Tempo Traveller': 7600 };
 
 function daysBetween(a: string, b: string) {
@@ -150,7 +150,7 @@ function chooseDayTrip(base: Destination, visited: Set<string>, date: string, in
   });
   // Once the three headline excursions have overnight stays, give a spare
   // Srinagar day to Naranag before adding another western excursion.
-  const priority = visited.has('Sonamarg') && tripNights(input) >= 6
+  const priority = ['Gulmarg', 'Pahalgam', 'Sonamarg'].every((name) => visited.has(name)) && tripNights(input) >= 6
     ? ['Naranag', ...essentialVisits.filter((name) => name !== 'Naranag')]
     : essentialVisits;
   return allowed.sort((a, b) => {
@@ -169,7 +169,13 @@ function recommendedNightSequence(input: TripInput) {
   if (days <= 5) return Array.from({ length: nights }, () => 'Srinagar');
 
   const sequence = ['Srinagar'];
-  const core = ['Gulmarg', 'Pahalgam', 'Sonamarg'].slice(0, Math.min(3, days - 5));
+  // Eight days need a mix of stays and excursions. Giving all three valleys
+  // an overnight consumes every usable day on outward/return pairs. Reserve
+  // two hub days here: the remaining core valley plus a new destination.
+  const excursionReserve = days >= 8 ? 1 : 0;
+  const stayPairCapacity = Math.floor((nights - 1 - excursionReserve) / 2);
+  const coreCount = Math.min(3, days - 5, stayPairCapacity);
+  const core = ['Gulmarg', 'Pahalgam', 'Sonamarg'].slice(0, coreCount);
   const addStay = (name: string) => {
     const destination = destinationByName(name);
     const route = routeByName('Srinagar', name);
@@ -179,7 +185,10 @@ function recommendedNightSequence(input: TripInput) {
   core.forEach(addStay);
   // Doodhpathri is a later, date-sensitive overnight. Never squeeze it into
   // the core circuit or a winter recommendation.
-  if (days >= 10 && seasonForDate(input.arrival) !== 'winter' && sequence.length + 2 <= nights) addStay('Doodhpathri');
+  // Retain a full excursion day before turning another day visit into a stay.
+  // Doodhpathri can be visited on a ten-day route and becomes an overnight
+  // when its return and the extra excursion both fit.
+  if (days >= 10 && seasonForDate(input.arrival) !== 'winter' && sequence.length + 3 <= nights) addStay('Doodhpathri');
 
   let remaining = nights - sequence.length;
   // Keep one full Srinagar-based day for Naranag or another suitable visit.

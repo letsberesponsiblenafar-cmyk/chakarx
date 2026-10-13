@@ -71,7 +71,7 @@ export default function ChakarPlanner(){
      <div><span className="eyebrow">CHAKAR EXPERIENCE</span><h1>Build Your Trip</h1><p>Start with the essentials. Chakar will use your dates, traveller mix, pickup, budget and itinerary category to build the first route.</p></div>
      <div className="build-header-badge"><Sparkles size={15}/><span>Personalised Kashmir journey</span></div>
    </section>
-   {preview && routeVersion !== ROUTE_VERSION && <div className="draft-update-note"><Sparkles size={17}/><span>Press <b>Next</b> to update this saved trip while keeping its selected hotels and services.</span></div>}
+   {preview && routeVersion !== ROUTE_VERSION && <div className="draft-update-note"><Sparkles size={17}/><span>Updated route suggestions are available. Press <b>Next</b>, then choose <b>Rebuild suggestions</b> on Destinations to apply them to this trip.</span></div>}
    <div className="page-grid build-grid">
     <section className="editor-card">
       <div className="section-head"><div><span className="eyebrow">TRIP DETAILS</span><h2>Tell us about the trip</h2><p>Every field below directly affects the itinerary, hotel occupancy or customer costing.</p></div><span className="step-chip">STEP 01</span></div>

@@ -211,7 +211,13 @@ export function scheduleDayPlans(input: TripInput, original: DayPlan[], quote?: 
     const normal = relevant.filter((day) => day.label !== 'Departure day' && usable(day));
     const preferredDays = normal.length ? normal : relevant.filter(usable);
     const visitDays = relevant.filter((day) => day.label !== 'Departure day');
-    const candidates = preferredDays.length ? preferredDays : visitDays.length ? visitDays : relevant;
+    // A known late departure can share the city's remaining visits. Airport
+    // reporting and the transfer are already deducted by windowFor; an early
+    // or unknown departure must never acquire an invented sightseeing window.
+    const departureVisits = relevant.filter((day) => day.label === 'Departure day' && usable(day) &&
+      day.timing!.remainingMinutes >= 90);
+    const candidates = preferredDays.length ? [...new Set([...preferredDays, ...departureVisits])]
+      : visitDays.length ? visitDays : relevant;
     // Use exactly the library's tick state, including its legacy-record fallback.
     // Seasonal metadata guides recommendations; it must not silently remove an
     // operator-selected place from an existing journey and its client wording.
@@ -235,18 +241,27 @@ export function scheduleDayPlans(input: TripInput, original: DayPlan[], quote?: 
   }
   const entries = [...selected.values()].sort((a, b) =>
     Number(Boolean(b.sight.time_window)) - Number(Boolean(a.sight.time_window)) ||
-    Number(b.sight.arrival_suitable === true) - Number(a.sight.arrival_suitable === true));
+    Number(b.sight.arrival_suitable === true) - Number(a.sight.arrival_suitable === true) ||
+    // Place longer visits before short fillers so the last large excursion
+    // cannot tip an otherwise balanced pair of days into a large overload.
+    (positiveMinutes(b.sight.visit_minutes, 60) + positiveMinutes(b.sight.transfer_minutes, 20)) -
+    (positiveMinutes(a.sight.visit_minutes, 60) + positiveMinutes(a.sight.transfer_minutes, 20)));
   for (const { destination, sight, candidates, selections } of entries) {
     const choices = candidates.map((day) => ({ day, cost: sightCost(sight, destination, day),
       slot: slotFor(day, sight.time_window, sightCost(sight, destination, day)) }));
     const fitsWindow = choices.filter((choice) => choice.slot !== null);
-    const pool = fitsWindow.length ? fitsWindow : choices;
+    const windowPool = fitsWindow.length ? fitsWindow : choices;
+    // Sharing a known departure morning must not add a visit that runs into
+    // airport reporting when another visit day can retain that checked place.
+    const beforeDeparture = windowPool.filter(({ day, cost, slot }) => day.label !== 'Departure day' ||
+      day.timing!.remainingMinutes + (slot?.available || 0) - (slot?.service || 0) >= cost);
+    const pool = beforeDeparture.length ? beforeDeparture : windowPool;
     const hasFullVisit = candidates.some((day) => !day.transfer && day.label !== 'Departure day');
     const score = ({ day, cost }: typeof choices[number]) => {
       const timing = day.timing!;
       const capacity = Math.max(30, timing.availableMinutes - timing.driveMinutes - timing.serviceMinutes);
       const arrival = day.transfer && day.stay === destination.name;
-      const heavyArrival = arrival && day.drive.hours >= 3;
+      const heavyArrival = arrival && day.drive.hours >= 5;
       // Nearby places belong on a long arrival, with the full valley circuit
       // reserved for the following visit day. The final visit still retains
       // all selected places when there is no second day to share them with.
@@ -263,13 +278,20 @@ export function scheduleDayPlans(input: TripInput, original: DayPlan[], quote?: 
         const spare = other.timing!.availableMinutes - other.timing!.driveMinutes - other.timing!.serviceMinutes - other.timing!.scheduledMinutes;
         return !mixedProgramme || spare >= sightCost(sight, destination, other);
       });
-      const arrivalPenalty = ((heavyArrival && anotherVisit) || (returnTransfer && hasFullVisit)) && sight.arrival_suitable !== true ? 10 : 0;
+      // Preferences are small compared with the actual load. Previously a
+      // penalty of 10 (and 20 after two stops) forced almost an entire valley
+      // onto one day, even when the other day had hours free.
+      const arrivalPenalty = sight.arrival_suitable === true ? 0
+        : heavyArrival && anotherVisit ? 1.5
+        : ((arrival && day.drive.hours >= 3 && anotherVisit) || (returnTransfer && hasFullVisit)) ? 0.15 : 0;
       const arrivalStops = day.blocks.filter((block) => block.kind === 'sightseeing' && block.destination === destination.name).length;
-      const arrivalLoad = heavyArrival && anotherVisit && arrivalStops >= 2 ? 20 : 0;
-      const shortVisitBonus = hasFullVisit && day.transfer && sight.arrival_suitable === true && arrivalStops === 0 ? -2 : 0;
-      const nearbyBonus = arrival && sight.arrival_suitable === true && timing.scheduledMinutes < 100 ? -0.3 : 0;
+      const shortVisitBonus = hasFullVisit && day.transfer && sight.arrival_suitable === true && arrivalStops === 0 ? -0.35 : 0;
+      const nearbyBonus = arrival && sight.arrival_suitable === true && timing.scheduledMinutes < 100 ? -0.15 : 0;
       const linkedBonus = cost === 0 ? -20 : 0;
-      return (timing.scheduledMinutes + cost) / capacity + arrivalPenalty + arrivalLoad + shortVisitBonus + nearbyBonus + linkedBonus;
+      const departurePenalty = day.label === 'Departure day' ? 0.4 : 0;
+      // Marginal squared load balances occupied time in proportion to the
+      // actual visit window, including activities/custom stops already booked.
+      return (2 * timing.scheduledMinutes + cost) / capacity + arrivalPenalty + shortVisitBonus + nearbyBonus + linkedBonus + departurePenalty;
     };
     const chosen = [...pool].sort((a, b) => score(a) - score(b) || a.day.day - b.day.day)[0];
     const day = chosen.day;

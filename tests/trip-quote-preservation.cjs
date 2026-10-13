@@ -146,6 +146,21 @@ try {
     activity_timing: { [activityName(destination.name)]: { duration_minutes: 30 } },
   } : destination));
 
+  test('explicitly rebuilding suggestions updates an old route at the same duration and keeps surviving agreements', () => {
+    const before = stateFor();
+    before.routeVersion = 'old-rules';
+    const unchanged = generatePlannerState(before);
+    assert.equal(unchanged.routeVersion, 'old-rules', 'Ordinary Next must not claim that an unchanged route was rebuilt');
+    const after = generatePlannerState(before, {}, true);
+    assertFreshRoute(after);
+    assert.notDeepEqual(routeChoices(after.plan), routeChoices(before.plan));
+    assert.notEqual(after.routeVersion, 'old-rules');
+    assertRetainedHotels(before, after, survivingHotelLocations(before, after));
+    assertOtherAgreements(before, after);
+    assertActivityQuoteRetained(before, after);
+    assertCostQuantities(after);
+  });
+
   test('Build Trip Next replans five days into seven days while preserving surviving hotel and service agreements', () => {
     const before = stateFor(['Srinagar', 'Gulmarg', 'Pahalgam', 'Srinagar']);
     before.plan = setPlanDayTrip(before.plan, 4, 'Sonamarg');
@@ -210,7 +225,8 @@ try {
     assertRetainedHotels(before, after, ['Srinagar']);
     assertOtherAgreements(before, after);
     const addedLocations = after.plan.hotelPlans.filter((stay) => stay.location !== 'Srinagar').map((stay) => stay.location);
-    assert.deepEqual(addedLocations.sort(), ['Gulmarg', 'Pahalgam', 'Sonamarg']);
+    assert.deepEqual(addedLocations.sort(), ['Gulmarg', 'Pahalgam']);
+    assert.ok(after.plan.dayPlans.some((day) => day.dayTripDestination === 'Sonamarg'), 'Sonamarg remains a visit without an unnecessary hotel quote.');
     for (const location of addedLocations) {
       const hotel = after.hotelSelections.find((selected) => selected.location === location);
       assert.equal(hotel.hotelId, `master-${location}`);

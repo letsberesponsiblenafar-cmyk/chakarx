@@ -47,6 +47,7 @@ type PlannerContextValue = PlannerState & {
   setYoungAges: (ages: number[]) => void;
   setInterests: (interests: string[]) => void;
   generate: (overrides?: Partial<TripInput>) => void;
+  replanDestinations: () => void;
   setDayDestination: (day: number, destination: string) => void;
   setDayTrip: (day: number, destination: string | null) => void;
   setDeparturePoint: (destination: string) => void;
@@ -342,12 +343,13 @@ export function applyPlanEdit(state: PlannerState, plan: Plan): PlannerState {
 }
 
 /** Next updates an existing client trip; Build New alone starts another quote. */
-export function generatePlannerState(state: PlannerState, overrides: Partial<TripInput> = {}): PlannerState {
+export function generatePlannerState(state: PlannerState, overrides: Partial<TripInput> = {}, replanDestinations = false): PlannerState {
   const effectiveInput = validatedTripInput({ ...state.input, ...overrides });
-  const plan = state.plan ? editTripPlan(state.plan, effectiveInput) : createPlan(effectiveInput);
+  const plan = state.plan && !replanDestinations ? editTripPlan(state.plan, effectiveInput) : createPlan(effectiveInput);
   const costModel = state.plan ? state.costModel : { ...state.costModel,
     transportDaily: state.costModel.transportIsCustom ? state.costModel.transportDaily : (transportRates[effectiveInput.transport] ?? state.costModel.transportDaily) };
-  return applyPlanEdit({ ...state, input: effectiveInput, routeVersion: ROUTE_VERSION, costModel,
+  const routeVersion = !state.plan || replanDestinations || state.plan.nights !== plan.nights ? ROUTE_VERSION : state.routeVersion;
+  return applyPlanEdit({ ...state, input: effectiveInput, routeVersion, costModel,
     hotelDefaults: state.plan ? state.hotelDefaults : { ...state.hotelDefaults, rooms: roomsRequired(effectiveInput.adults), extraBeds: extraBedsRequired(effectiveInput.youngAges), cnb: cnbChildren(effectiveInput.youngAges) }, generated: true }, plan);
 }
 
@@ -499,6 +501,9 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     setInterests(xs) { setState((s) => ({ ...s, input: { ...s.input, interests: xs } })); },
     generate(overrides = {}) {
       setState(generatePlannerState(state, overrides));
+    },
+    replanDestinations() {
+      setState((current) => generatePlannerState(current, {}, true));
     },
     setDayDestination(day, destination) {
       setState((s) => {
