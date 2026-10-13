@@ -10,7 +10,7 @@ import { isHouseboatHotel, matchesPackageCategory, sameHotelDestination } from '
 import { hotelRateValidity } from '@/lib/hotel-rate-validity';
 import { hotelConfirmationSignature } from '@/lib/quote-readiness';
 import { activeHotelSelections, hotelNightNumbers, hotelSelectionKey, hotelStayLabel, hotelStayType, hotelStayWindow } from '@/lib/accommodation';
-import { effectiveHotelSelection, hotelAlternativeCandidates, hotelOptionCategory, hotelOptionIdentity, hotelOptionNightlyCost, hotelOptions, isUnusedHotelOption, type HotelOptionQuote } from '@/lib/hotel-options';
+import { effectiveHotelSelection, hotelAlternativeCandidates, hotelOptionMatchesCategory, hotelOptionIdentity, hotelOptionNightlyCost, hotelOptions, isUnusedHotelOption, type HotelOptionQuote } from '@/lib/hotel-options';
 import './houseboat-stays.css';
 import './hotel-options.css';
 
@@ -54,13 +54,13 @@ export default function HotelsPage() {
     if (hotel.rooms <= 0) return [`Enter the number of rooms for ${label}.`];
     const window = hotelStayWindow(plan, hotel);
     const offered = hotelOptions(hotel, optionMode);
-    const category = hotelOptionCategory(hotel, db);
     if (multipleOptions && (hotel.alternatives || []).filter((option) => !isUnusedHotelOption(option)).length + 1 !== offered.length) return [`Choose up to three different properties for ${label}.`];
     return offered.flatMap((option) => {
       if (needsStayName(option.hotelName)) return [`Choose a ${hotelStayType(hotel)} in ${hotel.location}.`];
       if (!Number.isFinite(option.nightlyRate) || option.nightlyRate <= 0) return [`Enter the room rate for ${multipleOptions ? option.hotelName : label}.`];
-      if (offered.length > 1 && category !== null && hotelOptionIdentity(option) !== hotelOptionIdentity(hotel) && option.category !== category) return [`Choose the same category for every ${label} option.`];
+      if (offered.length > 1 && hotelOptionIdentity(option) !== hotelOptionIdentity(hotel) && !hotelOptionMatchesCategory(hotel, option, db)) return [`Choose the same category for every ${label} option.`];
       const record = db.find((item) => item.id === option.hotelId);
+      if (offered.length > 1 && hotelOptionIdentity(option) !== hotelOptionIdentity(hotel) && !option.customId && !matchesPackageCategory(record || { normalizedCategory: option.category }, input.hotelCategory)) return [`Choose ${input.hotelCategory} properties for the ${label} alternatives.`];
       if (option.hotelId && !record) return [`Reselect ${multipleOptions ? option.hotelName : `the ${hotelStayType(hotel)} in ${hotel.location}`}.`];
       if (record && !sameHotelDestination(record.destination, hotel.location)) return [`Choose a property in ${hotel.location}.`];
       if (record && isHouseboatHotel(record) !== (hotelStayType(hotel) === 'houseboat')) return [`Choose a ${hotelStayType(hotel)} property for ${label}.`];

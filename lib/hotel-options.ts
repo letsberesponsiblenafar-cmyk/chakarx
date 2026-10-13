@@ -1,7 +1,7 @@
 import type { HotelSelection } from '@/components/PlannerProvider';
 import type { Hotel } from '@/lib/data';
 import { hotelRateValidity } from '@/lib/hotel-rate-validity';
-import { isHouseboatHotel, matchesPackageCategory, sameHotelDestination } from '@/lib/hotels';
+import { hotelPackageCategory, isPackageHotelBand, isHouseboatHotel, matchesPackageCategory, sameHotelDestination } from '@/lib/hotels';
 
 export type HotelOptionMode = 'single' | 'multiple';
 /** A supplier quote, separate from the stay's shared rooms and overnight dates. */
@@ -57,14 +57,26 @@ export function hotelOptionCategory(primary: HotelSelection, database: Hotel[]) 
   return ['Signature', 'Signature Plus', 'Signature Premium', 'Elite'].includes(primary.category) ? null : primary.category;
 }
 
+/** Manual package classifications take precedence over legacy supplier classes. */
+export function hotelOptionMatchesCategory(primary: HotelSelection, option: HotelOptionQuote | Hotel, database: Hotel[]) {
+  const category = hotelOptionCategory(primary, database);
+  if (category === null) return true;
+  const optionCategory = 'normalizedCategory' in option ? option.normalizedCategory
+    : database.find((hotel) => hotel.id === option.hotelId)?.normalizedCategory || option.category;
+  if (isPackageHotelBand(category) || isPackageHotelBand(optionCategory)) {
+    const primaryBand = hotelPackageCategory({ normalizedCategory: category });
+    return primaryBand !== null && primaryBand === hotelPackageCategory({ normalizedCategory: optionCategory });
+  }
+  return optionCategory === category;
+}
+
 /** The same compatible inventory powers automatic suggestions and the compact selectors. */
 export function hotelAlternativeCandidates(primary: HotelSelection, database: Hotel[], packageCategory: string, arrival?: string, departure?: string) {
   const primaryIsBoat = primary.accommodationType ? primary.accommodationType === 'houseboat' : isHouseboatHotel({ name: primary.hotelName, roomType: primary.roomType, sourceCategory: primary.category, sourceType: primary.source });
-  const category = hotelOptionCategory(primary, database);
   if (!(primary.nightlyRate > 0) || !primary.hotelName.trim() || /^(?:hotel|houseboat) to be (?:added|confirmed)$/i.test(primary.hotelName.trim())) return [];
   return database.filter((hotel) => {
     if (!sameHotelDestination(hotel.destination, primary.location) || !matchesPackageCategory(hotel, packageCategory) ||
-      (category !== null && hotel.normalizedCategory !== category) || isHouseboatHotel(hotel) !== primaryIsBoat ||
+      !hotelOptionMatchesCategory(primary, hotel, database) || isHouseboatHotel(hotel) !== primaryIsBoat ||
       hotel.id === primary.hotelId || normalizedName(hotel.name) === normalizedName(primary.hotelName) ||
       !Number.isFinite(hotel.mapB2B) || !hotel.mapB2B || hotel.mapB2B < primary.nightlyRate * 0.7 || hotel.mapB2B > primary.nightlyRate * 1.3 ||
       /unavailable|sold out|closed/i.test(hotel.availabilityStatus) || hotelRateValidity(hotel, arrival, departure) === 'outside') return false;

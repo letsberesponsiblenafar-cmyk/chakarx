@@ -259,5 +259,43 @@ test('houseboat alternatives remain separate and never double-charge Srinagar ni
   assert.equal(calculateCosts(withBoat.plan, withBoat.hotelSelections, withBoat.costModel).accommodation, expected);
 });
 
+test('manual package bands work with legacy matching alternatives without supplier stars overriding them', () => {
+  const mixed = destinations.flatMap((location) => [
+    master(location, 'manual', 1800, { normalizedCategory: 'Signature', sourceCategory: '5 Star', starRating: 5 }),
+    master(location, 'legacy', 1900),
+    master(location, 'other-manual', 2000, { normalizedCategory: 'Signature', sourceCategory: '4 Star', starRating: 4 }),
+    master(location, 'wrong-band', 1850, { normalizedCategory: 'Elite', sourceCategory: '3 Star' }),
+  ]);
+  const manual = stateFor('multiple', mixed);
+  for (const stay of manual.hotelSelections) {
+    assert(stay.hotelId.endsWith('-manual'));
+    assert.equal(stay.alternatives.length, 2);
+    assert(stay.alternatives.some((option) => option.hotelId.endsWith('-legacy')));
+    assert(!stay.alternatives.some((option) => option.hotelId.endsWith('-wrong-band')));
+  }
+  assert(!readiness(manual).some((issue) => /same hotel category|Choose Signature properties/.test(issue)));
+});
+
+test('a manually classified alternative matches a legacy primary by package band', () => {
+  const mixed = destinations.flatMap((location) => [master(location),
+    master(location, 'manual-alt', 2100, { normalizedCategory: 'Signature', sourceCategory: '5 Star', starRating: 5 }),
+  ]);
+  const legacy = stateFor('multiple', mixed);
+  assert(legacy.hotelSelections.every((stay) => stay.alternatives[0].hotelId.endsWith('-manual-alt')));
+  assert(!readiness(legacy).some((issue) => /same hotel category|Choose Signature properties/.test(issue)));
+});
+
+test('alternative readiness follows current manual classification rather than its cached supplier class', () => {
+  const current = stateFor();
+  const stay = current.hotelSelections[0];
+  const alternative = stay.alternatives[0];
+  const stale = { ...current, hotelSelections: current.hotelSelections.map((item) => item === stay
+    ? { ...item, alternatives: item.alternatives.map((option) => option === alternative ? { ...option, category: '4 Star' } : option) } : item),
+    hotelDatabase: current.hotelDatabase.map((record) => record.id === alternative.hotelId ? { ...record, normalizedCategory: 'Signature' } : record) };
+  assert(!readiness(stale).some((issue) => /same hotel category|Choose Signature properties/.test(issue)));
+  const changed = { ...stale, hotelDatabase: stale.hotelDatabase.map((record) => record.id === alternative.hotelId ? { ...record, normalizedCategory: 'Elite' } : record) };
+  assert(readiness(changed).some((issue) => /Choose Signature properties/.test(issue)));
+});
+
 if (failures.length) { process.stderr.write(`${failures.length} hotel-option checks failed.\n`); process.exitCode = 1; }
 else process.stdout.write(`${checks} hotel-option checks passed.\n`);

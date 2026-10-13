@@ -26,7 +26,9 @@ Departure at or before 14:00 requires the final hotel night in Srinagar. This ru
 ## Hotel master
 Six supplied October 2026 hotel workbooks were verified as identical copies of the same six-destination source and deduplicated to 166 unique hotel records.
 
-Hotel dashboard: `/hotels` (admin sign-in required). The dashboard lists the shared Supabase hotel master, filters by destination and search, and links to an individual edit page for every hotel. Admins can create, update, or delete a hotel. A single text-based PDF using the record format shown in the dashboard can update many hotels at once; the importer previews matched and new records before applying them. The dashboard includes a downloadable sample PDF.
+Hotel dashboard: `/hotels` (admin sign-in required). The shared Supabase master is displayed as hotel cards, with search and destination, package-category and rate filters. Cards open an individual editor; more cards load in batches of 24. Admins can create, update, or delete a hotel. Upload a text-based PDF using the displayed record format, or an Excel `.xlsx` workbook using the downloadable template or original destination-sheet layout. Both formats preview matched and new hotels before applying changes. Older `.xls` files must first be saved as `.xlsx`.
+
+The profile's manual package category—Signature, Signature Plus, Signature Premium or Elite—is stored in the existing `normalized_category` column and controls package matching. Supplier category and stars remain separate information. Imports preserve an existing manual package category, checking it again when applying a preview. Legacy supplier classifications retain their previous mapping until a profile category is saved; unclassified profiles require a manual choice. This update needs no database migration. Run `npm run test:hotel-imports`; optionally set `CHAKAR_HOTEL_FIXTURE_DIR` to the source workbook directory to include the six original-file checks.
 
 Supplier B2B rates are omitted from the customer PDF. The browser now loads hotel data from an authenticated server endpoint after sign-in and does not bundle or persist the master in localStorage.
 
