@@ -118,6 +118,21 @@ try {
     assert.equal(next.dayPlans[6].dayTripDestination, 'Doodhpathri');
     assert.deepEqual(reschedulePlan(next), next);
   });
+  test('a return-day visit selector can choose the city or the previous overnight destination explicitly', () => {
+    const plan = createPlan(input(8));
+    const returnDay = plan.dayPlans[2];
+    assert.equal(returnDay.from, 'Gulmarg');
+    assert.equal(returnDay.stay, 'Srinagar');
+    const cityVisit = setPlanDayTrip(plan, 3, 'Srinagar');
+    assert.equal(cityVisit.dayPlans[2].dayTripDestination, 'Srinagar');
+    const citySights = sights(cityVisit.dayPlans[2]);
+    assert.ok(citySights.length && citySights.every((key) => key.startsWith('Srinagar:')));
+    const valleyVisit = setPlanDayTrip(cityVisit, 3, 'Gulmarg');
+    assert.equal(valleyVisit.dayPlans[2].dayTripDestination, 'Gulmarg');
+    const valleySights = sights(valleyVisit.dayPlans[2]);
+    assert.ok(valleySights.length && valleySights.every((key) => key.startsWith('Gulmarg:')));
+    assert.equal(valleyVisit.dayPlans[3].from, 'Srinagar');
+  });
   test('2–31 days and every travel style keep exact nights, continuity and departure protection', () => {
     for (const style of ['Relaxed', 'Balanced', 'Packed']) for (let count = 2; count <= 31; count++) {
       const plan = createPlan(input(count, { style, departureTime: '13:00' }));

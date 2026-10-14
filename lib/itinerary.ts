@@ -479,7 +479,9 @@ function setExistingPlanDayTrip(plan: Plan, dayNumber: number, destinationName: 
   if (dayNumber < 1 || dayNumber > plan.nights) throw new Error('Choose a sightseeing day before departure.');
   const oldDay = plan.dayPlans[dayNumber - 1];
   if (destinationName && !destinationByName(destinationName)) throw new Error('Day-trip destination not found.');
-  if (destinationName === oldDay.stay) destinationName = null;
+  // A return normally finishes the previous overnight destination's visits.
+  // Selecting Srinagar explicitly must instead switch this day to city sights.
+  if (destinationName === oldDay.stay && !(oldDay.stay === 'Srinagar' && oldDay.from !== oldDay.stay)) destinationName = null;
   const sequence = plan.dayPlans.slice(0, plan.nights).map((d) => d.stay);
   const trips: Record<number, string | null> = {};
   plan.dayPlans.forEach((day) => { if (day.dayTripDestination !== undefined) trips[day.day] = day.dayTripDestination; });

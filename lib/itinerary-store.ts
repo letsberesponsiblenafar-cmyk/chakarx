@@ -1,4 +1,5 @@
 import 'server-only';
+import { randomUUID } from 'node:crypto';
 import type { ItinerarySnapshot } from '@/components/PlannerProvider';
 
 export type SavedItinerarySummary = {
@@ -59,6 +60,28 @@ export async function listSavedItineraries(): Promise<SavedItinerarySummary[]> {
 export async function getSavedItinerary(id: string): Promise<SavedItinerary | null> {
   const rows = await call(`?select=*&id=eq.${encodeURIComponent(id)}&limit=1`) as SavedItinerary[];
   return rows[0] || null;
+}
+export async function copySavedItinerary(id: string): Promise<SavedItinerary | null> {
+  const original = await getSavedItinerary(id);
+  if (!original) return null;
+  const now = new Date().toISOString();
+  const row: SavedItinerary = {
+    id: randomUUID(),
+    client_name: original.client_name,
+    arrival: original.arrival,
+    departure: original.departure,
+    days: original.days,
+    nights: original.nights,
+    package_total: original.package_total,
+    snapshot: structuredClone(original.snapshot),
+    created_at: now,
+    updated_at: now,
+    last_downloaded_at: null,
+    download_count: 0,
+  };
+  const rows = await call('?select=*', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(row) }) as SavedItinerary[];
+  if (!rows?.[0] || rows[0].id !== row.id) throw new Error('The itinerary database did not confirm the copy.');
+  return rows[0];
 }
 export async function saveItinerary(snapshot: ItinerarySnapshot, total: number, id?: string, downloaded = false): Promise<SavedItinerary> {
   const now = new Date().toISOString();

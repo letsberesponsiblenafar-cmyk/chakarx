@@ -1,6 +1,7 @@
 import { destinationByName, enabledSightseeing, type Destination } from '@/lib/data';
 import type { DayBlock, DayPlan } from '@/lib/itinerary';
 import { quotedActivityCost } from '@/lib/activities';
+import { dayVisitLabel } from '@/lib/journey-labels';
 
 export type NarrativeQuote = { activityCosts: Record<string, number>; activitySelections?: Record<string, boolean> };
 export type NarrativeAccommodation = { current?: 'hotel' | 'houseboat'; previous?: 'hotel' | 'houseboat' };
@@ -74,17 +75,18 @@ export function defaultDayNote(destination: Destination) {
 export function dayTitle(day: DayPlan, pickup: string) {
   if (day.customTitle?.trim()) return day.customTitle.trim();
   if (day.day === 1) return day.dayTripDestination
-    ? `Arrival in ${pickup} & ${day.dayTripDestination} day visit${day.additionalVisitDestinations?.includes(day.stay) ? ` & ${day.stay} sightseeing` : ''}`
+    ? `Arrival in ${pickup} & ${dayVisitLabel(day)}${day.stay !== day.dayTripDestination && day.additionalVisitDestinations?.includes(day.stay) ? ` & ${day.stay} sightseeing` : ''}`
     : day.stay.toLowerCase() === pickup.toLowerCase() || pickup.toLowerCase().includes(day.stay.toLowerCase())
     ? `Arrival in ${day.stay}${plannedStops(day, day.stay).length ? ` & ${day.stay === 'Srinagar' ? 'local sightseeing' : 'sightseeing'}` : ''}`
     : `Arrival in ${pickup} & transfer to ${day.stay}`;
   if (day.label === 'Departure day') return day.stay !== day.to
     ? `${day.stay} to ${day.to} & departure`
     : plannedStops(day, day.stay).length || day.scheduledActivities?.length ? `${day.to} sightseeing & departure` : `Departure from ${day.to}`;
-  if (day.dayTripDestination) return `${day.dayTripDestination} day visit${day.additionalVisitDestinations?.includes(day.stay) ? ` & ${day.stay} sightseeing` : ''}`;
+  if (day.dayTripDestination) return `${dayVisitLabel(day)}${day.stay !== day.dayTripDestination && day.additionalVisitDestinations?.includes(day.stay) ? ` & ${day.stay} sightseeing` : ''}`;
+  if (day.transfer && day.stay === 'Srinagar' && day.from !== day.stay) return dayVisitLabel(day);
   if (day.transfer) return `${day.from} to ${day.stay}${day.stay === 'Srinagar' && plannedStops(day, day.stay).length ? ' & local sightseeing' : ''}`;
   const excursion = day.blocks.find((block) => block.name.toLowerCase().includes('day trip'));
-  return excursion ? `${excursion.name} from ${day.stay}` : `${day.stay}${day.stay === 'Srinagar' ? ' local' : ''} sightseeing`;
+  return excursion ? dayVisitLabel(day, excursion.destination || excursion.name.replace(/ day trip$/i, '')) : dayVisitLabel(day);
 }
 
 function blockDestination(block: DayBlock, day: DayPlan) {
@@ -219,6 +221,7 @@ function visitCopy(day: DayPlan, destination: string, planned: string[], quote?:
 }
 
 function travelCopy(from: string, to: string, via: string[] = []) {
+  if (from === to) return '';
   const access = destinationByName(to)?.hub_route;
   const corridor = corridors[`${from}|${to}`] || (via.length ? `via ${via.join(' and ')}` : 'through the Kashmir countryside');
   if (access && access.access_mode !== 'road') {

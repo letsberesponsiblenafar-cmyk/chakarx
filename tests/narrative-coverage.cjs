@@ -17,7 +17,8 @@ for (const extension of ['.ts', '.tsx']) require.extensions[extension] = functio
 };
 
 const { destinations, replaceDestinationCatalog } = require('../lib/data.ts');
-const { dayNarrative } = require('../lib/narrative.ts');
+const { dayNarrative, dayTitle } = require('../lib/narrative.ts');
+const { dayVisitDestination, dayVisitLabel } = require('../lib/journey-labels.ts');
 const { dayScheduleContext } = require('../lib/day-scheduler.ts');
 const original = [...destinations];
 const sight = (name, sentence, extra = {}) => ({ name, description: '', client_sentence: sentence, tags: [], ...extra });
@@ -48,6 +49,21 @@ try {
   const excursion = day({ dayTripDestination: 'Gulmarg', primaryVisitFor: ['Srinagar', 'Gulmarg'],
     blocks: [siteBlock('Gulmarg', 'Gulmarg Meadow')] });
   const excursionCopy = dayNarrative(excursion, 'Srinagar');
+  assert.equal(dayTitle(excursion, 'Srinagar'), 'Gulmarg day visit', 'A real Srinagar round trip is a day visit.');
+  const overnightReturn = { ...excursion, from: 'Gulmarg', to: 'Srinagar', transfer: true,
+    blocks: [siteBlock('Gulmarg', 'Gulmarg Meadow')] };
+  assert.equal(dayTitle(overnightReturn, 'Srinagar'), 'Gulmarg sightseeing', 'The morning after a Gulmarg overnight is sightseeing, even if its visit is explicitly selected.');
+  assert.equal(dayVisitDestination(overnightReturn), 'Gulmarg');
+  const implicitReturn = { ...overnightReturn, dayTripDestination: undefined };
+  assert.equal(dayTitle(implicitReturn, 'Srinagar'), 'Gulmarg sightseeing');
+  assert.equal(dayVisitDestination(implicitReturn), 'Gulmarg', 'The next hotel base must not replace the actual sightseeing destination.');
+  assert.match(dayNarrative(overnightReturn, 'Srinagar'), /check out from your Gulmarg hotel/i);
+  assert.match(dayNarrative(overnightReturn, 'Srinagar'), /Walk across Gulmarg Meadow/);
+  assert.doesNotMatch(dayNarrative(overnightReturn, 'Srinagar'), /Drive to Gulmarg|day trip|day visit/i);
+  const repeatedOvernight = { ...overnightReturn, from: 'Gulmarg', to: 'Gulmarg', stay: 'Gulmarg', transfer: false };
+  assert.equal(dayTitle(repeatedOvernight, 'Srinagar'), 'Gulmarg sightseeing');
+  const legacyReturn = { ...implicitReturn, blocks: [{ ...siteBlock('Gulmarg', 'Gulmarg day trip'), sights: ['Gulmarg Meadow'] }] };
+  assert.equal(dayTitle(legacyReturn, 'Srinagar'), 'Gulmarg sightseeing', 'Old saved wrapper names must not reintroduce a day-trip title after an overnight.');
   assert.match(excursionCopy, /Walk across Gulmarg Meadow/);
   assert.doesNotMatch(excursionCopy, /lakeside setting|cultural heritage|Shalimar Bagh|Srinagar local sightseeing/,
     'An excursion must not become a second sightseeing programme merely because the hotel is in Srinagar.');
@@ -130,6 +146,12 @@ try {
   replaceDestinationCatalog(original.map((destination) => ({ ...destination,
     enabled_sightseeing: destination.local_sightseeing.map((place) => place.name), enabled_activities: destination.activities })));
   for (const destination of destinations) {
+    if (destination.name !== 'Srinagar') {
+      const returnDay = day({ from: destination.name, to: 'Srinagar', stay: 'Srinagar', transfer: true,
+        dayTripDestination: destination.name });
+      assert.equal(dayTitle(returnDay, 'Srinagar'), `${destination.name} sightseeing`);
+      assert.equal(dayVisitLabel(returnDay), `${destination.name} sightseeing`);
+    }
     const blocks = destination.local_sightseeing.map((place) => siteBlock(destination.name, place.name));
     const local = day({ from: destination.name, to: destination.name, stay: destination.name,
       primaryVisitFor: [destination.name], blocks });

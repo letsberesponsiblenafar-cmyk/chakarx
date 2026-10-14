@@ -7,6 +7,8 @@ Build Your Trip -> Destinations and overnight stays -> Hotels -> Activities & Tr
 
 `/saved-itineraries` is a private client library. A PDF download saves the editable trip to Supabase before offering the file. Open a saved client to change days, hotels or costing, use **Save changes** to keep edits, or download a revised PDF. **Build New** clears only the current planner draft and starts a separate trip; it does not delete prior clients. Existing PDF files created before this feature are not imported automatically.
 
+Each saved card has a three-dot menu with **Create a copy**. This creates an independent Supabase row with the complete original snapshot and price, a fresh creation date, and its own download history. Creating the copy keeps the current planner open; opening the new card targets its separate ID for edits and PDF downloads. No additional schema setup is required.
+
 ## Destination library
 The planner ships with 44 Kashmir destination records. Each record is destination-first and carries:
 - short description
@@ -18,6 +20,8 @@ The planner ships with 44 Kashmir destination records. Each record is destinatio
 - a photo query for the library profile
 
 The Destinations step is date-first: each day has a visit or sightseeing destination and an overnight base. Changing the overnight base keeps the day visit, so an overnight in Gulmarg can become a Gulmarg day trip with a Srinagar hotel night. The later Itinerary step displays the chosen route, hotels and day copy; only the “About this day” description is editable there.
+
+Day labels follow the traveller's starting base: an excursion from Srinagar to Gulmarg and back is a **Gulmarg day visit**. A traveller starting in Gulmarg after an overnight, sightseeing there and returning to Srinagar has **Gulmarg sightseeing**. Destination controls, itinerary headings and client PDF headings share this wording. The return-day visit selector shows the valley being explored and allows the operator to deliberately switch that visit to Srinagar.
 
 Ticked sightseeing places form the selected programme. The planner includes them once across the days spent exploring that destination, using each place's planned itinerary sentence. Standard days run from 08:00 to 22:00, adjusted for actual arrival and departure times. Nearby stops are preferred after a long transfer; major excursions are kept for a full visit day when one exists. Returning to a Srinagar hotel does not automatically add Srinagar sightseeing. If an older or manual route has no dedicated city day, its selected Srinagar circuit is grouped on one suitable return day. Shared attractions are assigned once, including overlapping destination records. Visit-duration estimates guide distribution and can show a nonblocking planning note; they do not silently remove selected places. About This Day remains manually editable. Quoted activities add their own sentence and group price independently of sightseeing selection. Suggested routes use Srinagar as a hub: short trips use day visits, while longer trips add outlying hotel nights with a return through Srinagar before the next major base.
 

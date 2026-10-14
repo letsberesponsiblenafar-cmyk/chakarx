@@ -10,7 +10,7 @@
     "test:destinations": "node tests/destination-library.cjs && node tests/destination-package-defaults.cjs && node tests/package-defaults-store.cjs && node tests/destination-deletion.cjs && node tests/deleted-destination-quotes.cjs",
     "test:hotels": "node tests/hotel-suggestions.cjs && node tests/houseboat-stays.cjs && node tests/hotel-options.cjs && node tests/custom-hotel-options.cjs && node tests/hotel-package-category.cjs",
     "test:hotel-imports": "node tests/hotel-excel-import.cjs",
-    "test:store": "node tests/database-retry.cjs",
+    "test:store": "node tests/database-retry.cjs && node tests/saved-itinerary-copy.cjs && node tests/saved-itinerary-menu.cjs",
     "test:model": "node scripts/verify-model.mjs && node scripts/verify-recommendations.cjs",
     "test:scheduling": "node tests/day-scheduling.cjs && node tests/planner-balance.cjs && node tests/narrative-coverage.cjs && node tests/departure-policy.cjs && node tests/restored-quote-coherence.cjs && node tests/selected-visit-coverage.cjs && node tests/sightseeing-checkbox-authority.cjs && node tests/trip-quote-preservation.cjs"
   },
