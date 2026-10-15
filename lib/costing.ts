@@ -3,7 +3,7 @@ import type { CostModel, HotelSelection } from '@/components/PlannerProvider';
 import { priceTrip } from '@/lib/pricing';
 import { quotedActivityCost, tripActivities } from '@/lib/activities';
 import { activeHotelSelections, hotelNightNumbers, hotelStayLabel } from '@/lib/accommodation';
-import { effectiveHotelSelection, hotelOptions } from '@/lib/hotel-options';
+import { effectiveHotelSelection, hotelOptions, sharedCustomHotelRates } from '@/lib/hotel-options';
 
 export function calculateCosts(plan: Plan, hotels: HotelSelection[], model: CostModel) {
   const activeStays = activeHotelSelections(plan, hotels);
@@ -23,7 +23,10 @@ export function calculateCosts(plan: Plan, hotels: HotelSelection[], model: Cost
   const people = plan.input.adults + plan.input.youngAges.length;
   const missingHotelRates = [
     ...plan.hotelPlans.filter((stay) => !activeStays.some((hotel) => hotel.location === stay.location)).map((stay) => stay.location),
-    ...activeStays.filter((hotel) => hotelOptions(hotel, plan.input.hotelOptionMode).some((option) => !option.hotelName?.trim() || /^(?:hotel|houseboat) to be (?:added|confirmed)$/i.test(option.hotelName.trim()) || !Number.isFinite(option.nightlyRate) || option.nightlyRate <= 0)).map(hotelStayLabel),
+    ...activeStays.filter((hotel) => {
+      const shared = sharedCustomHotelRates(hotel, plan.input.hotelOptionMode);
+      return (shared && (!Number.isFinite(shared.nightlyRate) || shared.nightlyRate <= 0)) || hotelOptions(hotel, plan.input.hotelOptionMode).some((option) => !option.hotelName?.trim() || /^(?:hotel|houseboat) to be (?:added|confirmed)$/i.test(option.hotelName.trim()) || (!shared && (!Number.isFinite(option.nightlyRate) || option.nightlyRate <= 0)));
+    }).map(hotelStayLabel),
   ];
   return { ...priced, meals, activities, preGst: priced.b2bCost, people, missingHotelRates };
 }

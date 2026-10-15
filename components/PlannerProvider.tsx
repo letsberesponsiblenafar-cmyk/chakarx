@@ -11,7 +11,7 @@ import { hotelSelectionKey, hotelStayType, hotelNightDates, type AccommodationTy
 import { dayScheduleContext } from '@/lib/day-scheduler';
 import { initialPackageDefaults, validatePackageDefaults, type PackageDefaults } from '@/lib/package-defaults';
 import { withPlanDestinations } from '@/lib/plan-destinations';
-import { hotelAlternativeCandidates, hotelOptionCategory, hotelOptionFromSelection, hotelOptionIdentity, sameHotelOption, type HotelOptionQuote } from '@/lib/hotel-options';
+import { allHotelOptionsCustom, highestCompleteHotelRates, sharedCustomHotelRates, hotelAlternativeCandidates, hotelOptionCategory, hotelOptionFromSelection, hotelOptionIdentity, sameHotelOption, type HotelOptionQuote, type HotelRateBundle } from '@/lib/hotel-options';
 import { hotelConfirmationSignature } from '@/lib/quote-readiness';
 
 export type HotelSelection = {
@@ -19,6 +19,8 @@ export type HotelSelection = {
   nights: number; rooms: number; extraBeds: number; cnb: number; nightlyRate: number; extraBedRate: number; cnbRate: number; source: string; status: string; rateConfirmed?: boolean; confirmedSignature?: string;
   accommodationType?: AccommodationType; nightNumbers?: number[];
   alternatives?: HotelOptionQuote[];
+  /** One negotiated bundle when every offered property is entered manually. */
+  sharedCustomRates?: HotelRateBundle;
 };
 export type CostModel = { transportDaily: number; transportIsCustom: boolean; mealPerPersonNight: number; activityBudget: number; activityCosts: Record<string, number>; activitySelections: Record<string, boolean>; manualInclusions: string[]; manualExclusions: string[]; contingencyPct: number; profitPct: number; otherAmount: number };
 export type HotelDefaults = { rooms: number; extraBeds: number; cnb: number; nightlyRate: number; extraBedRate: number; cnbRate: number };
@@ -58,9 +60,11 @@ type PlannerContextValue = PlannerState & {
   addDay: () => void;
   removeDay: (day: number) => void;
   replaceHotel: (location: string, hotelId: string) => void;
+  useCustomHotel: (location: string) => void;
   replaceHotelAlternative: (location: string, index: number, hotelId: string) => void;
   setCustomHotelAlternative: (location: string, index: number, patch: Partial<Pick<HotelOptionQuote, 'hotelName' | 'nightlyRate' | 'extraBedRate' | 'cnbRate'>>) => void;
   setHotelOptionRate: (location: string, hotelId: string, field: 'nightlyRate' | 'extraBedRate' | 'cnbRate', value: number) => void;
+  setSharedCustomHotelRate: (location: string, field: keyof HotelRateBundle, value: number) => void;
   setHotelRate: (location: string, field: 'nightlyRate' | 'extraBedRate' | 'cnbRate', value: number) => void;
   setHotelMeta: (location: string, patch: Partial<HotelSelection>) => void;
   setHotelDefaults: (patch: Partial<HotelDefaults>) => void;
@@ -153,7 +157,8 @@ export function populateHotelOptions(plan: Plan, hotel: HotelSelection, db: Hote
   }
   const days = plan.dayPlans.slice(0, plan.nights).filter((day, index) => hotel.nightNumbers === undefined || hotel.nightNumbers.includes(day.day || index + 1));
   const window = stayDateWindow(days, hotel.location);
-  for (const candidate of hotelAlternativeCandidates(hotel, db, input.hotelCategory, window.arrival, window.departure)) {
+  const retainCustomNames = allHotelOptionsCustom(hotel, 'multiple') && (hotel.sharedCustomRates || cached.length > 0);
+  for (const candidate of retainCustomNames ? [] : hotelAlternativeCandidates(hotel, db, input.hotelCategory, window.arrival, window.departure)) {
     if (alternatives.length >= 2) break;
     const quote = hotelOptionFromSelection(selectionFromHotel(hotel.location, candidate, hotel.nights, input));
     if (!alternatives.some((option) => sameHotelOption(option, quote))) alternatives.push(quote);
@@ -198,7 +203,42 @@ export function replaceHotelAlternativeInState(state: PlannerState, location: st
   const alternatives = [...(selected.alternatives || [])];
   while (index > alternatives.length) alternatives.push(blankCustomHotelAlternative(selected, state.plan.input, alternatives.length, state.hotelDatabase));
   alternatives[index] = quote;
-  return { ...state, hotelSelections: selections.map((hotel) => hotel === selected ? { ...hotel, alternatives, rateConfirmed: false, confirmedSignature: undefined } : hotel) };
+  const replacement = withSharedCustomQuote(selected, { ...selected, alternatives }, state.plan.input);
+  return { ...state, hotelSelections: selections.map((hotel) => hotel === selected ? { ...replacement, rateConfirmed: false, confirmedSignature: undefined } : hotel) };
+}
+
+/** Snapshot a shared quote only on entry; inventory refreshes never reprice it. */
+function withSharedCustomQuote(previous: HotelSelection, next: HotelSelection, input: TripInput): HotelSelection {
+  if (allHotelOptionsCustom(next, input.hotelOptionMode)) {
+    const rates = sharedCustomHotelRates(previous, input.hotelOptionMode) || highestCompleteHotelRates(previous);
+    return { ...next, sharedCustomRates: rates };
+  }
+  if (!next.sharedCustomRates) return next;
+  const { sharedCustomRates: _shared, ...individual } = next;
+  return individual;
+}
+
+/** Change only the primary property, retaining the other two supplier choices. */
+export function useCustomHotelInState(state: PlannerState, location: string): PlannerState {
+  const selections = state.plan ? syncHotelSelections(state.plan, state.hotelSelections, state.hotelDatabase, state.plan.input) : state.hotelSelections;
+  const selected = selections.find((hotel) => hotelSelectionKey(hotel) === location);
+  if (!selected || (!selected.hotelId && /^Custom (?:hotel|houseboat)$/i.test(selected.source))) return state;
+  const type = hotelStayType(selected);
+  const custom: HotelSelection = { ...selected, hotelId: '', hotelName: '', source: type === 'houseboat' ? 'Custom houseboat' : 'Custom hotel',
+    address: '', website: '', roomType: type === 'houseboat' ? 'Houseboat' : '', starRating: null,
+    rateConfirmed: false, confirmedSignature: undefined, status: 'user-edited' };
+  const replacement = withSharedCustomQuote(selected, custom, state.plan?.input || state.input);
+  return { ...state, hotelSelections: selections.map((hotel) => hotel === selected ? replacement : hotel) };
+}
+
+export function setSharedCustomHotelRateInState(state: PlannerState, location: string, field: keyof HotelRateBundle, value: number): PlannerState {
+  if (!['nightlyRate', 'extraBedRate', 'cnbRate'].includes(field) || !Number.isFinite(value) || value < 0) return state;
+  const selections = state.plan ? syncHotelSelections(state.plan, state.hotelSelections, state.hotelDatabase, state.plan.input) : state.hotelSelections;
+  const selected = selections.find((hotel) => hotelSelectionKey(hotel) === location);
+  const rates = selected && sharedCustomHotelRates(selected, state.plan?.input.hotelOptionMode || state.input.hotelOptionMode);
+  if (!selected || !rates) return state;
+  const replacement = { ...selected, sharedCustomRates: { ...rates, [field]: value }, rateConfirmed: false, confirmedSignature: undefined };
+  return { ...state, hotelSelections: selections.map((hotel) => hotel === selected ? replacement : hotel) };
 }
 
 function blankCustomHotelAlternative(selected: HotelSelection, input: TripInput, index: number, database: Hotel[]): HotelOptionQuote {
@@ -225,9 +265,10 @@ export function setCustomHotelAlternativeInState(state: PlannerState, location: 
   const alternatives = [...(selected.alternatives || [])];
   while (alternatives.length <= index) alternatives.push(blankCustomHotelAlternative(selected, state.plan.input, alternatives.length, state.hotelDatabase));
   const current = alternatives[index];
-  const custom = current.customId ? current : blankCustomHotelAlternative(selected, state.plan.input, index, state.hotelDatabase);
+  const custom = current.customId ? current : { ...blankCustomHotelAlternative(selected, state.plan.input, index, state.hotelDatabase),
+    nightlyRate: current.nightlyRate, extraBedRate: current.extraBedRate, cnbRate: current.cnbRate };
   alternatives[index] = { ...custom, ...patch, status: 'user-edited' };
-  const replacement = { ...selected, alternatives };
+  const replacement = withSharedCustomQuote(selected, { ...selected, alternatives }, state.plan.input);
   const quoteUnchanged = hotelConfirmationSignature(state.plan, selected, state.input.mealPlan) === hotelConfirmationSignature(state.plan, replacement, state.input.mealPlan);
   return { ...state, hotelSelections: selections.map((hotel) => hotel === selected
     ? { ...replacement, ...(!quoteUnchanged ? { rateConfirmed: false, confirmedSignature: undefined } : {}) } : hotel) };
@@ -605,6 +646,9 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     replaceHotel(location, hotelId) {
       setState((s) => replaceHotelInState(s, location, hotelId));
     },
+    useCustomHotel(location) {
+      setState((s) => useCustomHotelInState(s, location));
+    },
     replaceHotelAlternative(location, index, hotelId) {
       setState((s) => replaceHotelAlternativeInState(s, location, index, hotelId));
     },
@@ -613,6 +657,9 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     },
     setHotelOptionRate(location, hotelId, field, value) {
       setState((s) => setHotelOptionRateInState(s, location, hotelId, field, value));
+    },
+    setSharedCustomHotelRate(location, field, value) {
+      setState((s) => setSharedCustomHotelRateInState(s, location, field, value));
     },
     setHotelRate(location, field, value) {
       setState((s) => {

@@ -10,7 +10,7 @@ import { isHouseboatHotel, matchesPackageCategory, sameHotelDestination } from '
 import { hotelRateValidity } from '@/lib/hotel-rate-validity';
 import { hotelConfirmationSignature } from '@/lib/quote-readiness';
 import { activeHotelSelections, hotelNightNumbers, hotelSelectionKey, hotelStayLabel, hotelStayType, hotelStayWindow } from '@/lib/accommodation';
-import { effectiveHotelSelection, hotelAlternativeCandidates, hotelOptionMatchesCategory, hotelOptionIdentity, hotelOptionNightlyCost, hotelOptions, isUnusedHotelOption, type HotelOptionQuote } from '@/lib/hotel-options';
+import { allHotelOptionsCustom, sharedCustomHotelRates, effectiveHotelSelection, hotelAlternativeCandidates, hotelOptionMatchesCategory, hotelOptionIdentity, hotelOptionNightlyCost, hotelOptions, isUnusedHotelOption, type HotelOptionQuote } from '@/lib/hotel-options';
 import './houseboat-stays.css';
 import './hotel-options.css';
 
@@ -31,7 +31,7 @@ function CountInput({ label, value, min, onChange }: { label: string; value: num
 }
 
 export default function HotelsPage() {
-  const { plan, input, hotelSelections, replaceHotel, replaceHotelAlternative, setCustomHotelAlternative, setHotelRate, setHotelOptionRate, setHotelMeta, setSrinagarHouseboatNights, hotelDatabase: db, hotelConnection, hotelConnectionError, refreshHotels, hydrated } = usePlanner();
+  const { plan, input, hotelSelections, replaceHotel, replaceHotelAlternative, useCustomHotel, setCustomHotelAlternative, setSharedCustomHotelRate, setHotelRate, setHotelOptionRate, setHotelMeta, setSrinagarHouseboatNights, hotelDatabase: db, hotelConnection, hotelConnectionError, refreshHotels, hydrated } = usePlanner();
   const [editing, setEditing] = useState<string | null>(null);
   const [hotelSearch, setHotelSearch] = useState<Record<string, string>>({});
   const [houseboatOpen, setHouseboatOpen] = useState(false);
@@ -48,16 +48,24 @@ export default function HotelsPage() {
   const houseboatNights = new Set(houseboatNightNumbers);
   const hotelNightsCount = srinagarNights.length - houseboatNights.size;
   const houseboat = selected.find((hotel) => sameHotelDestination(hotel.location, 'Srinagar') && hotelStayType(hotel) === 'houseboat');
-  const readyCount = selected.filter((hotel) => hotel.rooms > 0 && hotelOptions(hotel, optionMode).every((option) => !needsStayName(option.hotelName) && Number.isFinite(option.nightlyRate) && option.nightlyRate > 0)).length;
+  const readyCount = selected.filter((hotel) => {
+    const shared = sharedCustomHotelRates(hotel, optionMode);
+    return hotel.rooms > 0 && (!shared || Number.isFinite(shared.nightlyRate) && shared.nightlyRate > 0) &&
+      hotelOptions(hotel, optionMode).every((option) => !needsStayName(option.hotelName) &&
+        (shared || Number.isFinite(option.nightlyRate) && option.nightlyRate > 0));
+  }).length;
   const rateProblems = selected.flatMap((hotel) => {
     const label = hotelStayLabel(hotel);
     if (hotel.rooms <= 0) return [`Enter the number of rooms for ${label}.`];
     const window = hotelStayWindow(plan, hotel);
     const offered = hotelOptions(hotel, optionMode);
+    const shared = sharedCustomHotelRates(hotel, optionMode);
+    if (shared && (!Number.isFinite(shared.nightlyRate) || shared.nightlyRate <= 0)) return [`Enter the highest supplier room rate for ${label}.`];
+    if (shared && [shared.extraBedRate, shared.cnbRate].some((value) => !Number.isFinite(value) || value < 0)) return [`Enter valid extra-bed and child rates for ${label}.`];
     if (multipleOptions && (hotel.alternatives || []).filter((option) => !isUnusedHotelOption(option)).length + 1 !== offered.length) return [`Choose up to three different properties for ${label}.`];
     return offered.flatMap((option) => {
       if (needsStayName(option.hotelName)) return [`Choose a ${hotelStayType(hotel)} in ${hotel.location}.`];
-      if (!Number.isFinite(option.nightlyRate) || option.nightlyRate <= 0) return [`Enter the room rate for ${multipleOptions ? option.hotelName : label}.`];
+      if (!shared && (!Number.isFinite(option.nightlyRate) || option.nightlyRate <= 0)) return [`Enter the room rate for ${multipleOptions ? option.hotelName : label}.`];
       if (offered.length > 1 && hotelOptionIdentity(option) !== hotelOptionIdentity(hotel) && !hotelOptionMatchesCategory(hotel, option, db)) return [`Choose the same category for every ${label} option.`];
       const record = db.find((item) => item.id === option.hotelId);
       if (offered.length > 1 && hotelOptionIdentity(option) !== hotelOptionIdentity(hotel) && !option.customId && !matchesPackageCategory(record || { normalizedCategory: option.category }, input.hotelCategory)) return [`Choose ${input.hotelCategory} properties for the ${label} alternatives.`];
@@ -79,15 +87,10 @@ export default function HotelsPage() {
       setHotelMeta(hotelSelectionKey(hotel), { rateConfirmed: confirmed, confirmedSignature: confirmed ? hotelConfirmationSignature(plan, hotel, input.mealPlan) : '' });
     }
   }
-  function startCustom(key: string, type: 'hotel' | 'houseboat') {
-    const selectedHotel = hotelSelections.find((hotel) => hotelSelectionKey(hotel) === key);
-    if (multipleOptions) selectedHotel?.alternatives?.slice(0, 2).forEach((option, index) => {
-      // Remove automatic comparisons without moving or losing the operator's
-      // custom quotes, including an intentionally blank slot before one.
-      if (!option.customId) setCustomHotelAlternative(key, index, {});
-    });
-    setHotelMeta(key, { hotelId: '', hotelName: type === 'houseboat' ? 'Houseboat to be added' : 'Hotel to be added', nightlyRate: 0, extraBedRate: 0, cnbRate: 0, source: `Custom ${type}`, status: `Enter custom ${type} details` });
+  function startCustom(key: string) {
+    useCustomHotel(key);
     setEditing(null);
+    setRateReview(null);
   }
   function setNightType(day: number, houseboat: boolean) {
     const next = new Set(houseboatNightNumbers);
@@ -126,19 +129,21 @@ export default function HotelsPage() {
         return score(b) - score(a) || a.name.localeCompare(b.name);
       }).slice(0, 12);
       const custom = !hotel.hotelId;
+      const allCustom = allHotelOptionsCustom(hotel, optionMode);
+      const sharedRates = sharedCustomHotelRates(hotel, optionMode);
       const offered = hotelOptions(hotel, optionMode);
-      const reviewed = multipleOptions && rateReview?.stayKey === key
+      const reviewed = multipleOptions && !allCustom && rateReview?.stayKey === key
         ? rateReview.alternativeIndex !== undefined
           ? hotel.alternatives?.[rateReview.alternativeIndex]
           : offered.find((option) => hotelOptionIdentity(option) === rateReview.optionId)
         : undefined;
-      const rateTarget = reviewed || priced;
-      const primaryNeedsReview = multipleOptions && hotelOptionIdentity(hotel) !== hotelOptionIdentity(priced) && needsRateReview(hotel, hotel);
+      const rateTarget = sharedRates ? { ...hotel, ...sharedRates } : reviewed || priced;
+      const primaryNeedsReview = multipleOptions && !allCustom && hotelOptionIdentity(hotel) !== hotelOptionIdentity(priced) && needsRateReview(hotel, hotel);
       const alternatives = multipleOptions ? Array.from({ length: 2 }, (_, index) => ({ option: hotel.alternatives?.[index], index })) : [];
       const alternativeCandidates = multipleOptions ? hotelAlternativeCandidates(hotel, db, input.hotelCategory, window.arrival, window.departure) : [];
     return <>
-        <div className="simple-hotel-choice"><div><span className="overline">SELECTED {boat ? 'HOUSEBOAT' : 'HOTEL'}</span>{custom ? <input aria-label={`Custom ${type} in ${hotel.location}`} className="simple-custom-name" value={needsStayName(hotel.hotelName) ? '' : hotel.hotelName} placeholder={`Type ${type} name`} onChange={(event) => setHotelMeta(key, { hotelName: event.target.value || (boat ? 'Houseboat to be added' : 'Hotel to be added'), status: 'user-edited' })}/> : <><h3>{hotel.hotelName}</h3><p>{record?.normalizedCategory || hotel.category}{record?.roomType ? ` · ${record.roomType}` : ''}{!multipleOptions && record?.mapB2B ? ` · ${money(record.mapB2B)} recorded B2B rate` : ''}</p></>}</div><div className="simple-hotel-actions"><button type="button" className="secondary-link" aria-expanded={editing === key} onClick={() => setEditing(editing === key ? null : key)}>{custom ? 'Search database' : `Change ${type}`}</button>{primaryNeedsReview && <button type="button" className="hotel-option-review-button" aria-label={`Review rate for ${hotel.hotelName}`} onClick={() => setRateReview({ stayKey: key, optionId: hotelOptionIdentity(hotel) })}>Review rate</button>}{!custom && <button type="button" className="simple-text-button" onClick={() => startCustom(key, type)}>Use custom {type}</button>}</div></div>
-        {editing === key && <div className="simple-hotel-search"><label><Search size={16}/><input aria-label={`Find ${type} in ${hotel.location}`} autoFocus value={hotelSearch[key] || ''} placeholder={`Search ${hotel.location} ${boat ? 'houseboats' : 'hotels'}`} onChange={(event) => setHotelSearch((current) => ({ ...current, [key]: event.target.value }))}/></label><div className="simple-hotel-results">{options.length ? options.map((option) => <button type="button" key={option.id} onClick={() => { replaceHotel(key, option.id); setEditing(null); }}><span><b>{option.name}</b><small>{option.normalizedCategory}{matchesPackageCategory(option, input.hotelCategory) ? ' · package match' : ''}</small></span><strong>{option.mapB2B ? money(option.mapB2B) : 'Rate needed'}</strong></button>) : <p>No matching {boat ? 'houseboats' : 'hotels'}. Try another name or enter a custom {type} below.</p>}</div>{!custom && <button type="button" className="simple-text-button" onClick={() => startCustom(key, type)}>Enter a custom {type} instead</button>}</div>}
+        <div className="simple-hotel-choice"><div><span className="overline">SELECTED {boat ? 'HOUSEBOAT' : 'HOTEL'}</span>{custom ? <input aria-label={`Custom ${type} in ${hotel.location}`} className="simple-custom-name" value={needsStayName(hotel.hotelName) ? '' : hotel.hotelName} placeholder={`Type ${type} name`} onChange={(event) => setHotelMeta(key, { hotelName: event.target.value || (boat ? 'Houseboat to be added' : 'Hotel to be added'), status: 'user-edited' })}/> : <><h3>{hotel.hotelName}</h3><p>{record?.normalizedCategory || hotel.category}{record?.roomType ? ` · ${record.roomType}` : ''}{!multipleOptions && record?.mapB2B ? ` · ${money(record.mapB2B)} recorded B2B rate` : ''}</p></>}</div><div className="simple-hotel-actions"><button type="button" className="secondary-link" aria-expanded={editing === key} onClick={() => setEditing(editing === key ? null : key)}>{custom ? 'Search database' : `Change ${type}`}</button>{primaryNeedsReview && <button type="button" className="hotel-option-review-button" aria-label={`Review rate for ${hotel.hotelName}`} onClick={() => setRateReview({ stayKey: key, optionId: hotelOptionIdentity(hotel) })}>Review rate</button>}{!custom && <button type="button" className="simple-text-button" onClick={() => startCustom(key)}>Use custom {type}</button>}</div></div>
+        {editing === key && <div className="simple-hotel-search"><label><Search size={16}/><input aria-label={`Find ${type} in ${hotel.location}`} autoFocus value={hotelSearch[key] || ''} placeholder={`Search ${hotel.location} ${boat ? 'houseboats' : 'hotels'}`} onChange={(event) => setHotelSearch((current) => ({ ...current, [key]: event.target.value }))}/></label><div className="simple-hotel-results">{options.length ? options.map((option) => <button type="button" key={option.id} onClick={() => { replaceHotel(key, option.id); setEditing(null); }}><span><b>{option.name}</b><small>{option.normalizedCategory}{matchesPackageCategory(option, input.hotelCategory) ? ' · package match' : ''}</small></span><strong>{option.mapB2B ? money(option.mapB2B) : 'Rate needed'}</strong></button>) : <p>No matching {boat ? 'houseboats' : 'hotels'}. Try another name or enter a custom {type} below.</p>}</div>{!custom && <button type="button" className="simple-text-button" onClick={() => startCustom(key)}>Enter a custom {type} instead</button>}</div>}
         {multipleOptions && <div className="hotel-option-shortlist" aria-label={`Similar ${boat ? 'houseboats' : 'hotels'} in ${hotel.location}`}>
           {alternatives.map(({ option, index }, displayIndex) => {
             const isCustom = !option?.hotelId;
@@ -146,24 +151,35 @@ export default function HotelsPage() {
             const candidates = alternativeCandidates.filter((candidate) => candidate.id === option?.hotelId || !offered.some((chosen) => chosen.hotelId === candidate.id || chosen.hotelName.toLowerCase() === candidate.name.toLowerCase()));
             const currentIncluded = candidates.some((candidate) => candidate.id === option?.hotelId);
             const reviewNeeded = Boolean(option && hotelOptionIdentity(option) !== hotelOptionIdentity(priced) && needsRateReview(hotel, option));
+            const showRateReview = !allCustom && (isCustom || reviewNeeded);
+            const canClear = isCustom && !unused;
             const selectLabel = `Similar ${type} ${displayIndex + 1} in ${hotel.location}`;
-            return <div className={`hotel-option-row${isCustom ? ' is-custom-option' : ''}${isCustom || reviewNeeded ? ' has-rate-review' : ''}`} key={`${key}-${index}`}>
+            return <div className={`hotel-option-row${isCustom ? ' is-custom-option' : ''}${showRateReview || canClear ? ' has-rate-review' : ''}`} key={`${key}-${index}`}>
               <span className="hotel-option-label">Similar {type} {displayIndex + 1}</span>
               <div className="hotel-option-property">
                 {isCustom && <input className="hotel-option-custom-name" aria-label={`Custom ${type} alternative ${displayIndex + 1} in ${hotel.location}`} value={option?.hotelName || ''} placeholder={`Custom ${type} name (optional)`} onChange={(event) => setCustomHotelAlternative(key, index, { hotelName: event.target.value })}/>}
-                <select className={isCustom ? 'hotel-option-custom-source' : undefined} aria-label={selectLabel} value={option?.hotelId || ''} onChange={(event) => { if (event.target.value) replaceHotelAlternative(key, index, event.target.value); else setCustomHotelAlternative(key, index, {}); }}>
+                <select className={isCustom ? 'hotel-option-custom-source' : undefined} aria-label={selectLabel} value={option?.hotelId || ''} onChange={(event) => { if (event.target.value) replaceHotelAlternative(key, index, event.target.value); else setCustomHotelAlternative(key, index, {}); setRateReview(null); }}>
                   <option value="">Custom {type}…</option>
                   {!isCustom && !currentIncluded && <option value={option!.hotelId}>{option!.hotelName}</option>}
                   {candidates.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}
                 </select>
               </div>
-              {(isCustom || reviewNeeded) && <div className="hotel-option-row-actions"><button type="button" className="hotel-option-review-button" aria-label={`${isCustom ? 'Edit' : 'Review'} rate for ${option?.hotelName || `custom ${type} alternative ${displayIndex + 1} in ${hotel.location}`}`} onClick={() => { if (!option) setCustomHotelAlternative(key, index, {}); setRateReview({ stayKey: key, alternativeIndex: index }); }}>{isCustom ? option?.nightlyRate ? 'Edit rate' : 'Set rate' : 'Review rate'}</button>{isCustom && !unused && <button type="button" className="hotel-option-clear" aria-label={`Clear custom ${type} alternative ${displayIndex + 1} in ${hotel.location}`} onClick={() => { setCustomHotelAlternative(key, index, { hotelName: '', nightlyRate: 0, extraBedRate: 0, cnbRate: 0 }); if (rateReview?.stayKey === key && rateReview.alternativeIndex === index) setRateReview(null); }}><X size={13}/></button>}</div>}
+              {(showRateReview || canClear) && <div className="hotel-option-row-actions">{showRateReview && <button type="button" className="hotel-option-review-button" aria-label={`${isCustom ? 'Edit' : 'Review'} rate for ${option?.hotelName || `custom ${type} alternative ${displayIndex + 1} in ${hotel.location}`}`} onClick={() => { if (!option) setCustomHotelAlternative(key, index, {}); setRateReview({ stayKey: key, alternativeIndex: index }); }}>{isCustom ? option?.nightlyRate ? 'Edit rate' : 'Set rate' : 'Review rate'}</button>}{canClear && <button type="button" className="hotel-option-clear" aria-label={`Clear custom ${type} alternative ${displayIndex + 1} in ${hotel.location}`} onClick={() => { setCustomHotelAlternative(key, index, { hotelName: '', nightlyRate: 0, extraBedRate: 0, cnbRate: 0 }); if (rateReview?.stayKey === key && rateReview.alternativeIndex === index) setRateReview(null); }}><X size={13}/></button>}</div>}
             </div>;
           })}
-          {alternatives.some(({ option }) => !option || isUnusedHotelOption(option)) && <p className="hotel-options-availability">Add a custom {type} and its supplier rate, or leave the extra options blank.</p>}
-          {offered.length > 1 && <p className="hotel-options-pricing">Quote rates from <strong>{priced.hotelName}</strong> · highest total among these options.</p>}
+          {alternatives.some(({ option }) => !option || isUnusedHotelOption(option)) && <p className="hotel-options-availability">{allCustom ? `Add the other custom ${type} names, or leave unused options blank.` : `Add a custom ${type} and its supplier rate, or leave the extra options blank.`}</p>}
+          {allCustom ? <p className="hotel-options-pricing">One rate for all custom options. Enter the highest supplier quote.</p> : offered.length > 1 && <p className="hotel-options-pricing">Quote rates from <strong>{priced.hotelName}</strong> · highest total among these options.</p>}
         </div>}
-        <div className="simple-hotel-fields"><section><div className="simple-field-title"><b>Rooms &amp; guests</b><span>{input.adults} adults · {input.youngAges.length} children</span></div><div className="simple-counts"><CountInput label="Rooms" value={hotel.rooms} min={1} onChange={(value) => setHotelMeta(key, { rooms: value })}/><CountInput label="Extra beds" value={hotel.extraBeds} min={0} onChange={(value) => setHotelMeta(key, { extraBeds: value })}/><CountInput label="CNB" value={hotel.cnb} min={0} onChange={(value) => setHotelMeta(key, { cnb: value })}/></div></section><section><div className="simple-field-title"><b>Internal rates</b><span>Per night · private</span></div>{reviewed && <div className="hotel-option-rate-review"><span>Editing <strong>{reviewed.hotelName || `custom ${type}`}</strong></span><button type="button" onClick={() => setRateReview(null)}>Back to highest rate</button></div>}<div className="simple-rates" key={hotelOptionIdentity(rateTarget)}><RateInput label={`${fieldLabel} room rate`} value={rateTarget.nightlyRate} onChange={(value) => setHotelRate(key, 'nightlyRate', value)} onCommit={multipleOptions ? (value) => setHotelOptionRate(key, hotelOptionIdentity(rateTarget), 'nightlyRate', value) : undefined}/><RateInput label={`${fieldLabel} extra bed rate`} value={rateTarget.extraBedRate} onChange={(value) => setHotelRate(key, 'extraBedRate', value)} onCommit={multipleOptions ? (value) => setHotelOptionRate(key, hotelOptionIdentity(rateTarget), 'extraBedRate', value) : undefined}/><RateInput label={`${fieldLabel} CNB rate`} value={rateTarget.cnbRate} onChange={(value) => setHotelRate(key, 'cnbRate', value)} onCommit={multipleOptions ? (value) => setHotelOptionRate(key, hotelOptionIdentity(rateTarget), 'cnbRate', value) : undefined}/></div></section></div>
+        <div className="simple-hotel-fields"><section><div className="simple-field-title"><b>Rooms &amp; guests</b><span>{input.adults} adults · {input.youngAges.length} children</span></div><div className="simple-counts"><CountInput label="Rooms" value={hotel.rooms} min={1} onChange={(value) => setHotelMeta(key, { rooms: value })}/><CountInput label="Extra beds" value={hotel.extraBeds} min={0} onChange={(value) => setHotelMeta(key, { extraBeds: value })}/><CountInput label="CNB" value={hotel.cnb} min={0} onChange={(value) => setHotelMeta(key, { cnb: value })}/></div></section>
+          <section><div className="simple-field-title"><b>{allCustom ? 'Highest supplier rate' : 'Internal rates'}</b><span>Per night · private</span></div>
+            {reviewed && <div className="hotel-option-rate-review"><span>Editing <strong>{reviewed.hotelName || `custom ${type}`}</strong></span><button type="button" onClick={() => setRateReview(null)}>Back to highest rate</button></div>}
+            <div className="simple-rates" key={allCustom ? `${key}-shared-custom` : hotelOptionIdentity(rateTarget)}>
+              <RateInput label={`${fieldLabel} room rate`} value={rateTarget.nightlyRate} onChange={(value) => setHotelRate(key, 'nightlyRate', value)} onCommit={allCustom ? (value) => setSharedCustomHotelRate(key, 'nightlyRate', value) : multipleOptions ? (value) => setHotelOptionRate(key, hotelOptionIdentity(rateTarget), 'nightlyRate', value) : undefined}/>
+              <RateInput label={`${fieldLabel} extra bed rate`} value={rateTarget.extraBedRate} onChange={(value) => setHotelRate(key, 'extraBedRate', value)} onCommit={allCustom ? (value) => setSharedCustomHotelRate(key, 'extraBedRate', value) : multipleOptions ? (value) => setHotelOptionRate(key, hotelOptionIdentity(rateTarget), 'extraBedRate', value) : undefined}/>
+              <RateInput label={`${fieldLabel} CNB rate`} value={rateTarget.cnbRate} onChange={(value) => setHotelRate(key, 'cnbRate', value)} onCommit={allCustom ? (value) => setSharedCustomHotelRate(key, 'cnbRate', value) : multipleOptions ? (value) => setHotelOptionRate(key, hotelOptionIdentity(rateTarget), 'cnbRate', value) : undefined}/>
+            </div>
+          </section>
+        </div>
     </>;
   }
   function houseboatOptions() {

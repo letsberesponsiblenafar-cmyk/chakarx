@@ -15,8 +15,8 @@ for (const extension of ['.ts', '.tsx']) require.extensions[extension] = functio
 };
 
 const { createPlan } = require('../lib/itinerary.ts');
-const { syncHotelSelections, generatePlannerState, reconcilePlannerState, setSrinagarHouseboatNights, replaceHotelInState, replaceHotelAlternativeInState, setCustomHotelAlternativeInState, setHotelOptionRateInState, itinerarySnapshot } = require('../components/PlannerProvider.tsx');
-const { hotelOptions, hotelOptionNames, hotelOptionIdentity, isUnusedHotelOption, effectiveHotelSelection, hotelOptionNightlyCost } = require('../lib/hotel-options.ts');
+const { syncHotelSelections, generatePlannerState, reconcilePlannerState, setSrinagarHouseboatNights, replaceHotelInState, replaceHotelAlternativeInState, setCustomHotelAlternativeInState, setHotelOptionRateInState, useCustomHotelInState, setSharedCustomHotelRateInState, itinerarySnapshot } = require('../components/PlannerProvider.tsx');
+const { hotelOptions, hotelOptionNames, hotelOptionIdentity, isUnusedHotelOption, effectiveHotelSelection, hotelOptionNightlyCost, hotelAlternativeCandidates, allHotelOptionsCustom, sharedCustomHotelRates } = require('../lib/hotel-options.ts');
 const { hotelSelectionKey, hotelStayType, hotelNightNumbers } = require('../lib/accommodation.ts');
 const { calculateCosts } = require('../lib/costing.ts');
 const { hotelConfirmationSignature, quoteReadiness } = require('../lib/quote-readiness.ts');
@@ -271,16 +271,17 @@ test('replacing a custom slot with a database hotel drops its custom identity', 
   assert.equal(hotelOptionIdentity(firstStay(after).alternatives[0]), replacement.id);
 });
 
-test('converting a database choice to custom starts a genuine blank quote', () => {
+test('converting a database choice to custom clears its name while preserving its quoted rate', () => {
   const before = stateFor(fullDatabase);
   assert(firstStay(before).alternatives[0].hotelId);
   const after = custom(before, 0, {});
   const option = firstStay(after).alternatives[0];
   assert.equal(option.hotelName, '');
   assert.equal(option.hotelId, '');
-  assert.deepEqual([option.nightlyRate, option.extraBedRate, option.cnbRate], [0, 0, 0]);
+  const prior = firstStay(before).alternatives[0];
+  assert.deepEqual([option.nightlyRate, option.extraBedRate, option.cnbRate], [prior.nightlyRate, prior.extraBedRate, prior.cnbRate]);
   assert(option.customId);
-  assert(isUnusedHotelOption(option));
+  assert(!isUnusedHotelOption(option));
   assert.deepEqual(firstStay(after).alternatives[1], firstStay(before).alternatives[1]);
 });
 
@@ -371,6 +372,165 @@ test('Srinagar houseboat custom options stay separate from hotel quotes and over
   assert.equal(new Set(assigned).size, assigned.length);
   const expected = after.hotelSelections.reduce((sum, stay) => sum + hotelNightNumbers(after.plan, stay).length * hotelOptionNightlyCost(effectiveHotelSelection(stay, 'multiple'), stay), 0);
   assert.equal(calculateCosts(after.plan, after.hotelSelections, after.costModel).accommodation, expected);
+});
+
+function allCustomState() {
+  let result = stateFor(fullDatabase);
+  const primary = firstStay(result);
+  result = { ...result, hotelSelections: [{ ...primary, rooms: 2, extraBeds: 1, cnb: 1,
+    nightlyRate: 2500, extraBedRate: 100, cnbRate: 100,
+    alternatives: [{ ...primary.alternatives[0], nightlyRate: 2300, extraBedRate: 1000, cnbRate: 50 },
+      { ...primary.alternatives[1], nightlyRate: 2600, extraBedRate: 0, cnbRate: 0 }],
+  }, ...result.hotelSelections.slice(1)] };
+  result = useCustomHotelInState(result, keyFor(result));
+  result = { ...result, hotelSelections: [{ ...firstStay(result), hotelName: 'Primary custom property' }, ...result.hotelSelections.slice(1)] };
+  return custom(custom(result, 0, { hotelName: 'Second custom property' }), 1, { hotelName: 'Third custom property' });
+}
+
+test('making the primary custom changes only that property and preserves both supplier alternatives', () => {
+  const before = stateFor(fullDatabase);
+  const after = useCustomHotelInState(before, keyFor(before));
+  const primary = firstStay(after);
+  assert.equal(primary.hotelId, '');
+  assert.equal(primary.hotelName, '');
+  assert.equal(primary.source, 'Custom hotel');
+  assert.equal(primary.nightlyRate, firstStay(before).nightlyRate);
+  assert.deepEqual(primary.alternatives, firstStay(before).alternatives);
+  assert.deepEqual(after.hotelSelections.slice(1), before.hotelSelections.slice(1));
+  assert.equal(allHotelOptionsCustom(primary, 'multiple'), false);
+  assert.equal(useCustomHotelInState(after, keyFor(after)), after);
+  assert.equal(useCustomHotelInState(before, 'Unknown stay'), before);
+});
+
+test('making either suggested alternative custom retains its rate and changes only its own name and identity', () => {
+  for (const index of [0, 1]) {
+    const before = stateFor(fullDatabase);
+    const after = custom(before, index, {});
+    const initial = firstStay(before);
+    const changed = firstStay(after);
+    assert.equal(changed.hotelId, initial.hotelId);
+    assert.equal(changed.hotelName, initial.hotelName);
+    assert.equal(changed.alternatives[index].hotelName, '');
+    assert.equal(changed.alternatives[index].hotelId, '');
+    assert(changed.alternatives[index].customId);
+    for (const field of ['nightlyRate', 'extraBedRate', 'cnbRate']) assert.equal(changed.alternatives[index][field], initial.alternatives[index][field]);
+    assert.deepEqual(changed.alternatives[1 - index], initial.alternatives[1 - index]);
+  }
+});
+
+test('last custom conversion captures one highest complete group bundle rather than maximum columns', () => {
+  const state = allCustomState();
+  const stay = firstStay(state);
+  assert(allHotelOptionsCustom(stay, 'multiple'));
+  assert.deepEqual(stay.sharedCustomRates, { nightlyRate: 2300, extraBedRate: 1000, cnbRate: 50 });
+  assert.deepEqual(sharedCustomHotelRates(stay, 'multiple'), stay.sharedCustomRates);
+  assert.equal(hotelOptionNightlyCost(effectiveHotelSelection(stay, 'multiple'), stay), 5650);
+  assert.equal(sharedCustomHotelRates(stay, 'single'), null);
+  assert.equal(effectiveHotelSelection(stay, 'single').nightlyRate, 2500);
+});
+
+test('all custom alternatives require names but not individual rates when a shared quote exists', () => {
+  const base = allCustomState();
+  const stay = firstStay(base);
+  const state = confirmed({ ...base, hotelSelections: [{ ...stay,
+    alternatives: stay.alternatives.map((option) => ({ ...option, nightlyRate: 0, extraBedRate: 0, cnbRate: 0 })),
+  }, ...base.hotelSelections.slice(1)] });
+  assert(!readiness(state).some((issue) => /positive room rate|non-negative extra-bed|Verify/.test(issue)));
+  assert.deepEqual(calculateCosts(state.plan, state.hotelSelections, state.costModel).missingHotelRates, []);
+  assert.equal(hotelOptionNames(firstStay(state), 'multiple').length, 3);
+  assert(pdfHotelName(firstStay(state), state.input).includes('Third custom property'));
+  const unnamed = { ...state, hotelSelections: [{ ...firstStay(state), alternatives: [{ ...firstStay(state).alternatives[0], hotelName: '' }, firstStay(state).alternatives[1]] }, ...state.hotelSelections.slice(1)] };
+  // A completely cleared, zero-rate slot is deliberately unused; a retained quoted slot needs a name.
+  const partial = { ...unnamed, hotelSelections: [{ ...firstStay(unnamed), alternatives: [{ ...firstStay(unnamed).alternatives[0], nightlyRate: 1 }, firstStay(unnamed).alternatives[1]] }, ...unnamed.hotelSelections.slice(1)] };
+  assert(readiness(partial).some((issue) => /hotel name/.test(issue)));
+});
+
+test('editing one shared quote costs it once and leaves each independent supplier snapshot intact', () => {
+  const before = confirmed(allCustomState());
+  const after = setSharedCustomHotelRateInState(before, keyFor(before), 'nightlyRate', 3100);
+  const stay = firstStay(after);
+  assert.deepEqual(stay.alternatives, firstStay(before).alternatives);
+  assert.equal(stay.nightlyRate, firstStay(before).nightlyRate);
+  assert.deepEqual(stay.sharedCustomRates, { nightlyRate: 3100, extraBedRate: 1000, cnbRate: 50 });
+  assert.equal(stay.rateConfirmed, false);
+  assert.notEqual(hotelConfirmationSignature(after.plan, stay, after.input.mealPlan), firstStay(before).confirmedSignature);
+  const delta = hotelNightNumbers(after.plan, stay).length * 2 * (3100 - 2300);
+  assert.equal(calculateCosts(after.plan, after.hotelSelections, after.costModel).accommodation - calculateCosts(before.plan, before.hotelSelections, before.costModel).accommodation, delta);
+  for (const value of [-1, Infinity, NaN]) assert.equal(setSharedCustomHotelRateInState(after, keyFor(after), 'nightlyRate', value), after);
+  assert.equal(setSharedCustomHotelRateInState(stateFor(fullDatabase), keyFor(after), 'nightlyRate', 5000).hotelSelections[0].sharedCustomRates, undefined);
+});
+
+test('saved, refreshed and duration-adjusted custom itineraries retain the negotiated shared quote', () => {
+  const base = allCustomState();
+  const before = setSharedCustomHotelRateInState(base, keyFor(base), 'nightlyRate', 3456);
+  const snapshot = JSON.parse(JSON.stringify(itinerarySnapshot(before)));
+  const restored = reconcilePlannerState({ ...before, ...snapshot, hotelDatabase: fullDatabase.map((record) => ({ ...record, mapB2B: 99999 })) });
+  assert.deepEqual(firstStay(restored).sharedCustomRates, firstStay(before).sharedCustomRates);
+  assert.deepEqual(firstStay(restored).alternatives, firstStay(before).alternatives);
+  for (const departure of ['2026-10-25', '2026-10-21']) {
+    const changed = generatePlannerState(before, { departure });
+    const stay = selected(changed, keyFor(before));
+    assert.deepEqual(stay.sharedCustomRates, firstStay(before).sharedCustomRates);
+    assert.deepEqual(stay.alternatives, firstStay(before).alternatives);
+  }
+});
+
+test('switching a custom option back to the database discards shared pricing without changing supplier quotes', () => {
+  const base = allCustomState();
+  const before = setSharedCustomHotelRateInState(base, keyFor(base), 'nightlyRate', 2600);
+  const db = fullDatabase.find((record) => record.destination === firstStay(before).location && record.id.endsWith('main'));
+  const alternative = replaceHotelAlternativeInState(before, keyFor(before), 0, db.id);
+  assert.equal(firstStay(alternative).sharedCustomRates, undefined);
+  assert.equal(firstStay(alternative).alternatives[0].nightlyRate, db.mapB2B);
+  assert.equal(firstStay(alternative).nightlyRate, firstStay(before).nightlyRate);
+  assert.deepEqual(firstStay(alternative).alternatives[1], firstStay(before).alternatives[1]);
+  assert.equal(sharedCustomHotelRates(firstStay(alternative), 'multiple'), null);
+  const primary = replaceHotelInState(before, keyFor(before), db.id);
+  assert.equal(firstStay(primary).sharedCustomRates, undefined);
+  assert.equal(firstStay(primary).nightlyRate, db.mapB2B);
+  assert.deepEqual(firstStay(primary).alternatives, firstStay(before).alternatives);
+});
+
+test('legacy all-custom saved quotes use their highest complete bundle without a schema migration', () => {
+  const { sharedCustomRates: removed, ...stay } = firstStay(allCustomState());
+  assert.equal(removed.nightlyRate, 2300);
+  assert.deepEqual(sharedCustomHotelRates(stay, 'multiple'), { nightlyRate: 2300, extraBedRate: 1000, cnbRate: 50 });
+  const invalid = { ...stay, sharedCustomRates: { nightlyRate: 0, extraBedRate: -1, cnbRate: Infinity } };
+  const state = stateFor(fullDatabase);
+  const malformed = { ...state, hotelSelections: [invalid, ...state.hotelSelections.slice(1)] };
+  assert(readiness(malformed).some((issue) => /positive room rate/.test(issue)));
+  assert(readiness(malformed).some((issue) => /non-negative extra-bed/.test(issue)));
+});
+
+test('legacy all-custom names are not expanded into newly available database suggestions on refresh', () => {
+  const before = allCustomState();
+  const { sharedCustomRates: removed, ...legacy } = firstStay(before);
+  const stay = { ...legacy, alternatives: [legacy.alternatives[0]] };
+  const refreshed = syncHotelSelections(before.plan, [stay, ...before.hotelSelections.slice(1)], fullDatabase, before.input)[0];
+  assert.deepEqual(refreshed.alternatives, stay.alternatives);
+  assert.deepEqual(sharedCustomHotelRates(refreshed, 'multiple'), removed);
+});
+
+test('an all-custom stay with only a shared rate can switch one option back to a compatible database hotel', () => {
+  const base = allCustomState();
+  const original = firstStay(base);
+  const candidate = master(original.location, 'shared-priced-return', 3500);
+  const stay = { ...original, nightlyRate: 0, extraBedRate: 0, cnbRate: 0,
+    alternatives: original.alternatives.map((option) => ({ ...option, nightlyRate: 0, extraBedRate: 0, cnbRate: 0 })),
+    sharedCustomRates: { nightlyRate: 3500, extraBedRate: 800, cnbRate: 300 } };
+  const before = { ...base, hotelDatabase: [...base.hotelDatabase, candidate], hotelSelections: [stay, ...base.hotelSelections.slice(1)] };
+  const matching = hotelAlternativeCandidates(stay, before.hotelDatabase, before.input.hotelCategory, before.input.arrival, before.input.departure);
+  assert(matching.some((record) => record.id === candidate.id));
+  assert(!matching.some((record) => record.mapB2B === 2000));
+  assert.equal(stay.nightlyRate, 0);
+  const after = replaceHotelAlternativeInState(before, keyFor(before), 0, candidate.id);
+  assert.equal(firstStay(after).alternatives[0].hotelId, candidate.id);
+  assert.equal(firstStay(after).alternatives[0].nightlyRate, 3500);
+  assert.equal(firstStay(after).sharedCustomRates, undefined);
+  assert.equal(firstStay(after).hotelName, stay.hotelName);
+  assert.equal(firstStay(after).nightlyRate, 0);
+  assert.deepEqual(firstStay(after).alternatives[1], stay.alternatives[1]);
+  assert.deepEqual(after.hotelSelections.slice(1), before.hotelSelections.slice(1));
 });
 
 if (failures.length) { process.stderr.write(`${failures.length} custom-hotel-option checks failed.\n`); process.exitCode = 1; }

@@ -5,13 +5,15 @@ import { activitySelected, quotedActivityCost, tripActivities } from '@/lib/acti
 import { hotelRateValidity } from '@/lib/hotel-rate-validity';
 import { isHouseboatHotel, sameHotelDestination, matchesPackageCategory } from '@/lib/hotels';
 import { hotelNightDates, hotelNightNumbers, hotelSelectionKey, hotelStayLabel, hotelStayType, hotelStayWindow } from '@/lib/accommodation';
-import { hotelOptions, hotelOptionMatchesCategory, hotelOptionIdentity, isUnusedHotelOption } from '@/lib/hotel-options';
+import { hotelOptions, hotelOptionMatchesCategory, hotelOptionIdentity, isUnusedHotelOption, sharedCustomHotelRates } from '@/lib/hotel-options';
 
 export function hotelConfirmationSignature(plan: Plan, hotel: HotelSelection, mealPlan: string) {
   const window = hotelStayWindow(plan, hotel);
   const nightDates = hotelNightDates(plan, hotel);
   const signature: unknown[] = [hotelSelectionKey(hotel), window.arrival, window.departure, hotel.hotelId, hotel.hotelName, hotel.rooms, hotel.extraBeds, hotel.cnb, hotel.nightlyRate, hotel.extraBedRate, hotel.cnbRate, mealPlan, hotel.nights, nightDates];
   if (plan.input.hotelOptionMode === 'multiple') signature.push('multiple', hotelOptions(hotel, 'multiple'));
+  const shared = sharedCustomHotelRates(hotel, plan.input.hotelOptionMode);
+  if (shared) signature.push('shared-custom', shared);
   return JSON.stringify(signature);
 }
 
@@ -79,12 +81,15 @@ export function quoteReadiness(
       if (selected.rooms < 1) issues.push(`Set the number of rooms in ${label}.`);
       if (!selected.rateConfirmed || selected.confirmedSignature !== hotelConfirmationSignature(plan, selected, input.mealPlan)) issues.push(`Verify the ${label} rate, dates, meal plan and availability in Hotels.`);
       const options = hotelOptions(selected, plan.input.hotelOptionMode);
+      const shared = sharedCustomHotelRates(selected, plan.input.hotelOptionMode);
+      if (shared && (!Number.isFinite(shared.nightlyRate) || shared.nightlyRate <= 0)) issues.push(`Add a positive room rate for the shared ${label} hotel quote.`);
+      if (shared && [shared.extraBedRate, shared.cnbRate].some((rate) => !Number.isFinite(rate) || rate < 0)) issues.push(`Enter valid, non-negative extra-bed and child rates for the shared ${label} hotel quote.`);
       const enteredAlternatives = (selected.alternatives || []).filter((option) => !isUnusedHotelOption(option));
       if (plan.input.hotelOptionMode === 'multiple' && enteredAlternatives.length + 1 !== options.length) issues.push(`Keep up to three different properties for ${label}.`);
       for (const option of options) {
         const optionLabel = options.length > 1 ? `${label}: ${option.hotelName || 'unnamed option'}` : label;
-        if (!option.hotelName?.trim() || /^(?:hotel|houseboat) to be (?:added|confirmed)$/i.test(option.hotelName.trim()) || !Number.isFinite(option.nightlyRate) || option.nightlyRate <= 0) issues.push(`Add a ${hotelStayType(selected)} and positive room rate for ${optionLabel}.`);
-        if ([option.extraBedRate, option.cnbRate].some((rate) => !Number.isFinite(rate) || rate < 0)) issues.push(`Enter valid, non-negative extra-bed and child rates for ${optionLabel}.`);
+        if (!option.hotelName?.trim() || /^(?:hotel|houseboat) to be (?:added|confirmed)$/i.test(option.hotelName.trim()) || (!shared && (!Number.isFinite(option.nightlyRate) || option.nightlyRate <= 0))) issues.push(shared ? `Add a ${hotelStayType(selected)} name for ${optionLabel}.` : `Add a ${hotelStayType(selected)} and positive room rate for ${optionLabel}.`);
+        if (!shared && [option.extraBedRate, option.cnbRate].some((rate) => !Number.isFinite(rate) || rate < 0)) issues.push(`Enter valid, non-negative extra-bed and child rates for ${optionLabel}.`);
         const alternative = hotelOptionIdentity(option) !== hotelOptionIdentity(selected);
         const record = option.hotelId ? hotelMaster.find((hotel) => hotel.id === option.hotelId) : null;
         if (options.length > 1 && alternative && !hotelOptionMatchesCategory(selected, option, hotelMaster)) issues.push(`Use the same hotel category for every ${label} option.`);
