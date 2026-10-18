@@ -7,13 +7,22 @@ import PlannerChrome from '@/components/PlannerChrome';
 import { usePlanner } from '@/components/PlannerProvider';
 import { transportOptions } from '@/lib/data';
 import { activitySelected, quotedActivityCost, tripActivities } from '@/lib/activities';
+import { packageCategories, packageView } from '@/lib/package-quotes';
+import './package-transport.css';
 
 function money(value: number) { return `₹${Math.round(value).toLocaleString('en-IN')}`; }
 
 export default function ActivitiesTransportPage() {
-  const { plan, input, costModel, setCostModel, setTransport, setCustomTransport, destinationCatalog, destinationConnection, destinationConnectionError, refreshDestinations, hydrated } = usePlanner();
+  const planner = usePlanner();
+  const { plan, input, costModel, setCostModel, setTransport, setCustomTransport, setPackageTransport, setPackageTransportRate, destinationCatalog, destinationConnection, destinationConnectionError, refreshDestinations, hydrated, packageQuotes } = planner;
   const [activityFilter, setActivityFilter] = useState<'all' | 'included' | 'excluded'>('all');
   const [activitySearch, setActivitySearch] = useState('');
+  const [nextVehicleCategory, setNextVehicleCategory] = useState('');
+  const categories = packageCategories(input);
+  const optionalVehicleCategories = categories.slice(1);
+  const addedVehicleCategories = optionalVehicleCategories.filter((category) => typeof packageQuotes?.[category]?.transport === 'string');
+  const availableVehicleCategories = optionalVehicleCategories.filter((category) => !addedVehicleCategories.includes(category));
+  const categoryToAdd = availableVehicleCategories.includes(nextVehicleCategory) ? nextVehicleCategory : availableVehicleCategories[0] || '';
 
   if (!hydrated) return <AppShell><PlannerChrome title="Activities & Transport" eyebrow="STEP 03 · ACTIVITIES & TRANSPORT"><div className="empty-panel"><Route size={28}/><h2>Loading your journey…</h2></div></PlannerChrome></AppShell>;
   if (!plan) return <AppShell><PlannerChrome title="Activities & Transport" eyebrow="STEP 03 · ACTIVITIES & TRANSPORT"><div className="empty-panel"><Route size={28}/><h2>Create the itinerary first.</h2><Link className="primary-cta inline" href="/">Build Your Trip <ChevronRight size={16}/></Link></div></PlannerChrome></AppShell>;
@@ -62,13 +71,34 @@ export default function ActivitiesTransportPage() {
     <div className="services-intro"><div><span className="eyebrow">PACKAGE SERVICES</span><h2>Shape what the client receives.</h2><p>Set the vehicle, choose the activities you are quoting, then tailor the exact inclusion and exclusion lists shown in the client PDF.</p></div><div className="services-progress"><span><CheckCircle2 size={15}/> Vehicle and group rate</span><span><CheckCircle2 size={15}/> Destination activities</span><span><CheckCircle2 size={15}/> Client package lists</span></div></div>
     <div className="services-overview"><div><small>Transport</small><b>{money(chargedDays * costModel.transportDaily)}</b><span>{chargedDays} service days</span></div><div><small>Included activities</small><b>{includedCount} of {activities.length}</b><span>{money(activityTotal)} group total</span></div><div><small>Additional list items</small><b>{(costModel.manualInclusions || []).filter((item) => item.trim()).length + (costModel.manualExclusions || []).filter((item) => item.trim()).length}</b><span>Client-facing additions</span></div></div>
 
-    <section className="transport-setup-card"><div><span className="overline">01 · TRANSPORT</span><h2>Choose your vehicle</h2><p>The daily rate covers {chargedDays} service days in this itinerary. Enter a custom vehicle if the listed options do not fit this group.</p></div>
+    <section className="transport-setup-card"><div><span className="overline">01 · TRANSPORT</span><h2>Choose your vehicle</h2><p>{categories.length > 1 ? 'This default vehicle applies to every package. Add an optional alternative below if a preference needs a different vehicle.' : `The daily rate covers ${chargedDays} service days in this itinerary. Enter a custom vehicle if the listed options do not fit this group.`}</p></div>
       <div className="transport-setup-fields"><label>Vehicle<select aria-label="Choose your vehicle" value={costModel.transportIsCustom ? 'Other' : input.transport} onChange={(event) => event.target.value === 'Other' ? setCustomTransport('') : setTransport(event.target.value)}>{transportOptions.map((vehicle) => <option key={vehicle} value={vehicle}>{vehicle}</option>)}<option value="Other">Other / custom vehicle</option></select></label>
         <label>Cost per day<div className="transport-money-input"><span>₹</span><input aria-label="Vehicle cost per day" type="number" min="0" value={costModel.transportDaily} onChange={(event) => setCostModel({ transportDaily: Math.max(0, Number(event.target.value) || 0) })}/></div></label>
         <div className="transport-setup-total"><span>Transport estimate</span><b>{money(chargedDays * costModel.transportDaily)}</b><small>{chargedDays} days × {money(costModel.transportDaily)}</small></div>
       </div>
       {costModel.transportIsCustom && <label className="custom-transport-name">Custom vehicle name<input aria-label="Custom vehicle name" value={input.transport} maxLength={80} onChange={(event) => setCustomTransport(event.target.value)} placeholder="e.g. Luxury minibus" required/>{customVehicleMissing && <small>Enter the vehicle name before continuing.</small>}</label>}
       <p className="transport-suggestion">{people > 6 ? 'For this group size, a Tempo Traveller may provide a more comfortable fit.' : people > 3 ? 'For this group size, Ertiga or Innova may provide a more comfortable fit.' : 'A Sedan may be sufficient for this group size; choose based on luggage and comfort.'}</p>
+      {categories.length > 1 && <details className="package-vehicle-options">
+        <summary><div><b>Alternative vehicles</b><span>{addedVehicleCategories.length ? `${addedVehicleCategories.length} package-specific option${addedVehicleCategories.length === 1 ? '' : 's'}` : 'Optional · use the default for all packages'}</span></div><ChevronRight size={18} aria-hidden="true"/></summary>
+        <div className="package-vehicle-options-body">
+          {addedVehicleCategories.map((category) => {
+            const quote = packageView(planner, category);
+            return <section className="package-vehicle-card" key={category} aria-label={`${category} transport`}>
+              <div className="package-vehicle-heading"><div><span>PACKAGE PREFERENCE</span><h3>{category}</h3></div><button type="button" aria-label={`Use default vehicle for ${category}`} onClick={() => setPackageTransport(category, null)}><Trash2 size={15}/> Use default</button></div>
+              <div className="transport-setup-fields">
+                <label>Vehicle<select aria-label={`${category} vehicle`} value={quote.costModel.transportIsCustom ? 'Other' : quote.input.transport} onChange={(event) => setPackageTransport(category, event.target.value === 'Other' ? '' : event.target.value, event.target.value === 'Other')}>
+                  {transportOptions.map((vehicle) => <option key={vehicle} value={vehicle}>{vehicle}</option>)}<option value="Other">Other / custom vehicle</option>
+                </select></label>
+                <label>Cost per day<div className="transport-money-input"><span>₹</span><input aria-label={`${category} vehicle cost per day`} type="number" min="0" value={quote.costModel.transportDaily} onChange={(event) => setPackageTransportRate(category, Math.max(0, Number(event.target.value) || 0))}/></div></label>
+                <div className="transport-setup-total"><span>Transport estimate</span><b>{money(chargedDays * quote.costModel.transportDaily)}</b><small>{chargedDays} days × {money(quote.costModel.transportDaily)}</small></div>
+              </div>
+              {quote.costModel.transportIsCustom && <label className="custom-transport-name">Custom vehicle name<input aria-label={`${category} custom vehicle name`} value={quote.input.transport} maxLength={80} onChange={(event) => setPackageTransport(category, event.target.value, true)} placeholder="e.g. Luxury minibus"/></label>}
+            </section>;
+          })}
+          {availableVehicleCategories.length > 0 && <div className="package-vehicle-add"><label>Package preference<select aria-label="Package for an additional vehicle" value={categoryToAdd} onChange={(event) => setNextVehicleCategory(event.target.value)}>{availableVehicleCategories.map((category) => <option value={category} key={category}>{category}</option>)}</select></label><button type="button" className="secondary-link" onClick={() => { setPackageTransport(categoryToAdd, input.transport, costModel.transportIsCustom); setPackageTransportRate(categoryToAdd, costModel.transportDaily); }}><Plus size={16}/> Add vehicle option</button></div>}
+          <p className="package-vehicle-inheritance">{optionalVehicleCategories.filter((category) => !addedVehicleCategories.includes(category)).length ? `${optionalVehicleCategories.filter((category) => !addedVehicleCategories.includes(category)).join(' and ')} ${availableVehicleCategories.length === 1 ? 'uses' : 'use'} the default vehicle and rate.` : 'Each preference has its own vehicle option. Remove an option to use the default again.'}</p>
+        </div>
+      </details>}
     </section>
 
     <section className="cost-card activity-cost-card"><div className="activity-cost-head"><div><span className="eyebrow">02 · DESTINATION ACTIVITIES</span><h3>Activities in this journey</h3><p>Include an activity with a group price, or explicitly add it to exclusions. Untouched options stay off the client PDF. Sightseeing selected in the library stays in the day programme; when its linked activity is excluded, the PDF identifies the activity charges as excluded.</p></div><div className="activity-cost-total"><span>{includedCount} included</span><strong>{money(activityTotal)}</strong><small>before markup and GST</small></div></div>

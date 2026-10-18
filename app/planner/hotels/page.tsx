@@ -5,14 +5,16 @@ import Link from 'next/link';
 import { Check, ChevronLeft, ChevronRight, Hotel as HotelIcon, Minus, Plus, Search, Ship, X } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import PlannerChrome from '@/components/PlannerChrome';
-import { usePlanner, type HotelSelection } from '@/components/PlannerProvider';
+import { PackagePlanner, usePlanner, type HotelSelection } from '@/components/PlannerProvider';
 import { isHouseboatHotel, matchesPackageCategory, sameHotelDestination } from '@/lib/hotels';
 import { hotelRateValidity } from '@/lib/hotel-rate-validity';
 import { hotelConfirmationSignature } from '@/lib/quote-readiness';
 import { activeHotelSelections, hotelNightNumbers, hotelSelectionKey, hotelStayLabel, hotelStayType, hotelStayWindow } from '@/lib/accommodation';
 import { allHotelOptionsCustom, sharedCustomHotelRates, effectiveHotelSelection, hotelAlternativeCandidates, hotelOptionMatchesCategory, hotelOptionIdentity, hotelOptionNightlyCost, hotelOptions, isUnusedHotelOption, type HotelOptionQuote } from '@/lib/hotel-options';
+import { packageCategories } from '@/lib/package-quotes';
 import './houseboat-stays.css';
 import './hotel-options.css';
+import '@/components/package-comparison.css';
 
 function money(value: number) { return `₹${Math.round(value).toLocaleString('en-IN')}`; }
 function displayDate(value: string) { return new Date(`${value}T12:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }); }
@@ -30,15 +32,47 @@ function CountInput({ label, displayLabel, value, min, onChange }: { label: stri
   return <div className="stay-count-field"><span>{displayLabel || label}</span><div><button type="button" aria-label={`Decrease ${label}`} onClick={() => onChange(Math.max(min, value - 1))}><Minus size={14}/></button><strong>{value}</strong><button type="button" aria-label={`Increase ${label}`} onClick={() => onChange(value + 1)}><Plus size={14}/></button></div></div>;
 }
 
-export default function HotelsPage() {
+function HotelPackageSummary({ category }: { category: string }) {
+  const { plan, hotelSelections } = usePlanner();
+  const stays = plan ? activeHotelSelections(plan, hotelSelections) : [];
+  const total = stays.reduce((sum, stay) => sum + hotelNightNumbers(plan!, stay).length * hotelOptionNightlyCost(effectiveHotelSelection(stay, plan!.input.hotelOptionMode), stay), 0);
+  return <summary className="package-comparison-summary"><span className="package-comparison-identity"><span className="package-comparison-icon"><HotelIcon size={19}/></span><span><strong>{category}</strong><small>{stays.length} accommodation stay{stays.length === 1 ? '' : 's'}</small></span></span><span className="package-comparison-value"><span><strong>{money(total)}</strong><small>Accommodation</small></span><ChevronRight size={18}/></span></summary>;
+}
+
+function HotelComparison() {
+  const { input, plan, hotelSelections, hotelDatabase: db, hotelConnection, hotelConnectionError, refreshHotels, setSrinagarHouseboatNights } = usePlanner();
+  if (!plan) return null;
+  const categories = packageCategories(plan.input);
+  const srinagarNights = plan.dayPlans.slice(0, plan.nights).filter((day) => sameHotelDestination(day.stay, 'Srinagar'));
+  const boatNights = new Set(activeHotelSelections(plan, hotelSelections).filter((stay) => sameHotelDestination(stay.location, 'Srinagar') && hotelStayType(stay) === 'houseboat').flatMap((stay) => hotelNightNumbers(plan, stay)));
+  function toggleBoatNight(night: number) {
+    const next = new Set(boatNights);
+    if (next.has(night)) next.delete(night); else next.add(night);
+    setSrinagarHouseboatNights([...next].sort((a, b) => a - b));
+  }
+  return <AppShell><PlannerChrome title="Choose your hotels" eyebrow="STEP 02 · HOTELS">
+    <section className="package-comparison-intro"><div><span className="eyebrow">PACKAGE COMPARISON</span><h2>One journey. {categories.length} package choices.</h2><p>Choose and verify accommodation for each package. Dates, travellers and the route stay shared.</p></div><span className="package-comparison-count">{categories.length} packages</span></section>
+    <div className={`hotel-connection ${hotelConnection}`} role="status"><div><b>{hotelConnection === 'ready' ? `${db.length} hotels available` : hotelConnection === 'loading' ? 'Loading hotel suggestions…' : 'Hotel database needs attention'}</b><span>{hotelConnection === 'ready' ? `${input.mealPlan} · Supplier rates are private.` : hotelConnectionError || 'Checking the hotel database.'}</span></div>{hotelConnection === 'error' && <button type="button" className="secondary-link" onClick={() => void refreshHotels()}>Retry</button>}</div>
+    {srinagarNights.length > 0 && <details className="package-shared-stay"><summary><span><Ship size={17}/><strong>Srinagar hotel &amp; houseboat nights</strong></span><span>{boatNights.size ? `${boatNights.size} houseboat night${boatNights.size === 1 ? '' : 's'}` : 'Optional houseboat'}<ChevronRight size={16}/></span></summary><div className="package-shared-stay-body"><p>Choose the houseboat nights once for every package. Select each package’s property and rate below.</p><div className="houseboat-night-options" role="group" aria-label="Shared Srinagar houseboat nights">{srinagarNights.map((night) => <button type="button" key={night.day} aria-label={`Houseboat for night ${night.day}, ${displayDate(night.date)}`} aria-pressed={boatNights.has(night.day)} onClick={() => toggleBoatNight(night.day)}><span>Night {night.day}</span><strong>{displayDate(night.date)}</strong>{boatNights.has(night.day) && <Ship size={14}/>}</button>)}</div><div className="houseboat-allocation"><span>{srinagarNights.length - boatNights.size} hotel nights · {boatNights.size} houseboat nights</span>{boatNights.size > 0 && <button type="button" className="simple-text-button" onClick={() => setSrinagarHouseboatNights([])}>Use hotels for all nights</button>}</div></div></details>}
+    <div className="package-comparison-list">{categories.map((category, index) => <details className="package-comparison-panel" key={category} open={index === 0}><PackagePlanner category={category}><HotelPackageSummary category={category}/><HotelPackageEditor/></PackagePlanner></details>)}</div>
+    <div className="next-row"><Link className="secondary-link" href="/planner/destinations"><ChevronLeft size={16}/> Back to destinations</Link><div><b>Packages ready?</b><span>Transport and activities are next.</span></div><Link className="primary-cta inline" href="/planner/activities-transport">Next: Activities &amp; Transport <ChevronRight size={16}/></Link></div>
+  </PlannerChrome></AppShell>;
+}
+
+export default function HotelsPage() { return useHotelPackageEditor(false); }
+
+function HotelPackageEditor() { return useHotelPackageEditor(true); }
+
+function useHotelPackageEditor(embedded: boolean) {
   const { plan, input, hotelSelections, replaceHotel, replaceHotelAlternative, useCustomHotel, setCustomHotelAlternative, setSharedCustomHotelRate, setHotelRate, setHotelOptionRate, setHotelMeta, setSrinagarHouseboatNights, hotelDatabase: db, hotelConnection, hotelConnectionError, refreshHotels, hydrated } = usePlanner();
   const [editing, setEditing] = useState<string | null>(null);
   const [hotelSearch, setHotelSearch] = useState<Record<string, string>>({});
   const [houseboatOpen, setHouseboatOpen] = useState(false);
   const [rateReview, setRateReview] = useState<{ stayKey: string; optionId?: string; alternativeIndex?: number } | null>(null);
 
-  if (!hydrated) return <AppShell><PlannerChrome title="Choose your hotels" eyebrow="STEP 02 · HOTELS"><div className="empty-panel"><HotelIcon size={28}/><h2>Loading hotel stays…</h2></div></PlannerChrome></AppShell>;
-  if (!plan) return <AppShell><PlannerChrome title="Choose your hotels" eyebrow="STEP 02 · HOTELS"><div className="empty-panel"><HotelIcon size={28}/><h2>Choose your destinations first</h2><Link className="primary-cta inline" href="/planner/destinations">Choose destinations <ChevronRight size={16}/></Link></div></PlannerChrome></AppShell>;
+  if (!hydrated) { const loading = <div className="empty-panel"><HotelIcon size={28}/><h2>Loading hotel stays…</h2></div>; return embedded ? loading : <AppShell><PlannerChrome title="Choose your hotels" eyebrow="STEP 02 · HOTELS">{loading}</PlannerChrome></AppShell>; }
+  if (!plan) { const empty = <div className="empty-panel"><HotelIcon size={28}/><h2>Choose your destinations first</h2><Link className="primary-cta inline" href="/planner/destinations">Choose destinations <ChevronRight size={16}/></Link></div>; return embedded ? empty : <AppShell><PlannerChrome title="Choose your hotels" eyebrow="STEP 02 · HOTELS">{empty}</PlannerChrome></AppShell>; }
+  if (!embedded && packageCategories(plan.input).length > 1) return <HotelComparison/>;
 
   const selected = activeHotelSelections(plan, hotelSelections);
   const optionMode = plan.input.hotelOptionMode || 'single';
@@ -204,9 +238,9 @@ export default function HotelsPage() {
     </div>;
   }
 
-  return <AppShell><PlannerChrome title="Choose your hotels" eyebrow="STEP 02 · HOTELS">
-    <section className="journey-intro hotels-simple-intro"><div><span className="eyebrow">OVERNIGHT STAYS</span><h2>Stays for the route you chose.</h2><p>{multipleOptions ? 'Offer up to three similar hotels at each destination, with one room setup and the highest supplier quote.' : 'Your suggested hotels are ready below. Adjust rooms and rates, or add an optional houseboat to your Srinagar stay.'}</p></div><div className="journey-intro-count"><strong>{readyCount}/{selected.length}</strong><span>stays priced</span></div></section>
-    <div className={`hotel-connection ${hotelConnection}`} role="status"><div><b>{hotelConnection === 'ready' ? `${db.length} hotels available` : hotelConnection === 'loading' ? 'Loading hotel suggestions…' : 'Hotel database needs attention'}</b><span>{hotelConnection === 'ready' ? 'Showing the hotel master and its recorded supplier rates.' : hotelConnectionError || 'Checking the hotel database.'}</span></div>{hotelConnection === 'error' && <button type="button" className="secondary-link" onClick={() => void refreshHotels()}>Retry</button>}</div>
+  const editor = <>
+    {!embedded && <><section className="journey-intro hotels-simple-intro"><div><span className="eyebrow">OVERNIGHT STAYS</span><h2>Stays for the route you chose.</h2><p>{multipleOptions ? 'Offer up to three similar hotels at each destination, with one room setup and the highest supplier quote.' : 'Your suggested hotels are ready below. Adjust rooms and rates, or add an optional houseboat to your Srinagar stay.'}</p></div><div className="journey-intro-count"><strong>{readyCount}/{selected.length}</strong><span>stays priced</span></div></section>
+    <div className={`hotel-connection ${hotelConnection}`} role="status"><div><b>{hotelConnection === 'ready' ? `${db.length} hotels available` : hotelConnection === 'loading' ? 'Loading hotel suggestions…' : 'Hotel database needs attention'}</b><span>{hotelConnection === 'ready' ? 'Showing the hotel master and its recorded supplier rates.' : hotelConnectionError || 'Checking the hotel database.'}</span></div>{hotelConnection === 'error' && <button type="button" className="secondary-link" onClick={() => void refreshHotels()}>Retry</button>}</div></>}
 
     <div className="simple-hotel-list">{plan.hotelPlans.map((stay, index) => {
       const hotel = hotelSelections.find((item) => sameHotelDestination(item.location, stay.location) && hotelStayType(item) === 'hotel');
@@ -216,12 +250,13 @@ export default function HotelsPage() {
       return <article className="simple-hotel-card" key={stay.location} aria-label={`${stay.location} accommodation`}>
         <div className="simple-hotel-head"><div><span className="eyebrow">STAY {String(index + 1).padStart(2, '0')}</span><h2>{stay.location}</h2><div className="simple-night-dates">{nights.map((day) => <span key={day.day}>Night {day.day} · {displayDate(day.date)}</span>)}</div></div><span className="simple-night-count">{hotel?.nights || 0} hotel night{hotel?.nights === 1 ? '' : 's'}</span></div>
         {hotel && hotel.nights > 0 ? stayDetails(hotel) : <p className="hotel-nights-empty">{isSrinagar && houseboat ? 'All Srinagar nights are assigned to the houseboat.' : 'Choose overnight nights for this stay on the Destinations page.'}</p>}
-        {isSrinagar && srinagarNights.length > 0 && houseboatOptions()}
+        {isSrinagar && srinagarNights.length > 0 && (embedded ? houseboat && <section className="package-houseboat-quote" aria-label={`${input.hotelCategory} houseboat quote`}><div className="package-houseboat-heading"><Ship size={17}/><h3>Houseboat · {houseboat.nights} night{houseboat.nights === 1 ? '' : 's'}</h3></div>{stayDetails(houseboat)}{stayFooter(houseboat)}</section> : houseboatOptions())}
         {hotel && hotel.nights > 0 && stayFooter(hotel)}
       </article>;
     })}</div>
 
     <section className="hotel-all-confirm"><div><span className="eyebrow">ONE FINAL CHECK</span><h2>Verify all stays</h2><p>Check the selected hotels and houseboats, nightly prices, room setup, meal plan and availability for every listed date. If any stay or rate changes afterward, this verification clears automatically.</p>{rateProblems.length > 0 && <ul>{rateProblems.map((problem) => <li key={problem}>{problem}</li>)}</ul>}</div><label><input type="checkbox" checked={allConfirmed} disabled={!canConfirm} onChange={(event) => confirmAll(event.target.checked)}/><span>I verified all {selected.length} stays for this client quote</span></label></section>
-    <div className="next-row"><Link className="secondary-link" href="/planner/destinations"><ChevronLeft size={16}/> Back to destinations</Link><div><b>Hotels chosen?</b><span>Transport and activities are next.</span></div><Link className="primary-cta inline" href="/planner/activities-transport">Next: Activities &amp; Transport <ChevronRight size={16}/></Link></div>
-  </PlannerChrome></AppShell>;
+    {!embedded && <div className="next-row"><Link className="secondary-link" href="/planner/destinations"><ChevronLeft size={16}/> Back to destinations</Link><div><b>Hotels chosen?</b><span>Transport and activities are next.</span></div><Link className="primary-cta inline" href="/planner/activities-transport">Next: Activities &amp; Transport <ChevronRight size={16}/></Link></div>}
+  </>;
+  return embedded ? <div className="package-hotel-editor">{editor}</div> : <AppShell><PlannerChrome title="Choose your hotels" eyebrow="STEP 02 · HOTELS">{editor}</PlannerChrome></AppShell>;
 }

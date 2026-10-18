@@ -1,4 +1,5 @@
-import type { CostModel, HotelSelection } from '@/components/PlannerProvider';
+import type { CostModel, HotelSelection, PlannerState } from '@/components/PlannerProvider';
+import { packageCategories, packageView } from '@/lib/package-quotes';
 import type { Hotel } from '@/lib/data';
 import { arrivalDayVisitAllowed, requiresSrinagarFinalNight, type Plan, type TripInput } from '@/lib/itinerary';
 import { activitySelected, quotedActivityCost, tripActivities } from '@/lib/activities';
@@ -25,6 +26,7 @@ export function planInputsNeedRefresh(plan: Plan, input: TripInput) {
     before.pickup !== input.pickup || before.adults !== input.adults ||
     JSON.stringify(before.youngAges) !== JSON.stringify(input.youngAges) ||
     before.hotelCategory !== input.hotelCategory || before.mealPlan !== input.mealPlan ||
+    JSON.stringify(packageCategories(before)) !== JSON.stringify(packageCategories(input)) ||
     (before.hotelOptionMode || 'single') !== (input.hotelOptionMode || 'single') ||
     before.style !== input.style ||
     JSON.stringify(before.interests) !== JSON.stringify(input.interests);
@@ -123,6 +125,19 @@ export function quoteReadiness(
       !selectedStays.some((hotel) => hotel.location === activity.destination && hotelStayType(hotel) === 'houseboat' && hotelNightNumbers(plan, hotel).length > 0)) {
       issues.push('Houseboat stay is included as an activity, but no houseboat hotel is selected. Select the houseboat or remove the activity.');
     }
+  }
+  return [...new Set(issues)];
+}
+
+/** A comparison can be shared only when every offered package is ready. */
+export function packageQuoteReadiness(state: PlannerState, hotelConnection: string, destinationConnection: string) {
+  if (!state.plan) return ['Generate the itinerary before sharing a quote.'];
+  const categories = packageCategories(state.input);
+  const issues = planInputsNeedRefresh(state.plan, state.input) ? ['Rebuild the itinerary after changing trip details.'] : [];
+  for (const category of categories) {
+    const view = packageView(state, category);
+    const found = quoteReadiness(view.plan!, view.input, view.hotelSelections, view.costModel, state.hotelDatabase, hotelConnection, destinationConnection);
+    issues.push(...found.map((issue) => categories.length > 1 ? `${category}: ${issue}` : issue));
   }
   return [...new Set(issues)];
 }

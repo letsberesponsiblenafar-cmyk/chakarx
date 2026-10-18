@@ -1,16 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { ArrowUpRight, BedDouble, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, LockKeyhole, Route, Sparkles, WalletCards } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import PlannerChrome from '@/components/PlannerChrome';
-import { usePlanner } from '@/components/PlannerProvider';
+import { PackagePlanner, usePlanner } from '@/components/PlannerProvider';
 import { calculateCosts } from '@/lib/costing';
 import { quotedActivityCost, tripActivities } from '@/lib/activities';
 import { quoteReadiness } from '@/lib/quote-readiness';
 import { activeHotelSelections, hotelNightNumbers, hotelSelectionKey, hotelStayLabel } from '@/lib/accommodation';
 import { effectiveHotelSelection } from '@/lib/hotel-options';
+import { packageCategories, packageView } from '@/lib/package-quotes';
 import './costing.css';
 
 function money(value: number) { return `₹${Math.round(value).toLocaleString('en-IN')}`; }
@@ -43,12 +44,44 @@ function QuoteNumberInput({ id, label, value, onChange, max, percent = false }: 
 }
 
 export default function CostingPage() {
-  const { plan, hotelSelections, costModel, setCostModel, input, hydrated, destinationCatalog, destinationConnection, hotelDatabase, hotelConnection } = usePlanner();
-  const costs = useMemo(() => plan ? calculateCosts(plan, hotelSelections, costModel) : null, [plan, hotelSelections, costModel, destinationCatalog]);
+  const planner = usePlanner();
+  const { plan, hotelSelections, costModel, input, hydrated, destinationConnection, hotelDatabase, hotelConnection } = planner;
+  const costs = useMemo(() => plan ? calculateCosts(plan, hotelSelections, costModel) : null, [plan, hotelSelections, costModel]);
+  const categories = packageCategories(input);
 
   if (!hydrated) return <AppShell><PlannerChrome title="Costing" eyebrow="STEP 05 · COSTING"><div className="empty-panel"><WalletCards size={28}/><h2>Loading your current quote…</h2></div></PlannerChrome></AppShell>;
   if (!plan || !costs) return <AppShell><PlannerChrome title="Costing" eyebrow="STEP 05 · COSTING"><div className="empty-panel"><WalletCards size={28}/><h2>Complete the itinerary and hotels first.</h2><Link className="primary-cta inline" href="/"><ChevronRight size={16}/> Build Your Trip</Link></div></PlannerChrome></AppShell>;
   if (hotelConnection !== 'ready' || destinationConnection !== 'ready') return <AppShell><PlannerChrome title="Costing" eyebrow="STEP 05 · COSTING"><div className="empty-panel" role="status"><WalletCards size={28}/><h2>{hotelConnection === 'loading' || destinationConnection === 'loading' ? 'Loading quote data…' : 'Quote data needs attention'}</h2><p>Hotel database: {hotelConnection}. Destination library: {destinationConnection}. The final amount will appear when both are ready.</p><Link className="secondary-link" href="/planner/hotels">Review hotels</Link></div></PlannerChrome></AppShell>;
+
+  if (categories.length === 1) return <AppShell><PlannerChrome title="Trip costing" eyebrow="STEP 05 · COSTING"><QuoteEditor/></PlannerChrome></AppShell>;
+
+  const issues = categories.flatMap((category) => {
+    const quote = packageView(planner, category);
+    return quote.plan ? quoteReadiness(quote.plan, quote.input, quote.hotelSelections, quote.costModel, hotelDatabase, hotelConnection, destinationConnection).map((issue) => `${category}: ${issue}`) : [];
+  });
+
+  return <AppShell><PlannerChrome title="Trip costing" eyebrow="STEP 05 · COSTING">
+    <div className="costing-workspace cq-package-workspace">
+      <div className="cq-comparison-heading"><div><span className="cq-overline">PACKAGE OPTIONS</span><h2>Cost each preference</h2><p>Adjust each quote below, then compare the complete price breakdowns.</p></div><span>{categories.length} separate quotes</span></div>
+      <div className="cq-package-editors">{categories.map((category, index) => {
+        const quote = packageView(planner, category);
+        const total = quote.plan ? calculateCosts(quote.plan, quote.hotelSelections, quote.costModel).sellingTotal : 0;
+        return <details className="cq-package-editor" key={category} open={index === 0}>
+          <summary><div><span className="cq-overline">OPTION {String(index + 1).padStart(2, '0')}</span><h2>{category}</h2></div><div className="cq-package-editor-total"><span>Customer total</span><strong>{money(total)}</strong></div><ChevronRight size={20} aria-hidden="true"/></summary>
+          <PackagePlanner category={category}><QuoteEditor comparison/></PackagePlanner>
+        </details>;
+      })}</div>
+      <section className="cq-package-comparison" aria-labelledby="cq-comparison-heading"><div className="cq-comparison-heading"><div><span className="cq-overline">YOUR QUOTES</span><h2 id="cq-comparison-heading">Compare price breakdowns</h2><p>Each total is an alternative for the same travelling group.</p></div></div><div className="cq-comparison-grid">{categories.map((category) => <PackagePlanner category={category} key={category}><PriceBreakdown category={category}/></PackagePlanner>)}</div></section>
+      <QuoteFooter issues={issues}/>
+    </div>
+  </PlannerChrome></AppShell>;
+}
+
+function QuoteEditor({ comparison = false }: { comparison?: boolean }) {
+  const { plan, hotelSelections, costModel, setCostModel, input, destinationCatalog, destinationConnection, hotelDatabase, hotelConnection } = usePlanner();
+  const quoteId = useId();
+  const costs = useMemo(() => plan ? calculateCosts(plan, hotelSelections, costModel) : null, [plan, hotelSelections, costModel, destinationCatalog]);
+  if (!plan || !costs) return null;
 
   const groupBudget = (input.budget || 0) * costs.people;
   const withinBudget = groupBudget === 0 || costs.sellingTotal <= groupBudget;
@@ -57,12 +90,11 @@ export default function CostingPage() {
   const stays = activeHotelSelections(plan, hotelSelections).map((hotel) => ({ ...effectiveHotelSelection(hotel, plan.input.hotelOptionMode), nights: hotelNightNumbers(plan, hotel).length }));
   const quoteIssues = quoteReadiness(plan, input, hotelSelections, costModel, hotelDatabase, hotelConnection, destinationConnection);
 
-  return <AppShell><PlannerChrome title="Trip costing" eyebrow="STEP 05 · COSTING">
-    <div className="costing-workspace">
-      <section className="cq-investment" aria-labelledby="cq-investment-heading">
+  return <div className={comparison ? 'costing-workspace cq-scoped-editor' : 'costing-workspace'}>
+      <section className="cq-investment" aria-labelledby={`${quoteId}-investment-heading`}>
         <div className="cq-investment-main">
           <span className="cq-overline">CUSTOMER INVESTMENT</span>
-          <h2 id="cq-investment-heading">{money(costs.sellingTotal)}</h2>
+          <h2 id={`${quoteId}-investment-heading`}>{money(costs.sellingTotal)}</h2>
           <p>Total for the travelling group, including markup and 5% GST.</p>
         </div>
         <div className="cq-investment-facts">
@@ -71,10 +103,10 @@ export default function CostingPage() {
         </div>
       </section>
 
-      <div className="cq-layout">
+      <div className={comparison ? 'cq-layout cq-layout-editor' : 'cq-layout'}>
         <div className="cq-breakdown">
-          <section className="cq-panel" aria-labelledby="cq-accommodation-heading">
-            <div className="cq-panel-heading"><div className="cq-heading-copy"><span className="cq-icon"><BedDouble size={19}/></span><div><h2 id="cq-accommodation-heading">Accommodation</h2><p>Your selected hotels and houseboats.</p></div></div><strong>{money(costs.accommodation)}</strong></div>
+          <section className="cq-panel" aria-labelledby={`${quoteId}-accommodation-heading`}>
+            <div className="cq-panel-heading"><div className="cq-heading-copy"><span className="cq-icon"><BedDouble size={19}/></span><div><h2 id={`${quoteId}-accommodation-heading`}>Accommodation</h2><p>Your selected hotels and houseboats.</p></div></div><strong>{money(costs.accommodation)}</strong></div>
             <div className="cq-stay-list">{stays.map((hotel) => {
               const roomCost = hotel.nights * hotel.rooms * hotel.nightlyRate;
               const extraBedCost = hotel.nights * hotel.extraBeds * hotel.extraBedRate;
@@ -88,45 +120,58 @@ export default function CostingPage() {
             <Link className="cq-edit-link" href="/planner/hotels">Review accommodation <ArrowUpRight size={15}/></Link>
           </section>
 
-          <section className="cq-panel" aria-labelledby="cq-services-heading">
-            <div className="cq-panel-heading"><div className="cq-heading-copy"><span className="cq-icon"><Route size={19}/></span><div><h2 id="cq-services-heading">Journey services</h2><p>Selected in Activities &amp; Transport.</p></div></div></div>
+          <section className="cq-panel" aria-labelledby={`${quoteId}-services-heading`}>
+            <div className="cq-panel-heading"><div className="cq-heading-copy"><span className="cq-icon"><Route size={19}/></span><div><h2 id={`${quoteId}-services-heading`}>Journey services</h2><p>Selected in Activities &amp; Transport.</p></div></div></div>
             <div className="cq-service-row"><div><span className="cq-service-label">Transport</span><h3>{input.transport || 'Vehicle to be selected'}</h3><p>{costs.vehicleDays} service day{costs.vehicleDays === 1 ? '' : 's'} × {money(costModel.transportDaily)} per day</p></div><strong>{money(costs.transport)}</strong></div>
             <div className="cq-service-row"><div><span className="cq-service-label"><Sparkles size={13}/> Activities</span><h3>{includedCount} priced activit{includedCount === 1 ? 'y' : 'ies'}</h3><p>Combined cost for the whole travelling group.</p></div><strong>{money(costs.activities)}</strong></div>
             <Link className="cq-edit-link" href="/planner/activities-transport">Review vehicle and activities <ArrowUpRight size={15}/></Link>
           </section>
 
-          <section className="cq-panel cq-additional" aria-labelledby="cq-additional-heading">
-            <div><h2 id="cq-additional-heading">Other package costs</h2><p>Add any further internal supplier costs for this group.</p></div>
-            <QuoteNumberInput id="cq-other-amount" label="Additional amount" value={costModel.otherAmount} onChange={(otherAmount) => setCostModel({ otherAmount })}/>
+          <section className="cq-panel cq-additional" aria-labelledby={`${quoteId}-additional-heading`}>
+            <div><h2 id={`${quoteId}-additional-heading`}>Other package costs</h2><p>Add any further internal supplier costs for this group.</p></div>
+            <QuoteNumberInput id={`${quoteId}-other-amount`} label="Additional amount" value={costModel.otherAmount} onChange={(otherAmount) => setCostModel({ otherAmount })}/>
           </section>
 
-          <section className="cq-panel cq-markup" aria-labelledby="cq-markup-heading">
-            <div className="cq-panel-heading"><div><span className="cq-private-label"><LockKeyhole size={13}/> INTERNAL ONLY</span><h2 id="cq-markup-heading">Set your markup</h2><p>Applied to the total package cost before GST.</p></div><strong>{money(costs.profit)}</strong></div>
-            <div className="cq-markup-controls"><div className="cq-presets" role="group" aria-label="Markup percentage">{PROFIT_PRESETS.map((percentage) => <button type="button" key={percentage} aria-pressed={costModel.profitPct === percentage} onClick={() => setCostModel({ profitPct: percentage })}>{percentage}%</button>)}</div><QuoteNumberInput id="cq-custom-markup" label="Custom markup" value={costModel.profitPct} max={100} percent onChange={(profitPct) => setCostModel({ profitPct })}/></div>
+          <section className="cq-panel cq-markup" aria-labelledby={`${quoteId}-markup-heading`}>
+            <div className="cq-panel-heading"><div><span className="cq-private-label"><LockKeyhole size={13}/> INTERNAL ONLY</span><h2 id={`${quoteId}-markup-heading`}>Set your markup</h2><p>Applied to the total package cost before GST.</p></div><strong>{money(costs.profit)}</strong></div>
+            <div className="cq-markup-controls"><div className="cq-presets" role="group" aria-label="Markup percentage">{PROFIT_PRESETS.map((percentage) => <button type="button" key={percentage} aria-pressed={costModel.profitPct === percentage} onClick={() => setCostModel({ profitPct: percentage })}>{percentage}%</button>)}</div><QuoteNumberInput id={`${quoteId}-custom-markup`} label="Custom markup" value={costModel.profitPct} max={100} percent onChange={(profitPct) => setCostModel({ profitPct })}/></div>
             <p className="cq-privacy-note">Supplier rates and markup stay private. The client PDF shows the final package price.</p>
           </section>
         </div>
 
-        <aside className="cq-quote-summary" aria-labelledby="cq-summary-heading">
-          <div className="cq-summary-heading"><span className="cq-overline">YOUR QUOTE</span><h2 id="cq-summary-heading">Price breakdown</h2></div>
-          <dl className="cq-summary-lines">
-            <div><dt>Accommodation</dt><dd>{money(costs.accommodation)}</dd></div>
-            <div><dt>Transport</dt><dd>{money(costs.transport)}</dd></div>
-            <div><dt>Activities</dt><dd>{money(costs.activities)}</dd></div>
-            <div><dt>Other costs</dt><dd>{money(costModel.otherAmount)}</dd></div>
-            <div className="cq-summary-subtotal"><dt>Cost before markup</dt><dd>{money(costs.preGst)}</dd></div>
-            <div><dt>Markup <span>{costModel.profitPct}%</span></dt><dd>{money(costs.profit)}</dd></div>
-            <div><dt>Subtotal</dt><dd>{money(costs.subtotalAfterMarkup)}</dd></div>
-            <div><dt>GST <span>5%</span></dt><dd>{money(costs.gst)}</dd></div>
-          </dl>
-          <div className="cq-summary-total"><span>Final customer total</span><strong>{money(costs.sellingTotal)}</strong><small>{money(perPerson)} per person · {costs.people} traveller{costs.people === 1 ? '' : 's'}</small></div>
-          {groupBudget > 0 && <p className="cq-budget-reference">Group budget reference <b>{money(groupBudget)}</b></p>}
-          <details className="cq-range"><summary>View planning range <ChevronRight size={14}/></summary><div><b>{money(costs.low)} – {money(costs.high)}</b><p>Reference range around this quote, including markup and GST. The final price above is used in the PDF.</p></div></details>
-        </aside>
+        {!comparison && <PriceBreakdown/>}
       </div>
 
-      {quoteIssues.length > 0 && <section className="cq-attention" role="alert" aria-labelledby="cq-attention-heading"><CircleAlert size={19}/><div><h2 id="cq-attention-heading">A few details need attention</h2><p>Resolve these before downloading the client itinerary.</p><ul>{quoteIssues.map((issue) => <li key={issue}>{issue}</li>)}</ul></div></section>}
-      <div className="cq-footer"><Link className="cq-back-link" href="/planner/itinerary"><ChevronLeft size={16}/> Back to itinerary</Link><div className="cq-next-step"><span>{quoteIssues.length ? 'Review the quote details above.' : <><CheckCircle2 size={15}/> Ready for the client preview</>}</span><Link className="cq-next-button" href="/planner/pdf">Next: Client PDF <ChevronRight size={17}/></Link></div></div>
-    </div>
-  </PlannerChrome></AppShell>;
+      {quoteIssues.length > 0 && <section className="cq-attention" role="alert" aria-labelledby={`${quoteId}-attention-heading`}><CircleAlert size={19}/><div><h2 id={`${quoteId}-attention-heading`}>A few details need attention</h2><p>Resolve these before downloading the client itinerary.</p><ul>{quoteIssues.map((issue) => <li key={issue}>{issue}</li>)}</ul></div></section>}
+      {!comparison && <QuoteFooter issues={quoteIssues}/>}
+    </div>;
+}
+
+function PriceBreakdown({ category }: { category?: string }) {
+  const { plan, hotelSelections, costModel, input } = usePlanner();
+  if (!plan) return null;
+  const costs = calculateCosts(plan, hotelSelections, costModel);
+  const perPerson = costs.people > 0 ? costs.sellingTotal / costs.people : 0;
+  const groupBudget = (input.budget || 0) * costs.people;
+  const headingId = `cq-summary-${category?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'heading'}`;
+  return <aside className="cq-quote-summary" aria-labelledby={headingId}>
+    <div className="cq-summary-heading"><span className="cq-overline">{category ? 'PACKAGE PREFERENCE' : 'YOUR QUOTE'}</span><h2 id={headingId}>{category || 'Price breakdown'}</h2>{category && <p>Price breakdown</p>}</div>
+    <dl className="cq-summary-lines">
+      <div><dt>Accommodation</dt><dd>{money(costs.accommodation)}</dd></div>
+      <div><dt>Transport</dt><dd>{money(costs.transport)}</dd></div>
+      <div><dt>Activities</dt><dd>{money(costs.activities)}</dd></div>
+      <div><dt>Other costs</dt><dd>{money(costModel.otherAmount)}</dd></div>
+      <div className="cq-summary-subtotal"><dt>Cost before markup</dt><dd>{money(costs.preGst)}</dd></div>
+      <div><dt>Markup <span>{costModel.profitPct}%</span></dt><dd>{money(costs.profit)}</dd></div>
+      <div><dt>Subtotal</dt><dd>{money(costs.subtotalAfterMarkup)}</dd></div>
+      <div><dt>GST <span>5%</span></dt><dd>{money(costs.gst)}</dd></div>
+    </dl>
+    <div className="cq-summary-total"><span>Final customer total</span><strong>{money(costs.sellingTotal)}</strong><small>{money(perPerson)} per person · {costs.people} traveller{costs.people === 1 ? '' : 's'}</small></div>
+    {groupBudget > 0 && <p className="cq-budget-reference">Group budget reference <b>{money(groupBudget)}</b></p>}
+    <details className="cq-range"><summary>View planning range <ChevronRight size={14}/></summary><div><b>{money(costs.low)} – {money(costs.high)}</b><p>Reference range around this quote, including markup and GST. The final price above is used in the PDF.</p></div></details>
+  </aside>;
+}
+
+function QuoteFooter({ issues }: { issues: string[] }) {
+  return <div className="cq-footer"><Link className="cq-back-link" href="/planner/itinerary"><ChevronLeft size={16}/> Back to itinerary</Link><div className="cq-next-step"><span>{issues.length ? 'Review the quote details above.' : <><CheckCircle2 size={15}/> Ready for the client preview</>}</span><Link className="cq-next-button" href="/planner/pdf">Next: Client PDF <ChevronRight size={17}/></Link></div></div>;
 }

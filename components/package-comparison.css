@@ -1,0 +1,254 @@
+.package-preference-field > .field-note {
+  display: block;
+  margin-top: 9px;
+  line-height: 1.6;
+}
+
+.package-preference-field .category-pills button {
+  min-height: 42px;
+}
+
+.package-comparison-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 26px 0 20px;
+}
+
+.package-comparison-intro h2 {
+  margin: 7px 0;
+  font-size: clamp(22px, 2.5vw, 30px);
+}
+
+.package-comparison-intro p,
+.package-shared-stay-body > p {
+  color: #827565;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.package-comparison-count {
+  flex-shrink: 0;
+  border: 1px solid #e0d3bf;
+  border-radius: 999px;
+  padding: 9px 14px;
+  background: #fbf7ee;
+  color: #725535;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.package-comparison-list {
+  display: grid;
+  gap: 16px;
+  margin: 22px 0;
+}
+
+.package-comparison-panel {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #dfd5c5;
+  border-radius: 16px;
+  background: #fffdf8;
+}
+
+.package-comparison-summary,
+.package-shared-stay > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 24px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.package-comparison-summary::-webkit-details-marker,
+.package-shared-stay > summary::-webkit-details-marker {
+  display: none;
+}
+
+.package-comparison-summary:focus-visible,
+.package-shared-stay > summary:focus-visible {
+  outline: 2px solid #9b753e;
+  outline-offset: -4px;
+  border-radius: 14px;
+}
+
+.package-comparison-panel[open] > .package-comparison-summary {
+  border-bottom: 1px solid #e9e0d3;
+  background: #faf5ea;
+}
+
+.package-comparison-identity,
+.package-comparison-value,
+.package-shared-stay > summary > span,
+.package-houseboat-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.package-comparison-identity > span:last-child,
+.package-comparison-value > span {
+  display: grid;
+  gap: 5px;
+}
+
+.package-comparison-identity strong {
+  color: #473521;
+  font-size: 17px;
+}
+
+.package-comparison-summary small {
+  color: #8c7b66;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.package-comparison-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  place-items: center;
+  border-radius: 12px;
+  background: #efe5d1;
+  color: #8d6a35;
+}
+
+.package-comparison-value {
+  text-align: right;
+}
+
+.package-comparison-value strong {
+  color: #60482c;
+  font-size: 17px;
+  white-space: nowrap;
+}
+
+.package-comparison-value > svg,
+.package-shared-stay > summary > span > svg:last-child {
+  flex-shrink: 0;
+  color: #967446;
+  transition: transform .18s ease;
+}
+
+.package-comparison-panel[open] > summary .package-comparison-value > svg,
+.package-shared-stay[open] > summary > span > svg:last-child {
+  transform: rotate(90deg);
+}
+
+.package-hotel-editor {
+  padding: 22px;
+}
+
+.package-hotel-editor .simple-hotel-list {
+  margin-top: 0;
+}
+
+.package-hotel-editor .hotel-all-confirm {
+  margin-bottom: 0;
+}
+
+.package-hotel-editor .simple-hotel-card {
+  box-shadow: none;
+}
+
+.package-shared-stay {
+  margin-top: 18px;
+  border: 1px solid #e2d8c8;
+  border-radius: 13px;
+  background: #faf7f0;
+}
+
+.package-shared-stay > summary {
+  padding: 17px 20px;
+  color: #60482c;
+  font-size: 13px;
+}
+
+.package-shared-stay > summary > span:last-child {
+  color: #8b775e;
+  font-size: 12px;
+}
+
+.package-shared-stay-body {
+  padding: 0 20px 18px;
+}
+
+.package-shared-stay-body > p {
+  margin: 0 0 15px;
+}
+
+.package-houseboat-quote {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid #e7ddcc;
+}
+
+.package-houseboat-heading {
+  margin-bottom: 16px;
+  color: #84613b;
+}
+
+.package-houseboat-heading h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+@media (max-width: 700px) {
+  .package-comparison-intro {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .package-comparison-summary {
+    gap: 12px;
+    padding: 18px 15px;
+  }
+
+  .package-comparison-identity {
+    gap: 9px;
+  }
+
+  .package-comparison-identity strong,
+  .package-comparison-value strong {
+    font-size: 14px;
+  }
+
+  .package-comparison-icon {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+    border-radius: 10px;
+  }
+
+  .package-comparison-value {
+    gap: 7px;
+  }
+
+  .package-hotel-editor {
+    padding: 13px;
+  }
+
+  .package-shared-stay > summary {
+    align-items: flex-start;
+    padding: 16px;
+  }
+
+  .package-shared-stay > summary > span:first-child {
+    line-height: 1.5;
+  }
+
+  .package-shared-stay > summary > span:last-child {
+    font-size: 11px;
+    text-align: right;
+  }
+
+  .package-shared-stay-body {
+    padding: 0 16px 16px;
+  }
+}

@@ -1,0 +1,28 @@
+.package-vehicle-options { margin-top: 22px; border-top: 1px solid #e7ddcd; }
+.package-vehicle-options > summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 19px 0 0; list-style: none; cursor: pointer; color: #503a23; }
+.package-vehicle-options > summary::-webkit-details-marker { display: none; }
+.package-vehicle-options > summary > div { display: grid; gap: 4px; }
+.package-vehicle-options > summary b { font-size: 14px; font-weight: 600; }
+.package-vehicle-options > summary span { color: #8c7c66; font-size: 12px; }
+.package-vehicle-options[open] > summary > svg { transform: rotate(90deg); }
+.package-vehicle-options summary:focus-visible, .package-vehicle-heading button:focus-visible { outline: 2px solid #a77c35; outline-offset: 4px; }
+.package-vehicle-options-body { display: grid; gap: 16px; padding-top: 20px; }
+.package-vehicle-card { min-width: 0; padding: 21px; border: 1px solid #e5d8c5; border-radius: 14px; background: #fbf7ef; }
+.package-vehicle-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 19px; }
+.package-vehicle-heading > div > span { color: #9a7a44; font-size: 9px; font-weight: 700; letter-spacing: .1em; }
+.package-vehicle-heading h3 { color: #49321e; font-family: var(--serif); font-size: 25px; font-weight: 600; margin: 4px 0 0; }
+.package-vehicle-heading button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; border: 1px solid #e1d2bb; border-radius: 8px; background: #fffdfa; color: #856a43; padding: 9px 10px; font-size: 11px; }
+.package-vehicle-add { display: flex; align-items: flex-end; gap: 16px; padding-top: 4px; }
+.package-vehicle-add > label { display: grid; flex: 1; gap: 7px; max-width: 300px; color: #786349; font-size: 12px; font-weight: 600; }
+.package-vehicle-add select { min-width: 0; width: 100%; padding: 12px; border: 1px solid #ddcdb2; border-radius: 9px; background: #fff; color: #493723; font: inherit; }
+.package-vehicle-add .secondary-link { min-height: 43px; flex-shrink: 0; }
+.package-vehicle-options-body .package-vehicle-inheritance { color: #8f7c62; margin: 0; font-size: 11px; line-height: 1.6; }
+@media (max-width: 680px) {
+  .package-vehicle-card { padding: 17px; }
+  .package-vehicle-heading { gap: 10px; align-items: flex-start; }
+  .package-vehicle-heading h3 { font-size: 23px; }
+  .package-vehicle-heading button { white-space: nowrap; }
+  .package-vehicle-add { align-items: stretch; flex-direction: column; gap: 12px; }
+  .package-vehicle-add > label { max-width: none; }
+  .package-vehicle-add .secondary-link { align-self: flex-start; }
+}

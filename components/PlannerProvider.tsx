@@ -13,6 +13,7 @@ import { initialPackageDefaults, validatePackageDefaults, type PackageDefaults }
 import { withPlanDestinations } from '@/lib/plan-destinations';
 import { allHotelOptionsCustom, highestCompleteHotelRates, sharedCustomHotelRates, hotelAlternativeCandidates, hotelOptionCategory, hotelOptionFromSelection, hotelOptionIdentity, sameHotelOption, type HotelOptionQuote, type HotelRateBundle } from '@/lib/hotel-options';
 import { hotelConfirmationSignature } from '@/lib/quote-readiness';
+import { packageCategories, packageView, validPackageQuotes, type PackageQuote } from '@/lib/package-quotes';
 
 export type HotelSelection = {
   location: string; hotelId: string; hotelName: string; category: string; starRating: number | null; address: string; roomType: string; website: string;
@@ -24,13 +25,16 @@ export type HotelSelection = {
 };
 export type CostModel = { transportDaily: number; transportIsCustom: boolean; mealPerPersonNight: number; activityBudget: number; activityCosts: Record<string, number>; activitySelections: Record<string, boolean>; manualInclusions: string[]; manualExclusions: string[]; contingencyPct: number; profitPct: number; otherAmount: number };
 export type HotelDefaults = { rooms: number; extraBeds: number; cnb: number; nightlyRate: number; extraBedRate: number; cnbRate: number };
-export type PlannerState = { input: TripInput; plan: Plan | null; routeVersion: string | null; hotelSelections: HotelSelection[]; hotelDatabase: Hotel[]; costModel: CostModel; hotelDefaults: HotelDefaults; generated: boolean; savedItineraryId: string | null };
+export type PlannerState = { input: TripInput; plan: Plan | null; routeVersion: string | null; hotelSelections: HotelSelection[]; packageQuotes?: Record<string, PackageQuote>; hotelDatabase: Hotel[]; costModel: CostModel; hotelDefaults: HotelDefaults; generated: boolean; savedItineraryId: string | null };
 export type ItinerarySnapshot = Omit<PlannerState, 'hotelDatabase' | 'savedItineraryId'>;
 export function itinerarySnapshot(state: PlannerState): ItinerarySnapshot {
-  return { input: state.input, plan: state.plan, routeVersion: state.routeVersion, hotelSelections: state.hotelSelections, costModel: state.costModel, hotelDefaults: state.hotelDefaults, generated: state.generated };
+  return { input: state.input, plan: state.plan, routeVersion: state.routeVersion, hotelSelections: state.hotelSelections, ...(state.packageQuotes ? { packageQuotes: state.packageQuotes } : {}), costModel: state.costModel, hotelDefaults: state.hotelDefaults, generated: state.generated };
 }
 
 type PlannerContextValue = PlannerState & {
+  updatePackageState: (category: string, update: (state: PlannerState) => PlannerState) => void;
+  setPackageTransport: (category: string, vehicle: string | null, custom?: boolean) => void;
+  setPackageTransportRate: (category: string, rate: number) => void;
   hydrated: boolean;
   destinationCatalog: Destination[];
   destinationConnection: 'loading' | 'ready' | 'error';
@@ -101,6 +105,7 @@ function readState(): PlannerState {
       delete x.paymentPlan;
       return {
         ...x,
+        packageQuotes: validPackageQuotes(x.packageQuotes) ? x.packageQuotes : undefined,
         routeVersion: typeof x.routeVersion === 'string' ? x.routeVersion : null,
         hotelDatabase: importedHotels,
         hotelDefaults: { ...defaultHotelDefaults, ...(x.hotelDefaults || {}) },
@@ -350,6 +355,72 @@ export function setSrinagarHouseboatNights(state: PlannerState, nightNumbers: nu
   return stateWithScheduledPlan({ ...state, hotelSelections: stays }, plan);
 }
 
+/** Match every comparison package to the shared overnight allocation. */
+export function syncPackageQuotes(state: PlannerState, previousPlan: Plan | null = state.plan): PlannerState {
+  const plan = state.plan;
+  if (!plan) return state;
+  const categories = packageCategories(plan.input);
+  if (categories.length === 1 && !state.packageQuotes) return state;
+  const quotes: Record<string, PackageQuote> = { ...state.packageQuotes };
+  delete quotes[plan.input.hotelCategory];
+  for (const category of categories.filter((item) => item !== plan.input.hotelCategory)) {
+    const cached = state.packageQuotes?.[category];
+    const input = { ...plan.input, hotelCategory: category, packagePreferences: [category] };
+    const scopedPlan = { ...plan, input };
+    const aligned = state.hotelSelections.map((shared) => {
+      const existing = cached?.hotelSelections.find((hotel) => hotelSelectionKey(hotel) === hotelSelectionKey(shared));
+      return { ...(existing || { ...shared, hotelId: '', hotelName: '', category, source: '', alternatives: undefined, sharedCustomRates: undefined, rateConfirmed: false, confirmedSignature: undefined }),
+        nights: shared.nights, accommodationType: hotelStayType(shared), nightNumbers: shared.nightNumbers };
+    });
+    const hotels = syncHotelSelections(scopedPlan, aligned, state.hotelDatabase, input).map((hotel) => {
+      const stillConfirmed = previousPlan && previousPlan.input.adults === plan.input.adults &&
+        JSON.stringify(previousPlan.input.youngAges) === JSON.stringify(plan.input.youngAges) &&
+        hotel.confirmedSignature === hotelConfirmationSignature(scopedPlan, hotel, input.mealPlan);
+      return hotel.rateConfirmed && !stillConfirmed ? { ...hotel, rateConfirmed: false, confirmedSignature: undefined } : hotel;
+    });
+    quotes[category] = { ...cached, hotelSelections: hotels,
+      costOverrides: cached?.costOverrides || { profitPct: state.costModel.profitPct, otherAmount: state.costModel.otherAmount } };
+  }
+  return { ...state, packageQuotes: quotes };
+}
+
+/** Mutations operate on one package without leaking negotiated rates to another. */
+export function updatePackageInState(state: PlannerState, category: string, update: (state: PlannerState) => PlannerState): PlannerState {
+  if (!state.plan || !packageCategories(state.plan.input).includes(category)) return state;
+  const current = syncPackageQuotes(state);
+  const primary = current.plan!.input.hotelCategory;
+  if (category === primary) return syncPackageQuotes(update(current));
+  const scoped = packageView(current, category);
+  const changed = update(scoped);
+  const previous = current.packageQuotes![category];
+  const costOverrides = { ...previous.costOverrides };
+  for (const field of ['profitPct', 'otherAmount', 'transportDaily', 'transportIsCustom'] as const) {
+    if (changed.costModel[field] !== scoped.costModel[field]) Object.assign(costOverrides, { [field]: changed.costModel[field] });
+  }
+  const transportChanged = changed.input.transport !== scoped.input.transport || changed.costModel.transportDaily !== scoped.costModel.transportDaily;
+  return { ...current, packageQuotes: { ...current.packageQuotes,
+    [category]: { ...previous, hotelSelections: changed.hotelSelections, costOverrides,
+      ...(transportChanged ? { transport: changed.input.transport } : {}) } } };
+}
+
+/** Changing the primary preference must promote its existing quote, not reprice it. */
+function promotePackage(state: PlannerState, category: string): PlannerState {
+  if (!state.plan || state.plan.input.hotelCategory === category || !state.packageQuotes?.[category]) return state;
+  const target = packageView(state, category);
+  const snapshots: Record<string, PackageQuote> = { ...state.packageQuotes };
+  // Pin effective vehicle agreements before changing the default package. An
+  // inheriting quote must not suddenly acquire another option's premium van.
+  for (const previousCategory of packageCategories(state.plan.input)) {
+    const previous = packageView(state, previousCategory);
+    snapshots[previousCategory] = { hotelSelections: previous.hotelSelections, transport: previous.input.transport,
+      costOverrides: { profitPct: previous.costModel.profitPct, otherAmount: previous.costModel.otherAmount,
+        transportDaily: previous.costModel.transportDaily, transportIsCustom: previous.costModel.transportIsCustom } };
+  }
+  delete snapshots[category];
+  return { ...state, hotelSelections: target.hotelSelections, costModel: target.costModel, packageQuotes: snapshots,
+    input: { ...state.input, transport: target.input.transport } };
+}
+
 function stateWithScheduledPlan(state: PlannerState, plan: Plan | null): PlannerState {
   if (!plan) return { ...state, plan };
   const previousPlan = state.plan;
@@ -365,7 +436,7 @@ function stateWithScheduledPlan(state: PlannerState, plan: Plan | null): Planner
     }
     return hotel;
   });
-  return { ...state, plan, hotelSelections, costModel: activityQuoteForPlan(state.costModel, plan) };
+  return syncPackageQuotes({ ...state, plan, hotelSelections, costModel: activityQuoteForPlan(state.costModel, plan) }, previousPlan);
 }
 
 function activityQuoteForPlan(model: CostModel, plan: Plan): CostModel {
@@ -386,6 +457,10 @@ export function applyPlanEdit(state: PlannerState, plan: Plan): PlannerState {
 /** Next updates an existing client trip; Build New alone starts another quote. */
 export function generatePlannerState(state: PlannerState, overrides: Partial<TripInput> = {}, replanDestinations = false): PlannerState {
   const effectiveInput = validatedTripInput({ ...state.input, ...overrides });
+  const previousCategory = state.plan?.input.hotelCategory;
+  state = promotePackage(state, effectiveInput.hotelCategory);
+  // A promoted package retains its optional vehicle when it becomes primary.
+  if (previousCategory && previousCategory !== effectiveInput.hotelCategory) effectiveInput.transport = state.input.transport;
   const plan = state.plan && !replanDestinations ? editTripPlan(state.plan, effectiveInput) : createPlan(effectiveInput);
   const costModel = state.plan ? state.costModel : { ...state.costModel,
     transportDaily: state.costModel.transportIsCustom ? state.costModel.transportDaily : (transportRates[effectiveInput.transport] ?? state.costModel.transportDaily) };
@@ -537,7 +612,36 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     hotelConnection,
     hotelConnectionError,
     refreshHotels,
-    setInputField(key, value) { setState((s) => ({ ...s, input: { ...s.input, [key]: value } })); },
+    setInputField(key, value) { setState((s) => {
+      if (key === 'packagePreferences') {
+        const categories = packageCategories({ hotelCategory: s.input.hotelCategory, packagePreferences: value as string[] });
+        return { ...s, input: { ...s.input, packagePreferences: categories, hotelCategory: categories[0] } };
+      }
+      if (key === 'hotelCategory') return { ...s, input: { ...s.input, hotelCategory: value as string, packagePreferences: [value as string] } };
+      return { ...s, input: { ...s.input, [key]: value } };
+    }); },
+    updatePackageState(category, update) { setState((s) => updatePackageInState(s, category, update)); },
+    setPackageTransport(category, vehicle, custom = false) {
+      setState((s) => {
+        if (!s.plan || category === s.plan.input.hotelCategory || !packageCategories(s.plan.input).includes(category)) return s;
+        const current = syncPackageQuotes(s);
+        const quote = current.packageQuotes![category];
+        const costOverrides = { ...quote.costOverrides };
+        if (vehicle === null) {
+          delete costOverrides.transportDaily; delete costOverrides.transportIsCustom;
+          const { transport: _transport, ...rest } = quote;
+          return { ...current, packageQuotes: { ...current.packageQuotes, [category]: { ...rest, costOverrides } } };
+        }
+        if (vehicle.length > 80) return s;
+        costOverrides.transportIsCustom = custom;
+        costOverrides.transportDaily = custom ? (quote.costOverrides?.transportIsCustom ? quote.costOverrides.transportDaily : 0) : transportRates[vehicle] ?? s.costModel.transportDaily;
+        return { ...current, packageQuotes: { ...current.packageQuotes, [category]: { ...quote, transport: vehicle, costOverrides } } };
+      });
+    },
+    setPackageTransportRate(category, rate) {
+      if (!Number.isFinite(rate) || rate < 0) return;
+      setState((s) => updatePackageInState(s, category, (scoped) => ({ ...scoped, costModel: { ...scoped.costModel, transportDaily: rate } })));
+    },
     setYoungAges(ages) { setState((s) => ({ ...s, input: { ...s.input, youngAges: ages } })); },
     setInterests(xs) { setState((s) => ({ ...s, input: { ...s.input, interests: xs } })); },
     generate(overrides = {}) {
@@ -740,7 +844,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     },
     reset() { try { localStorage.removeItem(STORAGE); } catch {} location.href = '/'; },
     loadSavedItinerary(id, snapshot) {
-      setState((s) => reconcilePlannerState({ ...s, ...snapshot, costModel: { ...defaultCost, ...snapshot.costModel, activitySelections: snapshot.costModel?.activitySelections || {}, manualInclusions: Array.isArray(snapshot.costModel?.manualInclusions) ? snapshot.costModel.manualInclusions : [], manualExclusions: Array.isArray(snapshot.costModel?.manualExclusions) ? snapshot.costModel.manualExclusions : [], transportIsCustom: snapshot.costModel?.transportIsCustom === true || (Boolean(snapshot.input?.transport) && !transportOptions.includes(snapshot.input.transport)) }, hotelDatabase: s.hotelDatabase, savedItineraryId: id }));
+      setState((s) => reconcilePlannerState({ ...s, ...snapshot, packageQuotes: validPackageQuotes(snapshot.packageQuotes) ? snapshot.packageQuotes : undefined, costModel: { ...defaultCost, ...snapshot.costModel, activitySelections: snapshot.costModel?.activitySelections || {}, manualInclusions: Array.isArray(snapshot.costModel?.manualInclusions) ? snapshot.costModel.manualInclusions : [], manualExclusions: Array.isArray(snapshot.costModel?.manualExclusions) ? snapshot.costModel.manualExclusions : [], transportIsCustom: snapshot.costModel?.transportIsCustom === true || (Boolean(snapshot.input?.transport) && !transportOptions.includes(snapshot.input.transport)) }, hotelDatabase: s.hotelDatabase, savedItineraryId: id }));
     },
     markSavedItinerary(id) { setState((s) => ({ ...s, savedItineraryId: id })); },
   }), [state, scheduledState, mounted, hotelConnection, hotelConnectionError, destinationCatalog, destinationConnection, destinationConnectionError, packageDefaults, packageDefaultsConnection, packageDefaultsError]);
@@ -748,5 +852,38 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
 }
 
 export function usePlanner() { const v = useContext(Ctx); if (!v) throw new Error('usePlanner must be used inside PlannerProvider'); return v; }
+
+/** Reuse the established editors with mutations directed to just this quote. */
+export function PackagePlanner({ category, children }: { category: string; children: ReactNode }) {
+  const base = usePlanner();
+  const scoped = packageView(base, category);
+  const update = (change: (state: PlannerState) => PlannerState) => base.updatePackageState(category, change);
+  const value: PlannerContextValue = { ...scoped,
+    replaceHotel: (location, hotelId) => update((s) => replaceHotelInState(s, location, hotelId)),
+    useCustomHotel: (location) => update((s) => useCustomHotelInState(s, location)),
+    replaceHotelAlternative: (location, index, hotelId) => update((s) => replaceHotelAlternativeInState(s, location, index, hotelId)),
+    setCustomHotelAlternative: (location, index, patch) => update((s) => setCustomHotelAlternativeInState(s, location, index, patch)),
+    setHotelOptionRate: (location, optionId, field, amount) => update((s) => setHotelOptionRateInState(s, location, optionId, field, amount)),
+    setSharedCustomHotelRate: (location, field, amount) => update((s) => setSharedCustomHotelRateInState(s, location, field, amount)),
+    setHotelRate(location, field, amount) {
+      if (!Number.isFinite(amount)) return;
+      update((s) => ({ ...s, hotelSelections: s.hotelSelections.map((hotel) => hotelSelectionKey(hotel) === location ?
+        { ...hotel, [field]: Math.max(0, amount), status: 'user-edited', rateConfirmed: false, confirmedSignature: undefined } : hotel) }));
+    },
+    setHotelMeta(location, patch) {
+      update((s) => ({ ...s, hotelSelections: s.hotelSelections.map((hotel) => hotelSelectionKey(hotel) === location ?
+        { ...hotel, ...patch, accommodationType: hotelStayType(hotel), rateConfirmed: typeof patch.rateConfirmed === 'boolean' ? patch.rateConfirmed : false,
+          confirmedSignature: typeof patch.rateConfirmed === 'boolean' ? patch.confirmedSignature : undefined } : hotel) }));
+    },
+    applyHotelDefaults() {
+      update((s) => ({ ...s, hotelSelections: s.hotelSelections.map((hotel) => ({ ...hotel,
+        rooms: s.hotelDefaults.rooms, extraBeds: s.hotelDefaults.extraBeds, cnb: s.hotelDefaults.cnb,
+        nightlyRate: s.hotelDefaults.nightlyRate || hotel.nightlyRate, extraBedRate: s.hotelDefaults.extraBedRate || hotel.extraBedRate,
+        cnbRate: s.hotelDefaults.cnbRate || hotel.cnbRate, rateConfirmed: false, confirmedSignature: undefined })) }));
+    },
+    setCostModel: (patch) => update((s) => ({ ...s, costModel: { ...s.costModel, ...patch } })),
+  };
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+}
 const transportRates: Record<string, number> = { Sedan: 3400, Ertiga: 4200, Innova: 5200, 'Tempo Traveller': 7600 };
 void hotelCategories; void mealOptions; void travelStyles; void interests; void firstHotelCandidate;

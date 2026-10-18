@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { isAdmin, sameOrigin } from '@/lib/admin-auth';
 import { getSavedItinerary, itineraryStoreConfigured, listSavedItineraries, saveItinerary } from '@/lib/itinerary-store';
 import type { ItinerarySnapshot } from '@/components/PlannerProvider';
+import { validPackageQuotes } from '@/lib/package-quotes';
+import { hotelCategories } from '@/lib/data';
 
 export const runtime = 'nodejs';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -10,7 +12,9 @@ function validSnapshot(value: unknown): value is ItinerarySnapshot {
   const x = value as Partial<ItinerarySnapshot>;
   return Boolean(x.input && typeof x.input.name === 'string' && x.input.name.length <= 200 && x.plan &&
     Array.isArray(x.plan.dayPlans) && x.plan.dayPlans.length > 0 && x.plan.dayPlans.length <= 31 &&
-    Array.isArray(x.hotelSelections) && x.hotelSelections.length <= 31 && x.costModel && x.hotelDefaults);
+    Array.isArray(x.hotelSelections) && x.hotelSelections.length <= 62 && x.costModel && x.hotelDefaults && validPackageQuotes(x.packageQuotes) &&
+    (x.input.packagePreferences === undefined || Array.isArray(x.input.packagePreferences) && x.input.packagePreferences.length > 0 && x.input.packagePreferences.length <= hotelCategories.length &&
+      new Set(x.input.packagePreferences).size === x.input.packagePreferences.length && x.input.packagePreferences.every((category) => hotelCategories.includes(category))));
 }
 export async function GET() {
   if (!await isAdmin()) return NextResponse.json({ error: 'Admin sign-in required.' }, { status: 401 });
