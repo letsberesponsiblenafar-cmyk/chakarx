@@ -65,7 +65,9 @@ export function validateDestination(raw: unknown): Destination {
   if (!Array.isArray(d.local_sightseeing) || d.local_sightseeing.length > 80) throw new Error('Sightseeing must be a list.');
   const local_sightseeing = d.local_sightseeing.map((item) => {
     const sight = item as Record<string,unknown>;
-    return { name: string(sight.name, 'Sight name', 120), description: string(sight.description ?? '', 'Sight description', 800), client_sentence: string(sight.client_sentence ?? '', 'Client sightseeing sentence', 500), tags: list(sight.tags || [], 'Sight tags'), season: string(sight.season ?? 'all', 'Sight season', 80),
+    // A legacy fallback contains its 120-character name and 800-character
+    // description plus short connective wording. It must remain saveable.
+    return { name: string(sight.name, 'Sight name', 120), description: string(sight.description ?? '', 'Sight description', 800), client_sentence: string(sight.client_sentence ?? '', 'Client sightseeing sentence', 1000), tags: list(sight.tags || [], 'Sight tags'), season: string(sight.season ?? 'all', 'Sight season', 80),
       visit_minutes: minutes(sight.visit_minutes, 'Visit duration'), transfer_minutes: minutes(sight.transfer_minutes, 'Local transfer duration', true), arrival_suitable: typeof sight.arrival_suitable === 'boolean' ? sight.arrival_suitable : undefined,
       cluster: string(sight.cluster || '', 'Sight area', 120), requires_activity: sight.requires_activity === undefined ? undefined : string(sight.requires_activity || '', 'Required activity', 300), time_window: visitWindow(sight.time_window) };
   }).filter((sight) => sight.name);
@@ -95,7 +97,7 @@ export function validateDestination(raw: unknown): Destination {
     id, name, tier: string(d.tier, 'Tier', 80), district: string(d.district, 'District', 100), tags: list(d.tags, 'Tags'),
     min_days, ideal_days, max_days, min_nights, ideal_nights, max_nights,
     overnight_allowed: Boolean(d.overnight_allowed), season: string(d.season, 'Season', 80), access: string(d.access, 'Access', 80),
-    source: string(d.source, 'Source', 200), description: string(d.description, 'Description', 2500), day_note: string(d.day_note ?? '', 'About this day', 2500),
+    source: string(d.source, 'Source', 200), description: string(d.description, 'Description', 2500), day_note: d.day_note == null ? undefined : string(d.day_note, 'About this day', 2500),
     highlights: list(d.highlights, 'Highlights'), local_sightseeing, things_to_do, activities, activity_copy, activity_timing, hub_route: hubRoute(d.hub_route), enabled_things_to_do, enabled_sightseeing, enabled_activities, default_inclusions, default_exclusions,
     photoQuery: string(d.photoQuery, 'Photo query', 150), sites: Array.isArray(d.sites) ? d.sites as Destination['sites'] : [],
     base: Boolean(d.base), cluster: string(d.cluster, 'Cluster', 80),

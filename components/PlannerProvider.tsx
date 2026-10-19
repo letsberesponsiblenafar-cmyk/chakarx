@@ -39,7 +39,8 @@ type PlannerContextValue = PlannerState & {
   destinationCatalog: Destination[];
   destinationConnection: 'loading' | 'ready' | 'error';
   destinationConnectionError: string;
-  refreshDestinations: (rebuildCurrent?: boolean) => Promise<void>;
+  /** True only when this request applied a confirmed, current catalogue. */
+  refreshDestinations: (rebuildCurrent?: boolean) => Promise<boolean>;
   removeDestinationFromLibrary: (destination: Destination) => void;
   packageDefaults: PackageDefaults;
   packageDefaultsConnection: 'loading' | 'ready' | 'error';
@@ -489,6 +490,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   const [destinationCatalog,setDestinationCatalog]=useState<Destination[]>([...destinations]);
   const [destinationConnection,setDestinationConnection]=useState<'loading'|'ready'|'error'>('loading');
   const [destinationConnectionError,setDestinationConnectionError]=useState('');
+  const destinationRequest=useRef(0);
   const [packageDefaults,setPackageDefaults]=useState<PackageDefaults>(initialPackageDefaults);
   const [packageDefaultsConnection,setPackageDefaultsConnection]=useState<'loading'|'ready'|'error'>('loading');
   const [packageDefaultsError,setPackageDefaultsError]=useState('');
@@ -534,12 +536,15 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     }
   }
   async function refreshDestinations(rebuildCurrent = false) {
+    const request=++destinationRequest.current;
     setDestinationConnection('loading'); setDestinationConnectionError('');
     try {
       const response=await fetch('/api/destinations',{cache:'no-store',signal:AbortSignal.timeout(15000)});
       const payload=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(payload.error||`Destination database request failed (${response.status}).`);
       if(!Array.isArray(payload.destinations))throw new Error('Destination database returned an invalid response.');
+      // A slower read must never replace a newer saved/refreshed catalogue.
+      if(request!==destinationRequest.current)return false;
       const catalog=payload.destinations as Destination[];
       replaceArchivedDestinationCatalog(Array.isArray(payload.archivedDestinations) ? payload.archivedDestinations : []);
       replaceDestinationCatalog(catalog);
@@ -554,9 +559,14 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
         } catch { return current; }
       });
       setDestinationConnection('ready');
+      return true;
     } catch(error) {
+      if(request!==destinationRequest.current)return false;
       setDestinationConnection('error');
       setDestinationConnectionError(error instanceof Error?error.message:'Could not load destination database.');
+      // Initial loads and Retry are intentionally non-throwing. Save callers
+      // inspect this result before claiming success or navigating away.
+      return false;
     }
   }
   async function refreshHotels(){
@@ -606,6 +616,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     destinationConnectionError,
     refreshDestinations,
     removeDestinationFromLibrary(destination) {
+      ++destinationRequest.current;
       const id = destination.id || destination.name;
       replaceArchivedDestinationCatalog([...archivedDestinationCatalog().filter((item) => (item.id || item.name) !== id), destination]);
       replaceDestinationCatalog(destinations.filter((item) => (item.id || item.name) !== id));

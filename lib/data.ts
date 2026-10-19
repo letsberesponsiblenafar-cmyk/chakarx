@@ -75,14 +75,19 @@ export type Hotel = {
 };
 export type Source = { name: string; url: string; type: string; status: string; observed: string; note: string };
 
+/** Preserve legacy place descriptions when no client-ready sentence was authored. */
+export function sightseeingFallbackSentence(sight: { name: string; description: string }) {
+  const detail = sight.description.trim().replace(/[.!?]+$/, '').replace(/^(?:a|an|the)\s+/i, '');
+  return detail ? `Visit ${sight.name} for its ${detail[0].toLowerCase()}${detail.slice(1)}.` : `Visit ${sight.name}.`;
+}
+
 // Enrichment is applied to bundled and database records alike. Operator edits,
 // explicit empty selections and new custom destinations always take precedence.
 export function enrichDestination(record: Destination): Destination {
   const defaults = planningDefaults[record.name];
-  const legacy = (destinationsJson as Destination[]).find((item) => item.name === record.name);
   const local_sightseeing = record.local_sightseeing.map((sight) => {
     const preset = defaults?.sights[sight.name] || {};
-    return { ...preset, ...sight, client_sentence: sight.client_sentence?.trim() || preset.client_sentence || `Visit ${sight.name}.`,
+    return { ...preset, ...sight, client_sentence: sight.client_sentence?.trim() || preset.client_sentence || sightseeingFallbackSentence(sight),
       visit_minutes: sight.visit_minutes ?? preset.visit_minutes,
       transfer_minutes: sight.transfer_minutes ?? preset.transfer_minutes,
       arrival_suitable: sight.arrival_suitable ?? preset.arrival_suitable,
@@ -105,9 +110,10 @@ export function enrichDestination(record: Destination): Destination {
       };
     }
   }
-  const legacyNote = !record.day_note?.trim() || record.day_note === legacy?.day_note || record.day_note === legacy?.description;
   return { ...record, local_sightseeing, activity_copy, activity_timing,
-    day_note: legacyNote && defaults ? defaults.day_note : record.day_note,
+    // Matching old copy does not establish that a saved value is a default.
+    // Only a genuinely missing introduction may receive the planning fallback.
+    day_note: record.day_note == null ? defaults?.day_note : record.day_note,
     hub_route: record.hub_route || defaults?.hub,
     srinagar_km: record.srinagar_km ?? defaults?.hub.km,
     srinagar_hours: record.srinagar_hours ?? defaults?.hub.hours,

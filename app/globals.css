@@ -379,7 +379,7 @@ body{font-size:15px}.build-trip-page{max-width:1500px;margin:0 auto}.build-heade
 .destination-detail-section,.destination-form-section{background:#fffdf9;border:1px solid #e7dccc;border-radius:18px;padding:25px 28px;margin:18px 0;box-shadow:0 5px 22px rgba(50,30,13,.035)}
 .destination-detail-section .drawer-section-title h2,.destination-form-section-head h2{font-family:var(--serif);font-size:31px;line-height:1.15;margin:4px 0 7px}
 .destination-detail-section.destination-note{margin-top:18px}
-.destination-detail-section.destination-note p{margin:0;font-size:15px;line-height:1.7}
+.destination-detail-section.destination-note p{margin:0;font-size:15px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
 .destination-selected-experiences{border-top:1px solid #e4d4bc;margin-top:18px;padding-top:15px}
 .destination-selected-experiences span{display:flex;gap:7px;align-items:center;font-size:11px;font-weight:800;color:#78592c;text-transform:uppercase;letter-spacing:.06em}
 .destination-selected-experiences p{margin:7px 0 0!important;font-size:13px!important}
@@ -394,7 +394,7 @@ body{font-size:15px}.build-trip-page{max-width:1500px;margin:0 auto}.build-heade
 .destination-detail-section .destination-toggle-list label input{flex:none;width:17px;height:17px;margin-top:2px;accent-color:#956c2f}
 .destination-detail-section .destination-toggle-list label span{display:grid;gap:4px;min-width:0}
 .destination-detail-section .destination-toggle-list label b{font-size:13px;color:#3c2919}
-.destination-detail-section .destination-toggle-list label small{font-size:11px;line-height:1.45;color:#766652}
+.destination-detail-section .destination-toggle-list label small{font-size:11px;line-height:1.45;color:#766652;white-space:pre-wrap;overflow-wrap:anywhere}
 .destination-detail-section.destination-note small{display:block;margin-top:12px;color:#806a50;font-size:11px;line-height:1.5}
 .destination-detail-section .destination-toggle-list .destination-disabled{opacity:.58}
 .destination-full-form{display:block}

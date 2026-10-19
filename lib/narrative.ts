@@ -1,4 +1,4 @@
-import { destinationByName, enabledSightseeing, type Destination } from '@/lib/data';
+import { destinationByName, enabledSightseeing, sightseeingFallbackSentence, type Destination } from '@/lib/data';
 import type { DayBlock, DayPlan } from '@/lib/itinerary';
 import { quotedActivityCost } from '@/lib/activities';
 import { dayVisitLabel } from '@/lib/journey-labels';
@@ -56,8 +56,7 @@ export function sightseeingSentence(sight: { name: string; description: string; 
   const authored = sight.client_sentence?.trim();
   if (authored) return /[.!?]$/.test(authored) ? authored : `${authored}.`;
   if (sightSentences[sight.name]) return sightSentences[sight.name];
-  const detail = sight.description.trim().replace(/[.!?]+$/, '').replace(/^(?:a|an|the)\s+/i, '');
-  return detail ? `Visit ${sight.name} for its ${detail[0].toLowerCase()}${detail.slice(1)}.` : `Visit ${sight.name}.`;
+  return sightseeingFallbackSentence(sight);
 }
 const destinationStory: Record<string,string> = {
   Srinagar: 'Discover Srinagar’s lakeside setting and cultural heritage.',
@@ -70,6 +69,11 @@ const destinationStory: Record<string,string> = {
 };
 export function defaultDayNote(destination: Destination) {
   return destinationStory[destination.name] || destination.description || `Explore ${destination.name}.`;
+}
+
+/** The library and editor must show the same saved introduction. */
+export function destinationAbout(destination: Destination) {
+  return destination.day_note == null ? defaultDayNote(destination) : destination.day_note;
 }
 
 export function dayTitle(day: DayPlan, pickup: string) {
@@ -190,7 +194,7 @@ function visitCopy(day: DayPlan, destination: string, planned: string[], quote?:
   // Only library ticks control sightseeing. A separately quoted activity never
   // replaces the selected place's planned itinerary sentence.
   const clientStops = options.activitiesOnly ? [] : planned;
-  const noteSource = guide ? guide.day_note?.trim() || defaultDayNote(guide) : '';
+  const noteSource = guide ? destinationAbout(guide) : '';
   // An overnight hotel does not create an additional sightseeing programme.
   // Introduce a destination only on its main visit, with actual assigned places
   // or experiences, rather than repeating its guide whenever the hotel is here.

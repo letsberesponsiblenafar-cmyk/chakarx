@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react';
 import { ChevronRight, MapPin, Moon, Plus, Search, Sparkles, Sun } from 'lucide-react';
 import { type Destination } from '@/lib/data';
 import { usePlanner } from '@/components/PlannerProvider';
-import { defaultDayNote } from '@/lib/narrative';
+import { destinationAbout } from '@/lib/narrative';
 import PackageDefaultsEditor from '@/components/PackageDefaultsEditor';
 
 const destinationUrl = (destination: Destination) => `/library/${encodeURIComponent(destination.id || destination.name)}`;
@@ -19,7 +19,7 @@ export default function LibraryPage() {
   const featured = ['Srinagar', 'Gulmarg', 'Pahalgam', 'Sonamarg'].map((name) => destinations.find((d) => d.name === name)).filter((d): d is Destination => Boolean(d));
   const sightseeingCount = destinations.reduce((total, destination) => total + destination.local_sightseeing.length, 0);
   const list = useMemo(() => destinations.filter((destination) => {
-    const hay = `${destination.name} ${destination.district} ${defaultDayNote(destination)} ${destination.local_sightseeing.map((sight) => sight.name).join(' ')} ${destination.things_to_do.join(' ')} ${destination.activities.join(' ')}`.toLowerCase();
+    const hay = `${destination.name} ${destination.district} ${destinationAbout(destination)} ${destination.local_sightseeing.map((sight) => sight.name).join(' ')} ${destination.things_to_do.join(' ')} ${destination.activities.join(' ')}`.toLowerCase();
     return (!q || hay.includes(q.toLowerCase())) && (tier === 'All' || destination.tier === tier)
       && (overnight === 'All' || (overnight === 'Yes' ? destination.overnight_allowed : !destination.overnight_allowed));
   }), [q, tier, overnight, destinations]);
@@ -39,7 +39,7 @@ export default function LibraryPage() {
       <div className="dest-grid destination-grid-rich">{list.map((destination) => <Link className="dest-card rich" key={destination.id || destination.name} href={destinationUrl(destination)}>
         <div className="dest-card-accent"><span>{destination.tier}</span><span>{destination.district}</span></div>
         <div className="dest-top"><b>{destination.name}</b><ChevronRight size={15}/></div>
-        <p className="dest-description">{defaultDayNote(destination)}</p>
+        <p className="dest-description">{destinationAbout(destination)}</p>
         <div className="stay-stats"><span><strong>{destination.min_days}</strong>-<strong>{destination.max_days}</strong> days</span><span><strong>{destination.ideal_days}</strong> ideal</span><span>{destination.overnight_allowed ? <><Moon size={15}/> Overnight possible</> : <><Sun size={15}/> Day visit</>}</span></div>
         <div className="card-footer-rich"><span><Sparkles size={15}/> {destination.local_sightseeing.length} sights</span><span>Open guide <ChevronRight size={15}/></span></div>
       </Link>)}</div>

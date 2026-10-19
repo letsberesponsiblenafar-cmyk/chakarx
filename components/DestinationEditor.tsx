@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { type Destination, type VisitWindow } from '@/lib/data';
-import { activitySentence, defaultDayNote, sightseeingSentence } from '@/lib/narrative';
+import { activitySentence, destinationAbout, sightseeingSentence } from '@/lib/narrative';
 import DestinationDeleteSection from '@/components/DestinationDeleteSection';
 import '@/app/planner/destination-refinement.css';
 
@@ -32,7 +32,7 @@ function duplicates(values: string[]) {
 
 export default function DestinationEditor({ initial, onSaved, onDeleted }: { initial?: Destination; onSaved: (destination: Destination) => Promise<void>; onDeleted?: () => Promise<void> }) {
   const [draft, setDraft] = useState<Destination>(() => initial ? {
-    ...initial, id: initial.id || initial.name, day_note: initial.day_note || defaultDayNote(initial),
+    ...initial, id: initial.id || initial.name, day_note: destinationAbout(initial),
     local_sightseeing: initial.local_sightseeing.map((sight) => ({ ...sight, tags: [...sight.tags] })),
     things_to_do: [...initial.things_to_do], activities: [...initial.activities], activity_copy: { ...(initial.activity_copy || {}) }, activity_timing: { ...(initial.activity_timing || {}) },
     enabled_sightseeing: initial.enabled_sightseeing === undefined ? undefined : [...initial.enabled_sightseeing],
