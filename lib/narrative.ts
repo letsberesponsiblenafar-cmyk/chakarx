@@ -123,16 +123,27 @@ function matchesPlannedPlace(label: string, planned: string[]) {
 }
 
 function sightseeingLines(day: DayPlan, stops: string[], destination: Destination | undefined) {
-  const sentences = stops.flatMap((name) => {
+  const lines = stops.flatMap((name) => {
     const selections = day.blocks.filter((block) => blockDestination(block, day) === destination?.name)
       .flatMap((block) => (block.librarySights || []).filter((selection) => selection.visitName === name));
-    if (!selections.length) return [sightseeingSentence(destination?.local_sightseeing.find((sight) => sight.name === name) || { name, description: '' })];
+    if (!selections.length) {
+      const sight = destination?.local_sightseeing.find((sight) => sight.name === name);
+      return [{ sentence: sightseeingSentence(sight || { name, description: '' }),
+        guide: sight ? destination : undefined, rank: sight ? destination!.local_sightseeing.indexOf(sight) : -1 }];
+    }
     return selections.flatMap((selection) => {
       const guide = destinationByName(selection.destination);
       const sight = guide?.local_sightseeing.find((item) => item.name === selection.name);
-      return guide && sight && enabledSightseeing(guide).includes(sight.name) ? [sightseeingSentence(sight)] : [];
+      return guide && sight && enabledSightseeing(guide).includes(sight.name)
+        ? [{ sentence: sightseeingSentence(sight), guide, rank: guide.local_sightseeing.indexOf(sight) }] : [];
     });
   });
+  const guides = [...new Set(lines.map((line) => line.guide?.name).filter(Boolean))];
+  const ordered = lines.filter((line) => line.guide).sort((a, b) => guides.indexOf(a.guide!.name) - guides.indexOf(b.guide!.name) || a.rank - b.rank);
+  let index = 0;
+  // Alias source sentences can surround a different place in the library.
+  // Sort those source lines, not the deduplicated physical-visit groups.
+  const sentences = lines.map((line) => line.guide ? ordered[index++].sentence : line.sentence);
   return [...new Map(sentences.map((sentence) => [sentence.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim(), sentence])).values()];
 }
 

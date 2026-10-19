@@ -410,7 +410,7 @@ try {
     const state = setSrinagarHouseboatNights(stateFor(['Srinagar', 'Srinagar']), [2]);
     const departure = state.plan.dayPlans[state.plan.nights];
     const copy = accommodationDayNarrative(state.plan, state.hotelSelections, departure, state.input.pickup, state.costModel);
-    assert.match(copy, /check out from your Srinagar houseboat\./i);
+    assert.match(copy, /check out(?: early)? from your Srinagar houseboat\./i);
     assert.match(copy, /departure point|onward journey/i);
     assert.doesNotMatch(copy, /your Srinagar hotel|Overnight/i);
   });

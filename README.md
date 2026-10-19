@@ -27,6 +27,8 @@ Ticked sightseeing places form the selected programme. The planner includes them
 
 Departure at or before 14:00 requires the final hotel night in Srinagar. This rule runs before sightseeing allocation and hotel pricing, including when an older saved route is reopened. The former outlying destination remains a day visit, and the final overnight control is locked. Departures after 14:00 keep the operator's chosen final base. Hotel selections and prices follow the actual route nights; any changed night dates need hotel verification again.
 
+Selected sightseeing follows the destination library's displayed place order, not checkbox click order or an automatic duration-based sort. Repeated visit days receive consecutive portions of that sequence. The itinerary and client PDF use the same ordered source sentences, including deduplicated aliases. Timing conflicts remain review advisories; incompatible ordering across overlapping destination guides is flagged without repeating a physical visit or changing the route. Unchanged approved manual descriptions survive upgrades; an actual programme change archives the prior text for review.
+
 ## Hotel master
 Six supplied October 2026 hotel workbooks were verified as identical copies of the same six-destination source and deduplicated to 166 unique hotel records.
 

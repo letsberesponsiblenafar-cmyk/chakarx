@@ -39,6 +39,8 @@ const { renderToStaticMarkup } = require('react-dom/server');
 const { PDFDocument } = require('pdf-lib');
 const { PDFParse } = require('pdf-parse');
 const { createPlan } = require('../lib/itinerary.ts');
+const { destinationByName } = require('../lib/data.ts');
+const { sightseeingSentence } = require('../lib/narrative.ts');
 const { calculateCosts } = require('../lib/costing.ts');
 const { hotelConfirmationSignature } = require('../lib/quote-readiness.ts');
 const { composeVectorClientPdf } = require('../lib/pdf-composition.ts');
@@ -89,6 +91,20 @@ for (const [name, doc, expected] of docs) {
   const artPages = pdf.clientPdfArtwork(doc);
   const packagePages = artPages.flatMap((page,index) => page.comparison && page.key === 'package' ? [index+1] : []);
   const hotelPages = artPages.flatMap((page,index) => page.comparison && page.key === 'hotels0' ? [index+1] : []);
+  const dayPages = artPages.flatMap((page,index) => page.key === 'daywise' ? [index+1] : []);
+  const dayText = doc.drawnText.filter((entry) => dayPages.includes(entry.page)).flatMap((entry) => entry.lines).join(' ').replace(/\s+/g,' ');
+  const sources = plan.dayPlans.flatMap((day) => day.blocks.flatMap((block) => block.librarySights || []));
+  for (const name of new Set(sources.map((source) => source.destination))) {
+    const guide = destinationByName(name);
+    const selected = new Set(sources.filter((source) => source.destination === name).map((source) => source.name));
+    const sentences = [...new Set(guide.local_sightseeing.filter((sight) => selected.has(sight.name)).map((sight) => sightseeingSentence(sight).replace(/\s+/g,' ')))];
+    let previous = -1;
+    for (const sentence of sentences) {
+      const position = dayText.indexOf(sentence);
+      assert.ok(position > previous, `${name}: PDF sightseeing must retain the destination library order.`);
+      previous = position;
+    }
+  }
   assert.ok(packagePages.length && hotelPages.length, 'Multiple packages need dynamic investment and hotel comparison pages.');
   const investmentText = doc.drawnText.filter((entry) => packagePages.includes(entry.page)).flatMap((entry) => entry.lines).join(' ');
   for (const quote of expected) {

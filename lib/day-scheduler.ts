@@ -5,8 +5,8 @@ import type { DayBlock, DayPlan, TripInput } from '@/lib/itinerary';
 
 export type ScheduleQuote = { activityCosts: Record<string, number>; activitySelections?: Record<string, boolean> };
 
-// Library checkboxes alone decide sightseeing inclusion. Route, time and quoted
-// experiences guide placement across visit days; they never untick a place.
+// Library checkboxes decide inclusion; the displayed library order decides the
+// sequence. Timing guides where consecutive portions fit, never a reshuffle.
 const clockMinutes = (time?: string) => time && /^([01]\d|2[0-3]):[0-5]\d$/.test(time)
   ? Number(time.slice(0, 2)) * 60 + Number(time.slice(3)) : null;
 const positiveMinutes = (value: number | undefined, fallback: number) => Number.isFinite(value) && value! >= 0 ? Math.round(value!) : fallback;
@@ -87,7 +87,11 @@ function sightCost(sight: Sightseeing, destination: Destination, day: DayPlan) {
   return linked ? 0 : positiveMinutes(sight.visit_minutes, 60) + positiveMinutes(sight.transfer_minutes, 20);
 }
 
-export function dayScheduleContext(day: DayPlan, includeLibrarySights = true) {
+export function dayScheduleContext(day: DayPlan, includeLibrarySights = true, includeLibraryOrder = true) {
+  const sources = day.blocks.flatMap((block) => block.librarySights || []);
+  const order = new Map(destinations.flatMap((destination) => destination.local_sightseeing
+    .filter((sight) => sources.some((source) => source.destination === destination.name && source.name === sight.name))
+    .map((sight, index) => [key(destination.name, sight.name), index] as const)));
   const programme = new Set([...day.blocks.filter((block) => block.kind !== 'arrival' && (block.sights === undefined || block.sights.length))
     .map((block) => block.destination).filter((name): name is string => Boolean(name)),
     ...(day.scheduledActivities || []).map((activity) => activity.destination)]);
@@ -99,7 +103,8 @@ export function dayScheduleContext(day: DayPlan, includeLibrarySights = true) {
         block.librarySights.some((selection) => selection.destination !== block.destination || selection.name !== selection.visitName))
         ? [block.librarySights.map((selection) => [selection.destination, selection.name, selection.visitName,
           destinationByName(selection.destination)?.local_sightseeing.find((sight) => sight.name === selection.name)?.client_sentence,
-          destinationByName(selection.destination)?.local_sightseeing.find((sight) => sight.name === selection.name)?.description])]
+          destinationByName(selection.destination)?.local_sightseeing.find((sight) => sight.name === selection.name)?.description,
+          ...(includeLibraryOrder ? [order.get(key(selection.destination, selection.name))] : [])])]
         : [])]),
     [...programme].filter((name) => day.primaryVisitFor?.includes(name)).map((name) => [name, destinationByName(name)?.day_note]),
     day.scheduledActivities?.map((activity) => [activity.key, destinationByName(activity.destination)?.activity_copy?.[activity.name]])]);
@@ -114,7 +119,7 @@ export function scheduleDayPlans(input: TripInput, original: DayPlan[], quote?: 
   const fixedSlots = new Map<number, { start: number; end: number }[]>();
   const normalStarts = new Map(days.map((day) => [day.day, day.timing!.startMinutes]));
   const earlyGaps = new Map<number, number>();
-  function slotFor(day: DayPlan, window: VisitWindow | undefined, minutes: number) {
+  function slotFor(day: DayPlan, window: VisitWindow | undefined, minutes: number, notBefore?: number) {
     if (!window || minutes === 0) return { start: 0, end: 0, available: 0, service: 0, fixed: false };
     const normalStart = normalStarts.get(day.day)!;
     const early = window.end <= normalStart;
@@ -124,6 +129,7 @@ export function scheduleDayPlans(input: TripInput, original: DayPlan[], quote?: 
       day.timing!.endMinutes >= window.end + day.timing!.driveMinutes + day.timing!.serviceMinutes;
     if (early && (day.day === 1 || day.transfer || day.dayTripDestination || (day.label === 'Departure day' && !localDepartureMorning))) return null;
     let start = early ? window.start : Math.max(window.start, normalStart + day.timing!.driveMinutes + day.timing!.serviceMinutes);
+    if (notBefore !== undefined) start = Math.max(start, notBefore);
     const slots = fixedSlots.get(day.day) || [];
     for (const slot of [...slots].sort((a, b) => a.start - b.start)) if (start < slot.end && start + minutes > slot.start) start = slot.end;
     const end = start + minutes;
@@ -226,7 +232,7 @@ export function scheduleDayPlans(input: TripInput, original: DayPlan[], quote?: 
       // every ordinary day is an afternoon arrival or another excursion.
       const windowCandidates = sight.time_window ? relevant.filter((day) => usable(day) &&
         slotFor(day, sight.time_window, sightCost(sight, destination, day)) !== null) : [];
-      const entry: SelectedSight = { destination, sight, candidates: windowCandidates.length ? windowCandidates : candidates,
+      const entry: SelectedSight = { destination, sight, candidates: [...new Set([...candidates, ...windowCandidates])],
         selections: [{ destination: destination.name, name: sight.name }] };
       const identity = sightIdentity(sight.name, destination.name);
       const previous = selected.get(identity);
@@ -239,81 +245,145 @@ export function scheduleDayPlans(input: TripInput, original: DayPlan[], quote?: 
       }
     }
   }
-  const entries = [...selected.values()].sort((a, b) =>
-    Number(Boolean(b.sight.time_window)) - Number(Boolean(a.sight.time_window)) ||
-    Number(b.sight.arrival_suitable === true) - Number(a.sight.arrival_suitable === true) ||
-    // Place longer visits before short fillers so the last large excursion
-    // cannot tip an otherwise balanced pair of days into a large overload.
-    (positiveMinutes(b.sight.visit_minutes, 60) + positiveMinutes(b.sight.transfer_minutes, 20)) -
-    (positiveMinutes(a.sight.visit_minutes, 60) + positiveMinutes(a.sight.transfer_minutes, 20)));
-  for (const { destination, sight, candidates, selections } of entries) {
-    const choices = candidates.map((day) => ({ day, cost: sightCost(sight, destination, day),
-      slot: slotFor(day, sight.time_window, sightCost(sight, destination, day)) }));
-    const fitsWindow = choices.filter((choice) => choice.slot !== null);
-    const windowPool = fitsWindow.length ? fitsWindow : choices;
-    // Sharing a known departure morning must not add a visit that runs into
-    // airport reporting when another visit day can retain that checked place.
-    const beforeDeparture = windowPool.filter(({ day, cost, slot }) => day.label !== 'Departure day' ||
-      day.timing!.remainingMinutes + (slot?.available || 0) - (slot?.service || 0) >= cost);
-    const pool = beforeDeparture.length ? beforeDeparture : windowPool;
+  function placementPenalty({ destination, sight, candidates }: SelectedSight, day: DayPlan, cost: number, load: number, first: boolean) {
     const hasFullVisit = candidates.some((day) => !day.transfer && day.label !== 'Departure day');
-    const score = ({ day, cost }: typeof choices[number]) => {
+    const arrival = day.transfer && day.stay === destination.name;
+    const heavyArrival = arrival && day.drive.hours >= 5;
+    const returnTransfer = day.transfer && day.from === destination.name && day.stay !== destination.name;
+    const anotherVisit = candidates.some((other) => {
+      if (other === day) return false;
+      if (!other.transfer && other.label !== 'Departure day') return true;
+      if (other.from !== destination.name) return false;
+      const mixedProgramme = other.blocks.some((block) => block.kind === 'sightseeing' && block.destination && block.destination !== destination.name) ||
+        other.scheduledActivities!.some((activity) => activity.destination !== destination.name);
+      // A return already carrying another programme is not automatically spare.
+      const spare = other.timing!.availableMinutes - other.timing!.driveMinutes - other.timing!.serviceMinutes - other.timing!.scheduledMinutes;
+      return !mixedProgramme || spare >= sightCost(sight, destination, other);
+    });
+    // These preferences choose between order-preserving partitions only.
+    const arrivalPenalty = sight.arrival_suitable === true ? 0
+      : heavyArrival && anotherVisit ? 1.5
+      : ((arrival && day.drive.hours >= 3 && anotherVisit) || (returnTransfer && hasFullVisit)) ? 0.15 : 0;
+    const shortVisitBonus = hasFullVisit && day.transfer && sight.arrival_suitable === true && first ? -0.35 : 0;
+    const nearbyBonus = arrival && sight.arrival_suitable === true && load < 100 ? -0.15 : 0;
+    const linkedBonus = cost === 0 ? -20 : 0;
+    const departurePenalty = day.label === 'Departure day' ? 0.4 : 0;
+    return (arrivalPenalty + shortVisitBonus + nearbyBonus + linkedBonus + departurePenalty) * Math.max(60, cost);
+  }
+
+  function orderedAssignments(entries: SelectedSight[]) {
+    const destination = entries[0].destination;
+    const ranks = new Map(destination.local_sightseeing.map((sight, index) => [sight.name, index]));
+    const range = (entry: SelectedSight) => entry.selections.filter((selection) => selection.destination === destination.name)
+      .map((selection) => ranks.get(selection.name)!).filter((rank) => rank !== undefined);
+    const ordered = [...entries].sort((a, b) => Math.min(...range(a)) - Math.min(...range(b)));
+    // Interleaved aliases describe one physical visit. Keep their intervening
+    // places on that same day so every source sentence can retain its order.
+    const units: { entries: SelectedSight[]; end: number }[] = [];
+    for (const entry of ordered) {
+      const positions = range(entry);
+      const previous = units.at(-1);
+      if (previous && Math.min(...positions) <= previous.end) {
+        previous.entries.push(entry); previous.end = Math.max(previous.end, ...positions);
+      } else units.push({ entries: [entry], end: Math.max(...positions) });
+    }
+    const visitDays = [...new Set(entries.flatMap((entry) => entry.candidates))].sort((a, b) => a.day - b.day);
+    let best = Array<number>(units.length + 1).fill(Infinity); best[0] = 0;
+    const boundaries: number[][] = [];
+    // Choose partition boundaries, not individual stops. The quadratic load
+    // cost balances consecutive groups while preserving chronological order.
+    for (const day of visitDays) {
+      const next = [...best];
+      const cuts = best.map((_, index) => index);
       const timing = day.timing!;
       const capacity = Math.max(30, timing.availableMinutes - timing.driveMinutes - timing.serviceMinutes);
-      const arrival = day.transfer && day.stay === destination.name;
-      const heavyArrival = arrival && day.drive.hours >= 5;
-      // Nearby places belong on a long arrival, with the full valley circuit
-      // reserved for the following visit day. The final visit still retains
-      // all selected places when there is no second day to share them with.
-      const returnTransfer = day.transfer && day.from === destination.name && day.stay !== destination.name;
-      const anotherVisit = candidates.some((other) => {
-        if (other === day) return false;
-        if (!other.transfer && other.label !== 'Departure day') return true;
-        if (other.from !== destination.name) return false;
-        const mixedProgramme = other.blocks.some((block) => block.kind === 'sightseeing' && block.destination && block.destination !== destination.name) ||
-          other.scheduledActivities!.some((activity) => activity.destination !== destination.name);
-        // A return already carrying a city circuit is not a spare destination
-        // day. It can keep an arrival light only when this visit actually fits
-        // after that existing programme; otherwise balance both transfer days.
-        const spare = other.timing!.availableMinutes - other.timing!.driveMinutes - other.timing!.serviceMinutes - other.timing!.scheduledMinutes;
-        return !mixedProgramme || spare >= sightCost(sight, destination, other);
-      });
-      // Preferences are small compared with the actual load. Previously a
-      // penalty of 10 (and 20 after two stops) forced almost an entire valley
-      // onto one day, even when the other day had hours free.
-      const arrivalPenalty = sight.arrival_suitable === true ? 0
-        : heavyArrival && anotherVisit ? 1.5
-        : ((arrival && day.drive.hours >= 3 && anotherVisit) || (returnTransfer && hasFullVisit)) ? 0.15 : 0;
-      const arrivalStops = day.blocks.filter((block) => block.kind === 'sightseeing' && block.destination === destination.name).length;
-      const shortVisitBonus = hasFullVisit && day.transfer && sight.arrival_suitable === true && arrivalStops === 0 ? -0.35 : 0;
-      const nearbyBonus = arrival && sight.arrival_suitable === true && timing.scheduledMinutes < 100 ? -0.15 : 0;
-      const linkedBonus = cost === 0 ? -20 : 0;
-      const departurePenalty = day.label === 'Departure day' ? 0.4 : 0;
-      // Marginal squared load balances occupied time in proportion to the
-      // actual visit window, including activities/custom stops already booked.
-      return (2 * timing.scheduledMinutes + cost) / capacity + arrivalPenalty + shortVisitBonus + nearbyBonus + linkedBonus + departurePenalty;
-    };
-    const chosen = [...pool].sort((a, b) => score(a) - score(b) || a.day.day - b.day.day)[0];
-    const day = chosen.day;
-    if (!usable(day)) day.timing!.advisories!.push('Checked sightseeing remains included. Review the journey and visit-time estimates for this day.');
-    if (chosen.slot) reserveSlot(day, chosen.slot);
-    else day.timing!.advisories!.push(`${sight.name} remains in the programme. Review its visit window or edit the day's wording.`);
-    const block: DayBlock = { name: sight.name, startMinute: chosen.slot?.fixed ? chosen.slot.start : undefined,
-      description: [...new Set(selections.map((selection) => destinationByName(selection.destination)?.local_sightseeing
-        .find((item) => item.name === selection.name)?.client_sentence?.trim() || `Visit ${selection.name}.`))].join(' '), destination: destination.name,
-      librarySights: selections.map((selection) => ({ ...selection, visitName: sight.name })),
-      reason: 'Selected in the destination library and assigned once across this destination’s visit days.', tags: sight.tags,
-      kind: 'sightseeing', source: destination.source, intelligence: { status: 'STANDARD', extraCost: false,
-        note: `${chosen.cost} estimated minutes including local movement; selection remains editable in the day description.` } };
-    day.blocks.push(block);
-    day.timing!.scheduledMinutes += chosen.cost;
-    updateLoad(day);
+      for (let start = 0; start < units.length; start++) {
+        if (!Number.isFinite(best[start])) continue;
+        let minutes = 0; let penalties = 0; let extraWindow = 0; let cursor: number | undefined;
+        for (let end = start; end < units.length; end++) {
+          if (units[end].entries.some((entry) => !entry.candidates.includes(day))) break;
+          for (const entry of units[end].entries) {
+            const cost = sightCost(entry.sight, destination, day);
+            const slot = slotFor(day, entry.sight.time_window, cost, cursor);
+            penalties += placementPenalty(entry, day, cost, timing.scheduledMinutes + minutes, end === start);
+            if (!slot) penalties += 10000;
+            extraWindow = Math.max(extraWindow, slot ? slot.available - slot.service : 0);
+            const visitStart = slot?.fixed ? slot.start : Math.max(cursor || 0, normalStarts.get(day.day)! + timing.driveMinutes + timing.serviceMinutes);
+            cursor = visitStart + cost;
+            minutes += cost;
+          }
+          // Never overrun airport reporting when an ordinary visit day exists.
+          if (day.label === 'Departure day' && minutes > timing.remainingMinutes + extraWindow &&
+            entries.some((entry) => entry.candidates.some((other) => other.label !== 'Departure day'))) break;
+          const load = timing.scheduledMinutes;
+          const score = best[start] + ((load + minutes) ** 2 - load ** 2) / (capacity + extraWindow) + penalties;
+          if (score < next[end + 1] - 1e-8) { next[end + 1] = score; cuts[end + 1] = start; }
+        }
+      }
+      boundaries.push(cuts); best = next;
+    }
+    if (!Number.isFinite(best[units.length])) {
+      const fallback = visitDays.find((day) => entries.every((entry) => entry.candidates.includes(day)));
+      fallback?.timing!.advisories!.push('The selected library order needs a visit-time review. All checked places remain included.');
+      return ordered.map((entry) => ({ entry, day: fallback || entry.candidates[0] }));
+    }
+    const assigned = new Map<SelectedSight, DayPlan>();
+    let count = units.length;
+    for (let index = visitDays.length - 1; index >= 0; index--) {
+      const start = boundaries[index][count];
+      for (let unit = start; unit < count; unit++) for (const entry of units[unit].entries) assigned.set(entry, visitDays[index]);
+      count = start;
+    }
+    return ordered.map((entry) => ({ entry, day: assigned.get(entry)! }));
+  }
+
+  const lastVisitEnd = new Map<number, number>();
+  for (const destination of destinations) {
+    const entries = [...selected.values()].filter((entry) => entry.destination.name === destination.name);
+    if (!entries.length) continue;
+    for (const { entry, day } of orderedAssignments(entries)) {
+      const { sight, selections } = entry;
+      const cost = sightCost(sight, destination, day);
+      const slot = slotFor(day, sight.time_window, cost, lastVisitEnd.get(day.day));
+      if (!usable(day)) day.timing!.advisories!.push('Checked sightseeing remains included. Review the journey and visit-time estimates for this day.');
+      if (slot) reserveSlot(day, slot);
+      else day.timing!.advisories!.push(`${sight.name} remains in library order. Review its visit window or edit the day's wording.`);
+      const visitStart = slot?.fixed ? slot.start : Math.max(lastVisitEnd.get(day.day) || 0,
+        normalStarts.get(day.day)! + day.timing!.driveMinutes + day.timing!.serviceMinutes);
+      lastVisitEnd.set(day.day, visitStart + cost);
+      const block: DayBlock = { name: sight.name, startMinute: slot?.fixed ? slot.start : undefined,
+        description: [...new Set(selections.map((selection) => destinationByName(selection.destination)?.local_sightseeing
+          .find((item) => item.name === selection.name)?.client_sentence?.trim() || `Visit ${selection.name}.`))].join(' '), destination: destination.name,
+        librarySights: selections.map((selection) => ({ ...selection, visitName: sight.name })),
+        reason: 'Selected in the destination library and assigned once across this destination’s visit days.', tags: sight.tags,
+        kind: 'sightseeing', source: destination.source, intelligence: { status: 'STANDARD', extraCost: false,
+          note: `${cost} estimated minutes including local movement; selection remains editable in the day description.` } };
+      day.blocks.push(block);
+      day.timing!.scheduledMinutes += cost;
+      updateLoad(day);
+    }
+  }
+  // Two overlapping guides can prescribe incompatible sequences for the same
+  // physical visit. Do not repeat that visit or invent a new route to conceal
+  // the conflict; keep its explicit excursion owner and flag it for review.
+  for (const destination of destinations) {
+    const checked = new Set(enabledSightseeing(destination));
+    let previous: { day: DayPlan; name: string } | undefined;
+    for (const sight of destination.local_sightseeing.filter((sight) => checked.has(sight.name))) {
+      const day = days.find((day) => day.blocks.some((block) => block.librarySights?.some((source) => source.destination === destination.name && source.name === sight.name)));
+      if (!day) continue;
+      if (previous && day.day < previous.day.day) {
+        const message = `${destination.name} library order conflicts with a shared visit: ${previous.name} is on day ${previous.day.day}, before ${sight.name} in the library. Review the library order or visit days.`;
+        previous.day.timing!.advisories!.push(message); day.timing!.advisories!.push(message);
+      }
+      previous = { day, name: sight.name };
+    }
   }
   for (const day of days) {
     const timing = day.timing!;
     if (timing.overrunMinutes) timing.advisories!.push('All selected places are included. Review the estimated visit durations or refine the description to match your preferred pace.');
     day.blocks.sort((a, b) => {
-      const rank = (block: DayBlock) => block.kind === 'arrival' ? -2 : block.startMinute !== undefined && block.startMinute < normalStarts.get(day.day)! ? -1 : 0;
+      const rank = (block: DayBlock) => block.kind === 'arrival' ? -1 : 0;
       return rank(a) - rank(b);
     });
     if (day.dayTripDestination) {
@@ -357,7 +427,16 @@ export function scheduleDayPlans(input: TripInput, original: DayPlan[], quote?: 
       !previous.blocks.some((block) => block.librarySights) &&
       previous.customAboutContext === dayScheduleContext(previous, false) &&
       dayScheduleContext(previous, false) === dayScheduleContext(day, false);
-    const changed = !legacyManual && (previous.customAboutContext || dayScheduleContext(previous)) !== context;
+    const previousSources = previous.blocks.flatMap((block) => block.librarySights || []);
+    const sourcesStillOrdered = destinations.every((destination) => {
+      const names = destination.local_sightseeing.map((sight) => sight.name);
+      const ranks = previousSources.filter((source) => source.destination === destination.name).map((source) => names.indexOf(source.name));
+      return ranks.every((rank, index) => rank >= 0 && (!index || rank >= ranks[index - 1]));
+    });
+    const legacyOrderContext = previous.customAbout?.trim() && !obsoleteCopy && sourcesStillOrdered &&
+      previous.customAboutContext === dayScheduleContext(previous, true, false) &&
+      dayScheduleContext(previous, true, false) === dayScheduleContext(day, true, false);
+    const changed = !legacyManual && !legacyOrderContext && (previous.customAboutContext || dayScheduleContext(previous)) !== context;
     return { ...day,
       timing: { ...day.timing!, issues: !changed && previous.customAbout?.trim() ? day.timing!.issues.filter((issue) => !issue.includes('the selected programme needs a visit day')) : day.timing!.issues },
       customAbout: changed ? undefined : previous.customAbout,

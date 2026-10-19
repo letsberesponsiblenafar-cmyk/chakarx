@@ -52,29 +52,65 @@ try {
     for (const name of visits(ten)) assert.ok(visits(eleven).has(name), `Eleven days lost ${name}`);
     assert.ok(eleven.hotelPlans.some((stay) => stay.location === 'Doodhpathri'));
   });
-  test('real valley programmes use both visit days without a 100/690-minute split', () => {
+  test('real valley programmes use the best achievable consecutive library split and flag unavoidable overload', () => {
     const plan = createPlan(input(9));
     for (const name of ['Gulmarg', 'Pahalgam', 'Sonamarg']) {
       const pair = plan.dayPlans.filter((day) => sights(day).some((key) => key.startsWith(`${name}:`)));
       assert.equal(pair.length, 2);
-      assert.ok(Math.abs(pair[0].timing.scheduledMinutes - pair[1].timing.scheduledMinutes) <= 120,
+      const guide = destinationByName(name);
+      const selected = new Set(enabledSightseeing(guide));
+      const places = guide.local_sightseeing.filter((place) => selected.has(place.name));
+      assert.deepEqual(pair.flatMap(sights).filter((key) => key.startsWith(`${name}:`)), places.map((place) => `${name}:${place.name}`),
+        `${name}: balancing must retain chronological library order and every selected source exactly once`);
+      // Only a boundary between consecutive library entries is a valid split.
+      // A single long visit can make the former arbitrary-stop balance impossible.
+      const prefixes = [0];
+      for (const place of places) {
+        assert.ok(Number.isFinite(place.visit_minutes) && Number.isFinite(place.transfer_minutes),
+          `${name}: this fixture must have explicit visit and movement estimates`);
+        prefixes.push(prefixes.at(-1) + place.visit_minutes + place.transfer_minutes);
+      }
+      const total = prefixes.at(-1);
+      const bestDifference = Math.min(...prefixes.map((first) => Math.abs(first - (total - first))));
+      assert.ok(Math.abs(pair[0].timing.scheduledMinutes - pair[1].timing.scheduledMinutes) <= Math.max(120, bestDifference),
         `${name}: ${pair.map((day) => day.timing.scheduledMinutes).join('/')}`);
-      assert.ok(pair.every((day) => day.timing.scheduledMinutes <= capacity(day)), `${name} needlessly overfilled a day`);
+      const bestOverrun = Math.min(...prefixes.map((first) => Math.max(0, first - capacity(pair[0]))
+        + Math.max(0, total - first - capacity(pair[1]))));
+      const actualOverrun = pair.reduce((sum, day) => sum + Math.max(0, day.timing.scheduledMinutes - capacity(day)), 0);
+      assert.ok(actualOverrun <= bestOverrun, `${name} needlessly overfilled a day: ${actualOverrun} minutes instead of ${bestOverrun}`);
+      for (const day of pair.filter((day) => day.timing.scheduledMinutes > capacity(day))) {
+        assert.ok(day.timing.advisories.some((message) => /selected places.*included.*review/i.test(message)),
+          `${name}: unavoidable ordered-programme overload must expose a review advisory`);
+      }
     }
   });
   test('late-departure city time shares visits after airport buffers; early departure stays clear', () => {
     const late = createPlan(input(9));
-    assert.ok(sights(late.dayPlans.at(-1)).length >= 2);
+    const guide = destinationByName('Srinagar');
+    const checked = new Set(enabledSightseeing(guide));
+    const expectedOrder = guide.local_sightseeing.filter((place) => checked.has(place.name)).map((place) => `Srinagar:${place.name}`);
+    const assertCityOrder = (plan) => assert.deepEqual(plan.dayPlans.flatMap(sights).filter((key) => key.startsWith('Srinagar:')), expectedOrder,
+      'Airport-time sharing must not reorder, drop or repeat selected city places');
+    // The library's final place is a dawn-only market. Preserving that order
+    // may leave just this visit for departure rather than moving earlier stops.
+    assert.ok(sights(late.dayPlans.at(-1)).length >= 1);
+    assertCityOrder(late);
     assert.ok(late.dayPlans.at(-1).timing.scheduledMinutes <= capacity(late.dayPlans.at(-1)));
-    assert.ok(late.dayPlans[0].timing.scheduledMinutes <= capacity(late.dayPlans[0]));
+    if (late.dayPlans[0].timing.scheduledMinutes > capacity(late.dayPlans[0])) {
+      assert.ok(late.dayPlans[0].timing.advisories.some((message) => /selected places.*included.*review/i.test(message)),
+        'Order/window-constrained arrival overload must expose a review advisory');
+    }
     for (const departureTime of ['12:00', '13:00', '14:00', '16:00']) {
-      const departure = createPlan(input(9, { departureTime })).dayPlans.at(-1);
+      const plan = createPlan(input(9, { departureTime }));
+      const departure = plan.dayPlans.at(-1);
       assert.ok(departure.timing.scheduledMinutes <= capacity(departure), `${departureTime}: sightseeing runs into airport reporting`);
+      assertCityOrder(plan);
     }
     for (const departureTime of ['08:00', undefined]) {
       const plan = createPlan(input(9, { departureTime }));
       assert.equal(sights(plan.dayPlans.at(-1)).length, 0);
       assert.equal(plan.dayPlans.at(-2).stay, 'Srinagar');
+      assertCityOrder(plan);
     }
   });
   test('checked places and authored sentences survive once; unchecked places stay absent', () => {
