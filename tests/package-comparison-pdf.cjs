@@ -19,6 +19,12 @@ const NativeJsPDF = jspdf.jsPDF;
 jspdf.jsPDF = function InspectedJsPDF(options) {
   const doc = new NativeJsPDF(options);
   doc.drawnText = [];
+  doc.drawnRects = [];
+  const rect = doc.rect;
+  doc.rect = function (x, y, width, height, style) {
+    doc.drawnRects.push({ page: doc.internal.getCurrentPageInfo().pageNumber, x, y, width, height, style });
+    return rect.call(this, x, y, width, height, style);
+  };
   const text = doc.text;
   doc.text = function (value, x, y, ...args) {
     const lines = Array.isArray(value) ? value : [String(value)];
@@ -64,12 +70,22 @@ function build(comparison) {
   doc.overlayBytes=doc.output('arraybuffer');
   return doc;
 }
-const docs = [['two-packages', build(quotes.slice(0,2))], ['three-packages', build(quotes)]];
+const fourQuotes = [...quotes, { ...quotes[2], category: 'Elite',
+  input: { ...quotes[2].input, hotelCategory: 'Elite', packagePreferences: ['Elite'] },
+  selections: quotes[2].selections.map((hotel) => ({ ...hotel, hotelName: `Elite ${hotel.location} Heritage Hotel`, category: 'Elite' })) }];
+const docs = [['two-packages', build(quotes.slice(0,2)), quotes.slice(0,2)], ['three-packages', build(quotes), quotes],
+  ['four-packages', build(fourQuotes), fourQuotes]];
 const longQuotes = quotes.map((quote, index) => ({ ...quote, selections: quote.selections.map((hotel, hotelIndex) => ({ ...hotel,
   hotelName: hotelIndex === 0 && index === 1 ? `${'Grand Heritage Garden Residence and Riverside Mountain View Suites '.repeat(38)}Complete Property Name` : hotel.hotelName })) }));
-docs.push(['long-package-hotels', build(longQuotes)]);
-for (const [name, doc] of docs) {
-  const expected = name === 'two-packages' ? quotes.slice(0,2) : name === 'long-package-hotels' ? longQuotes : quotes;
+const longLocation = 'Wilderness Mountain Wildlife Sanctuary and Mountain Wilderness Conservation Heritage Resort Area';
+const originalLocation = plan.hotelPlans[0].location;
+const longLocationQuotes = quotes.map((quote) => ({ ...quote,
+  plan: { ...quote.plan,
+    hotelPlans: quote.plan.hotelPlans.map((stay) => stay.location === originalLocation ? { ...stay, location: longLocation } : stay),
+    dayPlans: quote.plan.dayPlans.map((day) => day.stay === originalLocation ? { ...day, stay: longLocation } : day) },
+  selections: quote.selections.map((hotel) => hotel.location === originalLocation ? { ...hotel, location: longLocation, hotelName: 'Hotel A' } : hotel) }));
+docs.push(['long-package-hotels', build(longQuotes), longQuotes], ['long-package-destinations', build(longLocationQuotes), longLocationQuotes]);
+for (const [name, doc, expected] of docs) {
   const artPages = pdf.clientPdfArtwork(doc);
   const packagePages = artPages.flatMap((page,index) => page.comparison && page.key === 'package' ? [index+1] : []);
   const hotelPages = artPages.flatMap((page,index) => page.comparison && page.key === 'hotels0' ? [index+1] : []);
@@ -82,15 +98,24 @@ for (const [name, doc] of docs) {
   }
   assert.ok(!investmentText.includes(`Rs. ${Math.round(expected.reduce((sum,quote) => sum+quote.costs.sellingTotal,0)).toLocaleString('en-IN')}/-`), 'Alternative packages must never be added into one client total.');
   const hotelText = doc.drawnText.filter((entry) => hotelPages.includes(entry.page) && entry.y < 750);
-  expected.forEach((quote,index) => {
-    const columnX=35+122+(index+0.5)*(540-70-122)/expected.length;
-    const flattened=hotelText.filter((entry)=>entry.x===columnX && entry.size===9.6).flatMap((entry)=>entry.lines).join(' ').replace(/\s+/g,' ');
+  expected.forEach((quote) => {
+    const headings = hotelText.filter((entry) => entry.size === 10.5 && entry.lines.join(' ') === quote.category);
+    assert.ok(headings.length, `${name}: Every category must retain its own hotel-comparison column.`);
+    const flattened=hotelText.filter((entry)=>entry.size===9.6 && headings.some((heading) => entry.page === heading.page && entry.x === heading.x)).flatMap((entry)=>entry.lines).join(' ').replace(/\s+/g,' ');
     for (const hotel of quote.selections) assert.ok(flattened.includes(hotel.hotelName.replace(/\s+/g,' ').trim()), `${name}: Every property name must be retained in full.`);
   });
   for (const entry of hotelText) {
     assert.ok(entry.y >= 190 && entry.y + (entry.lines.length-1)*entry.size*1.2 <= 727, `${name}: Comparison text must remain above the footer.`);
-    const maxWidth = entry.x === 96 ? 104 : (540-70-122)/expected.length-15;
+    const columnCount = hotelText.filter((header) => header.page === entry.page && header.size === 10.5 && header.lines.join(' ') !== 'Destination').length;
+    const maxWidth = entry.x === 96 ? 104 : (540-70-122)/columnCount-15;
     assert.ok(entry.widths.every((width) => width <= maxWidth+1), `${name}: Comparison text must fit its column.`);
+    if (entry.x === 96 && entry.size === 10) {
+      const center = entry.y + (entry.lines.length-1)*12/2 - 3;
+      const row = doc.drawnRects.find((rect) => rect.page === entry.page && rect.x === 35 && rect.width === 122 && !rect.style && Math.abs(rect.y+rect.height/2-center) < 0.01);
+      assert.ok(row, `${name}: Each destination label must belong to a table row.`);
+      assert.ok(entry.y-entry.size*0.8 >= row.y+8 && entry.y+(entry.lines.length-1)*12 <= row.y+row.height-8,
+        `${name}: Destination text and nights must stay inside their row with padding.`);
+    }
   }
   if (name === 'long-package-hotels') {
     assert.ok(hotelPages.length > 1, 'Long names must continue on another hotel page.');
@@ -131,6 +156,6 @@ async function main() {
     assert.match(extracted, /Signature Plus/);
     assert.doesNotMatch(extracted, /Dear Asna|Hotel Star of Kashmir|PROVISIONAL/);
   }
-  console.log('PASS multi-package client PDF: 2/3 independent investments, scoped hotels/vehicles, complete long-name pagination, native artwork, real review preview and readiness lock.');
+  console.log('PASS multi-package client PDF: 2/3/4 independent investments, scoped hotels/vehicles, complete long-name pagination, padded destination rows, native artwork, real review preview and readiness lock.');
 }
 main().catch((error) => { console.error(error); process.exitCode = 1; });

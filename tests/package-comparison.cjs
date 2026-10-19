@@ -116,6 +116,21 @@ check('promoting an existing package retains its hotels, total and optional vehi
   assert.equal(total(promoted, 'Signature Premium').sellingTotal, otherExpected);
   assert.equal(packageView(promoted, 'Signature Premium').input.transport, 'Sedan');
 });
+check('reordering packages with the same default keeps vehicle inheritance', () => {
+  const promoted = generatePlannerState(fixture(), { packagePreferences: ['Signature Plus', 'Signature Premium'], hotelCategory: 'Signature Plus' });
+  assert.equal(promoted.packageQuotes['Signature Premium'].transport, undefined);
+  const changed = { ...promoted, input: { ...promoted.input, transport: 'Ertiga' },
+    costModel: { ...promoted.costModel, transportDaily: 5678, transportIsCustom: true } };
+  for (const category of ['Signature Plus', 'Signature Premium']) {
+    assert.equal(packageView(changed, category).input.transport, 'Ertiga');
+    assert.equal(packageView(changed, category).costModel.transportDaily, 5678);
+  }
+  const restored = generatePlannerState(changed, { packagePreferences: categories, hotelCategory: 'Signature' });
+  for (const category of categories) {
+    assert.equal(packageView(restored, category).input.transport, 'Ertiga');
+    assert.equal(packageView(restored, category).costModel.transportDaily, 5678);
+  }
+});
 check('a legacy single-category change preserves the existing supplier agreement', () => {
   let state = fixture(['Signature']);
   delete state.input.packagePreferences; delete state.plan.input.packagePreferences;
@@ -123,6 +138,21 @@ check('a legacy single-category change preserves the existing supplier agreement
   const expected = state.hotelSelections.map((hotel) => [hotel.hotelName, hotel.nightlyRate]);
   const changed = generatePlannerState(state, { hotelCategory: 'Signature Plus' });
   assert.deepEqual(changed.hotelSelections.map((hotel) => [hotel.hotelName, hotel.nightlyRate]), expected);
+});
+check('reordering verified packages keeps confirmations while real brief changes invalidate them', () => {
+  let state = fixture();
+  for (const category of categories) state = updatePackageInState(state, category, (view) => ({ ...view,
+    hotelSelections: view.hotelSelections.map((hotel) => ({ ...hotel, rateConfirmed: true,
+      confirmedSignature: hotelConfirmationSignature(view.plan, hotel, view.input.mealPlan) })) }));
+  const promoted = generatePlannerState(state, { packagePreferences: ['Signature Plus', 'Signature Premium'], hotelCategory: 'Signature Plus' });
+  for (const category of ['Signature Plus', 'Signature Premium']) {
+    assert.ok(packageView(promoted, category).hotelSelections.every((hotel) => hotel.rateConfirmed));
+  }
+  assert.ok(!packageQuoteReadiness(promoted, 'ready', 'ready').some((issue) => /Verify the/.test(issue)));
+  for (const patch of [{ adults: 3 }, { mealPlan: 'Breakfast Only' }, { arrival: '2026-11-02', departure: '2026-11-07' }, { hotelOptionMode: 'multiple' }]) {
+    const changed = generatePlannerState(promoted, patch);
+    for (const category of ['Signature Plus', 'Signature Premium']) assert.ok(packageView(changed, category).hotelSelections.every((hotel) => !hotel.rateConfirmed), JSON.stringify(patch));
+  }
 });
 check('saved snapshots preserve the comparison and restore single quotes without stale package data', () => {
   const state = fixture(); const snapshot = JSON.parse(JSON.stringify(itinerarySnapshot(state)));
@@ -139,6 +169,8 @@ check('all selected packages must be verified before sharing, without requiring 
       confirmedSignature: hotelConfirmationSignature(view.plan, hotel, view.input.mealPlan) })) }));
   const issues = packageQuoteReadiness(state, 'ready', 'ready');
   assert.ok(!issues.some((issue) => /Verify the|vehicle|positive room rate/.test(issue)), issues.join('\n'));
+  const changedPreferences = { ...state, input: { ...state.input, packagePreferences: ['Signature', 'Signature Premium'] } };
+  assert.ok(packageQuoteReadiness(changedPreferences, 'ready', 'ready').includes('Rebuild the itinerary after changing trip details.'));
   state = updatePackageInState(state, 'Signature Premium', (view) => ({ ...view,
     hotelSelections: view.hotelSelections.map((hotel, i) => i ? hotel : { ...hotel, rateConfirmed: false }) }));
   assert.ok(packageQuoteReadiness(state, 'ready', 'ready').some((issue) => /^Signature Premium: Verify/.test(issue)));

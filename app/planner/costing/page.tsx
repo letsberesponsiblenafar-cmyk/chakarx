@@ -8,7 +8,7 @@ import PlannerChrome from '@/components/PlannerChrome';
 import { PackagePlanner, usePlanner } from '@/components/PlannerProvider';
 import { calculateCosts } from '@/lib/costing';
 import { quotedActivityCost, tripActivities } from '@/lib/activities';
-import { quoteReadiness } from '@/lib/quote-readiness';
+import { packageQuoteReadiness, quoteReadiness } from '@/lib/quote-readiness';
 import { activeHotelSelections, hotelNightNumbers, hotelSelectionKey, hotelStayLabel } from '@/lib/accommodation';
 import { effectiveHotelSelection } from '@/lib/hotel-options';
 import { packageCategories, packageView } from '@/lib/package-quotes';
@@ -45,7 +45,7 @@ function QuoteNumberInput({ id, label, value, onChange, max, percent = false }: 
 
 export default function CostingPage() {
   const planner = usePlanner();
-  const { plan, hotelSelections, costModel, input, hydrated, destinationConnection, hotelDatabase, hotelConnection } = planner;
+  const { plan, hotelSelections, costModel, input, hydrated, destinationConnection, hotelConnection } = planner;
   const costs = useMemo(() => plan ? calculateCosts(plan, hotelSelections, costModel) : null, [plan, hotelSelections, costModel]);
   const categories = packageCategories(input);
 
@@ -55,10 +55,7 @@ export default function CostingPage() {
 
   if (categories.length === 1) return <AppShell><PlannerChrome title="Trip costing" eyebrow="STEP 05 · COSTING"><QuoteEditor/></PlannerChrome></AppShell>;
 
-  const issues = categories.flatMap((category) => {
-    const quote = packageView(planner, category);
-    return quote.plan ? quoteReadiness(quote.plan, quote.input, quote.hotelSelections, quote.costModel, hotelDatabase, hotelConnection, destinationConnection).map((issue) => `${category}: ${issue}`) : [];
-  });
+  const issues = packageQuoteReadiness(planner, hotelConnection, destinationConnection);
 
   return <AppShell><PlannerChrome title="Trip costing" eyebrow="STEP 05 · COSTING">
     <div className="costing-workspace cq-package-workspace">

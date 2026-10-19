@@ -219,12 +219,12 @@ function addHotelComparison(doc: jsPDF, data: PdfArt, quotes: readonly ClientPdf
       const hotel=hotels.find(Boolean)!;
       const nights=[...new Set(hotels.filter((entry):entry is PdfHotel=>Boolean(entry)).map((entry)=>entry.nights))];
       const labels=hotels.map((entry,index)=>textLines(doc,entry ? `${pdfHotelName(entry,group[index].input)}${nights.length>1?` (${entry.nights} nights)`:''}` : 'Not included',valueWidth-16,size));
+      const locationLines=textLines(doc,pdfHotelLocation(columns.flat(),hotel),labelWidth-18,10);
       const segments=Math.max(...labels.map((lines)=>Math.ceil(lines.length/30)),1);
       for(let segment=0;segment<segments;segment++) {
         const lines=labels.map((value)=>value.slice(segment*30,(segment+1)*30));
-        const height=Math.max(80,...lines.map((value)=>value.length*lineHeight+24));
+        const height=Math.max(80,(locationLines.length+1)*12+24,...lines.map((value)=>value.length*lineHeight+24));
         if(y+height>726) newPage();
-        const locationLines=textLines(doc,pdfHotelLocation(columns.flat(),hotel),labelWidth-18,10.5,true);
         comparisonCell(doc,[...locationLines,segment>0?'Continued':nights.length===1?`${nights[0]} night${nights[0]===1?'':'s'}`:'Nights by package'],left,y,labelWidth,height,{size:10});
         lines.forEach((value,index)=>comparisonCell(doc,value,left+labelWidth+index*valueWidth,y,valueWidth,height,{size}));
         y+=height;

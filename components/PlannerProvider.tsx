@@ -408,16 +408,24 @@ function promotePackage(state: PlannerState, category: string): PlannerState {
   if (!state.plan || state.plan.input.hotelCategory === category || !state.packageQuotes?.[category]) return state;
   const target = packageView(state, category);
   const snapshots: Record<string, PackageQuote> = { ...state.packageQuotes };
-  // Pin effective vehicle agreements before changing the default package. An
-  // inheriting quote must not suddenly acquire another option's premium van.
+  // Pin inherited vehicles only if the promoted package changes the default.
+  // Reordering equal defaults must not silently create optional vehicles.
+  const defaultChanged = target.input.transport !== state.input.transport ||
+    target.costModel.transportDaily !== state.costModel.transportDaily ||
+    Boolean(target.costModel.transportIsCustom) !== Boolean(state.costModel.transportIsCustom);
   for (const previousCategory of packageCategories(state.plan.input)) {
     const previous = packageView(state, previousCategory);
-    snapshots[previousCategory] = { hotelSelections: previous.hotelSelections, transport: previous.input.transport,
+    const pinTransport = defaultChanged || state.packageQuotes?.[previousCategory]?.transport !== undefined;
+    snapshots[previousCategory] = { hotelSelections: previous.hotelSelections,
+      ...(pinTransport ? { transport: previous.input.transport } : {}),
       costOverrides: { profitPct: previous.costModel.profitPct, otherAmount: previous.costModel.otherAmount,
-        transportDaily: previous.costModel.transportDaily, transportIsCustom: previous.costModel.transportIsCustom } };
+        ...(pinTransport ? { transportDaily: previous.costModel.transportDaily, transportIsCustom: previous.costModel.transportIsCustom } : {}) } };
   }
   delete snapshots[category];
   return { ...state, hotelSelections: target.hotelSelections, costModel: target.costModel, packageQuotes: snapshots,
+    // Compare the promoted quote with its own previous category and dates.
+    // A different position in the comparison is not a changed supplier quote.
+    plan: { ...state.plan, input: { ...state.plan.input, hotelCategory: category, transport: target.input.transport } },
     input: { ...state.input, transport: target.input.transport } };
 }
 
