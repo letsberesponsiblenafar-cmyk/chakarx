@@ -76,6 +76,7 @@ function clauseIdentities(value: string, catalog: Destination[], destination?: s
 }
 
 export function clientActivityLists(plan: Plan, costs: Record<string, number>, selections: Record<string, boolean> = {}, manualInclusions: string[] = [], manualExclusions: string[] = [], catalog: Destination[] = destinations, packageDefaults: PackageDefaults = initialPackageDefaults()) {
+  if (plan.referenceMode === 'saved' && plan.packageDefaultsSnapshot) packageDefaults = plan.packageDefaultsSnapshot;
   catalog = planDestinations(plan, catalog);
   const included: string[] = [];
   const excluded: string[] = [];

@@ -9,7 +9,7 @@ function referencedNames(plan: Pick<Plan, 'dayPlans'>) {
   ].filter((name): name is string => Boolean(name))));
 }
 
-/** Active library edits win; removed guides survive only in their old quotes. */
+/** Drafts follow the library; saved trips retain the reference data they saved. */
 export function planDestinations(plan: Plan, catalog: Destination[] = destinations): Destination[] {
   const byName = new Map(catalog.map((destination) => [destination.name, destination]));
   const referenced = referencedNames(plan);
@@ -17,15 +17,27 @@ export function planDestinations(plan: Plan, catalog: Destination[] = destinatio
   const fallback = plan.destinationSnapshot === undefined
     ? [...(plan.stays || []).flatMap((stay) => stay.destination ? [stay.destination] : []), ...archivedDestinationCatalog()]
     : plan.destinationSnapshot;
+  if (plan.referenceMode === 'saved') {
+    // Do not substitute today's guide for missing historical information.
+    for (const name of referenced) byName.delete(name);
+    for (const destination of fallback) if (referenced.has(destination.name)) byName.set(destination.name, destination);
+    return [...byName.values()];
+  }
   for (const destination of fallback) if (referenced.has(destination.name) && !byName.has(destination.name)) {
     byName.set(destination.name, { ...destination, library_archived: true });
   }
   return [...byName.values()];
 }
 
-export function snapshotPlanDestinations(plan: Plan) {
+export function snapshotPlanDestinations(plan: Plan, includeNewChoices = false) {
   const referenced = referencedNames(plan);
-  return planDestinations(plan).filter((destination) => referenced.has(destination.name)).map((destination) =>
+  const catalog = planDestinations(plan);
+  // Choosing a new place is a deliberate edit, not a refresh of existing guides.
+  if (includeNewChoices && plan.referenceMode === 'saved') {
+    const captured = new Set(catalog.map((destination) => destination.name));
+    for (const destination of destinations) if (referenced.has(destination.name) && !captured.has(destination.name)) catalog.push(destination);
+  }
+  return catalog.filter((destination) => referenced.has(destination.name)).map((destination) =>
     JSON.parse(JSON.stringify(destination)) as Destination);
 }
 

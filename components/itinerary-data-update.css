@@ -1,0 +1,8 @@
+.itinerary-data-update{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 18px;margin:0 0 20px;border:1px solid var(--line,#dce7df);border-radius:16px;background:var(--panel,#fff)}
+.itinerary-data-update>div>span{font-size:12px;font-weight:700;color:var(--muted,#617468)}
+.itinerary-data-update p{margin:3px 0 0;font-size:13px;line-height:1.5}
+.itinerary-data-update .secondary-link{display:inline-flex;align-items:center;justify-content:center;gap:7px;white-space:normal;font-size:12px;padding:9px 12px;min-height:38px}
+.itinerary-data-update .secondary-link:disabled{opacity:.65;cursor:wait}
+.itinerary-data-update .itinerary-data-result{flex-basis:100%;margin:0;color:var(--green,#23754b)}
+.itinerary-data-update .itinerary-data-result.error{color:#a13131}
+@media(max-width:480px){.itinerary-data-update{padding:12px 14px}.itinerary-data-update .secondary-link{width:100%}}

@@ -4,7 +4,7 @@ import { createPlan, reschedulePlan, retargetDay, rebuildPlanFromNightSequence, 
 import { editTripPlan, removeTripDay } from '@/lib/trip-edits';
 import { tripActivityDestinations } from '@/lib/activities';
 import { departureForNights } from '@/lib/trip-dates';
-import { hotelDatabase as importedHotels, hotelCategories, mealOptions, transportOptions, travelStyles, interests, destinations, destinationByName, replaceDestinationCatalog, replaceArchivedDestinationCatalog, archivedDestinationCatalog, type Destination, type Hotel } from '@/lib/data';
+import { hotelDatabase as importedHotels, hotelCategories, mealOptions, transportOptions, travelStyles, interests, destinations, destinationByName, replaceDestinationCatalog, replaceArchivedDestinationCatalog, archivedDestinationCatalog, withDestinationCatalog, type Destination, type Hotel } from '@/lib/data';
 import { firstHotelCandidate, roomsRequired, cnbChildren, extraBedsRequired, matchesPackageCategory, suggestedHotel, isHouseboatHotel, sameHotelDestination } from '@/lib/hotels';
 import { stayDateWindow } from '@/lib/hotel-rate-validity';
 import { hotelSelectionKey, hotelStayType, hotelNightDates, type AccommodationType } from '@/lib/accommodation';
@@ -15,6 +15,7 @@ import { allHotelOptionsCustom, highestCompleteHotelRates, sharedCustomHotelRate
 import { hotelConfirmationSignature } from '@/lib/quote-readiness';
 import { packageCategories, packageView, validPackageQuotes, type PackageQuote } from '@/lib/package-quotes';
 import { observeDestinationFreshness } from '@/lib/destination-freshness';
+import { freezePlannerState, savedHotelMaster } from '@/lib/saved-plan-data';
 
 export type HotelSelection = {
   location: string; hotelId: string; hotelName: string; category: string; starRating: number | null; address: string; roomType: string; website: string;
@@ -28,7 +29,8 @@ export type CostModel = { transportDaily: number; transportIsCustom: boolean; me
 export type HotelDefaults = { rooms: number; extraBeds: number; cnb: number; nightlyRate: number; extraBedRate: number; cnbRate: number };
 export type PlannerState = { input: TripInput; plan: Plan | null; routeVersion: string | null; hotelSelections: HotelSelection[]; packageQuotes?: Record<string, PackageQuote>; hotelDatabase: Hotel[]; costModel: CostModel; hotelDefaults: HotelDefaults; generated: boolean; savedItineraryId: string | null };
 export type ItinerarySnapshot = Omit<PlannerState, 'hotelDatabase' | 'savedItineraryId'>;
-export function itinerarySnapshot(state: PlannerState): ItinerarySnapshot {
+export function itinerarySnapshot(state: PlannerState, defaults?: PackageDefaults): ItinerarySnapshot {
+  state = freezePlannerState(state, defaults);
   return { input: state.input, plan: state.plan, routeVersion: state.routeVersion, hotelSelections: state.hotelSelections, ...(state.packageQuotes ? { packageQuotes: state.packageQuotes } : {}), costModel: state.costModel, hotelDefaults: state.hotelDefaults, generated: state.generated };
 }
 
@@ -43,6 +45,8 @@ type PlannerContextValue = PlannerState & {
   destinationRefreshing: boolean;
   /** True only when this request applied a confirmed, current catalogue. */
   refreshDestinations: (rebuildCurrent?: boolean, options?: { background?: boolean }) => Promise<boolean>;
+  updateItineraryToCurrentData: () => Promise<void>;
+  updatingItineraryData: boolean;
   removeDestinationFromLibrary: (destination: Destination) => void;
   packageDefaults: PackageDefaults;
   packageDefaultsConnection: 'loading' | 'ready' | 'error';
@@ -106,7 +110,7 @@ function readState(): PlannerState {
     if (raw) {
       const x = JSON.parse(raw);
       delete x.paymentPlan;
-      return {
+      const restored = {
         ...x,
         packageQuotes: validPackageQuotes(x.packageQuotes) ? x.packageQuotes : undefined,
         routeVersion: typeof x.routeVersion === 'string' ? x.routeVersion : null,
@@ -117,6 +121,7 @@ function readState(): PlannerState {
         generated: Boolean(x.generated),
         savedItineraryId: typeof x.savedItineraryId === 'string' ? x.savedItineraryId : null,
       } as PlannerState;
+      return restored.savedItineraryId ? freezePlannerState(restored, undefined, true) : restored;
     }
   } catch { /* fall back to clean state */ }
   return { input: { ...defaultInput, arrival: safeDatePlus(7), departure: safeDatePlus(14) }, plan: null, routeVersion: null, hotelSelections: [], hotelDatabase: importedHotels, costModel: { ...defaultCost }, hotelDefaults: { ...defaultHotelDefaults }, generated: false, savedItineraryId: null };
@@ -151,6 +156,7 @@ function selectedProperty(hotel?: HotelSelection) {
 
 /** Keep chosen supplier quotes stable; suggest only the missing option slots. */
 export function populateHotelOptions(plan: Plan, hotel: HotelSelection, db: Hotel[], input: TripInput): HotelSelection {
+  if (plan.referenceMode === 'saved') return hotel;
   if ((plan.input ? plan.input.hotelOptionMode : input.hotelOptionMode) !== 'multiple' || !hotel.nights || !selectedProperty(hotel)) return hotel;
   const cached = Array.isArray(hotel.alternatives) ? hotel.alternatives : [];
   const customCategory = hotelOptionCategory(hotel, db) || input.hotelCategory;
@@ -435,7 +441,7 @@ function promotePackage(state: PlannerState, category: string): PlannerState {
 function stateWithScheduledPlan(state: PlannerState, plan: Plan | null): PlannerState {
   if (!plan) return { ...state, plan };
   const previousPlan = state.plan;
-  const hotelSelections = syncHotelSelections(plan, state.hotelSelections, state.hotelDatabase, plan.input).map((hotel) => {
+  const hotelSelections = syncHotelSelections(plan, state.hotelSelections, savedHotelMaster(plan, state.hotelDatabase), plan.input).map((hotel) => {
     const existing = state.hotelSelections.find((item) => hotelSelectionKey(item) === hotelSelectionKey(hotel));
     if (existing && previousPlan) {
       const unchanged = existing.nights === hotel.nights && previousPlan.input.mealPlan === plan.input.mealPlan && previousPlan.input.hotelCategory === plan.input.hotelCategory &&
@@ -482,12 +488,37 @@ export function generatePlannerState(state: PlannerState, overrides: Partial<Tri
 
 /** Keep the route and hotel quote together when restoring or normalising a draft. */
 export function reconcilePlannerState(state: PlannerState): PlannerState {
+  if (state.plan?.referenceMode === 'saved') return state;
   return state.plan ? applyPlanEdit(state, state.plan) : state;
 }
 
+export function restoreSavedItinerary(current: PlannerState, id: string, snapshot: ItinerarySnapshot): PlannerState {
+  return freezePlannerState({ ...current, ...snapshot,
+    packageQuotes: validPackageQuotes(snapshot.packageQuotes) ? snapshot.packageQuotes : undefined,
+    costModel: { ...defaultCost, ...snapshot.costModel,
+      activityCosts: snapshot.costModel?.activityCosts || {}, activitySelections: snapshot.costModel?.activitySelections || {},
+      manualInclusions: Array.isArray(snapshot.costModel?.manualInclusions) ? snapshot.costModel.manualInclusions : [],
+      manualExclusions: Array.isArray(snapshot.costModel?.manualExclusions) ? snapshot.costModel.manualExclusions : [],
+      transportIsCustom: snapshot.costModel?.transportIsCustom === true || (Boolean(snapshot.input?.transport) && !transportOptions.includes(snapshot.input.transport)) },
+    hotelDatabase: current.hotelDatabase, savedItineraryId: id }, undefined, true);
+}
+
+/** Updating references is deliberate and keeps the operator's route and prices. */
+export function updatePlannerToCurrentData(state: PlannerState, catalog: Destination[], hotels: Hotel[], defaults: PackageDefaults): PlannerState {
+  if (!state.plan) return state;
+  const { referenceMode: _mode, hotelSnapshot: _hotels, packageDefaultsSnapshot: _defaults, ...plan } = state.plan;
+  return withDestinationCatalog(catalog, () => freezePlannerState(applyPlanEdit({ ...state, hotelDatabase: hotels }, plan), defaults));
+}
+
 const Ctx = createContext<PlannerContextValue | null>(null);
+function sameTrip(left: PlannerState, right: PlannerState) {
+  return left.plan === right.plan && left.input === right.input && left.costModel === right.costModel &&
+    left.hotelSelections === right.hotelSelections && left.packageQuotes === right.packageQuotes && left.savedItineraryId === right.savedItineraryId;
+}
 export function PlannerProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<PlannerState>(() => ({ input: { ...defaultInput }, plan: null, routeVersion: null, hotelSelections: [], hotelDatabase: importedHotels, costModel: { ...defaultCost }, hotelDefaults: { ...defaultHotelDefaults }, generated: false, savedItineraryId: null }));
+  const latestState = useRef(state);
+  latestState.current = state;
   const [mounted, setMounted] = useState(false);
   const [destinationCatalog,setDestinationCatalog]=useState<Destination[]>([...destinations]);
   const [destinationConnection,setDestinationConnection]=useState<'loading'|'ready'|'error'>('loading');
@@ -503,6 +534,8 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   const [hotelConnection,setHotelConnection]=useState<'loading'|'ready'|'error'|'signed-out'>('loading');
   const [hotelConnectionError,setHotelConnectionError]=useState('');
   const hotelRequest=useRef(0);
+  const [updatingItineraryData, setUpdatingItineraryData] = useState(false);
+  const itineraryUpdatePending = useRef(false);
   async function refreshPackageDefaults() {
     const request=++packageDefaultsRequest.current;
     setPackageDefaultsConnection('loading'); setPackageDefaultsError('');
@@ -565,7 +598,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       setState((current) => {
         if (!current.plan) return current;
         try {
-          if (!rebuildCurrent) return reconcilePlannerState(current);
+          if (current.plan.referenceMode === 'saved' || !rebuildCurrent) return reconcilePlannerState(current);
           const sequence = current.plan.dayPlans.slice(0, current.plan.nights).map((day) => day.stay);
           const plan = rebuildPlanFromNightSequence(current.plan, sequence);
           return applyPlanEdit(current, plan);
@@ -608,7 +641,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       const db=payload.hotels as Hotel[];
       if(!db.length)throw new Error('The hotel master is empty. Import hotel records in the admin dashboard.');
       if(request!==hotelRequest.current)return;
-      setState((s)=>({...s,hotelDatabase:db,hotelSelections:s.plan?syncHotelSelections(s.plan,s.hotelSelections,db,s.input):s.hotelSelections}));
+      setState((s)=>({...s,hotelDatabase:db,hotelSelections:s.plan && s.plan.referenceMode !== 'saved'?syncHotelSelections(s.plan,s.hotelSelections,db,s.input):s.hotelSelections}));
       setHotelConnection('ready');
     } catch(error){
       if(request!==hotelRequest.current)return;
@@ -628,9 +661,9 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   useEffect(() => observeDestinationFreshness(window, document, () => {
     void refreshDestinations(false, { background: true });
   }), []);
-  const scheduledPlan = useMemo(() => state.plan ? destinationConnection === 'ready' ? reschedulePlan(state.plan, state.costModel) : state.plan : null,
+  const scheduledPlan = useMemo(() => state.plan ? destinationConnection === 'ready' && state.plan.referenceMode !== 'saved' ? reschedulePlan(state.plan, state.costModel) : state.plan : null,
     [state.plan, state.costModel.activityCosts, state.costModel.activitySelections, destinationCatalog, destinationConnection]);
-  const scheduledState = useMemo(() => stateWithScheduledPlan(state, scheduledPlan), [state, scheduledPlan]);
+  const scheduledState = useMemo(() => state.plan?.referenceMode === 'saved' ? state : stateWithScheduledPlan(state, scheduledPlan), [state, scheduledPlan]);
   useEffect(() => { if (mounted) { try { const {hotelDatabase: _privateRates, ...saved}=scheduledState; localStorage.setItem(STORAGE, JSON.stringify(saved)); } catch { /* ignore storage errors */ } } }, [scheduledState, mounted]);
   const value = useMemo<PlannerContextValue>(() => ({
     ...scheduledState,
@@ -640,6 +673,39 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     destinationConnectionError,
     destinationRefreshing,
     refreshDestinations,
+    updatingItineraryData,
+    async updateItineraryToCurrentData() {
+      if (!scheduledState.plan || itineraryUpdatePending.current) return;
+      itineraryUpdatePending.current = true;
+      setUpdatingItineraryData(true);
+      try {
+        const responses = await Promise.all(['/api/destinations', '/api/hotels', '/api/package-defaults'].map(async (url) => {
+          const response = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(15000) });
+          const payload = await response.json();
+          if (!response.ok) throw new Error(payload.error || 'Could not load current data.');
+          return payload;
+        }));
+        const [places, properties, terms] = responses;
+        if (!Array.isArray(places.destinations) || !Array.isArray(properties.hotels) || !properties.configured) throw new Error('Current library data is unavailable. Please retry.');
+        const defaults = validatePackageDefaults(terms.packageDefaults);
+        if (!sameTrip(latestState.current, state)) throw new Error('This itinerary changed while loading. Retry to update the latest version.');
+        const next = updatePlannerToCurrentData(scheduledState, places.destinations, properties.hotels, defaults);
+        // A successful update must survive reopening from Saved Itineraries.
+        if (next.savedItineraryId) {
+          const { savePlannerItinerary } = await import('@/lib/save-itinerary');
+          await savePlannerItinerary(next, false);
+        }
+        if (!sameTrip(latestState.current, state)) throw new Error('The updated copy was saved. Your newer edits are still open; retry to update them.');
+        ++destinationRequest.current; ++hotelRequest.current; ++packageDefaultsRequest.current;
+        destinationRequestPending.current = false; destinationConfirmed.current = true;
+        replaceArchivedDestinationCatalog(Array.isArray(places.archivedDestinations) ? places.archivedDestinations : []);
+        replaceDestinationCatalog(places.destinations);
+        setDestinationCatalog([...destinations]); setDestinationConnection('ready'); setDestinationConnectionError(''); setDestinationRefreshing(false);
+        setPackageDefaults(defaults); setPackageDefaultsConnection('ready'); setPackageDefaultsError('');
+        setHotelConnection('ready'); setHotelConnectionError('');
+        setState(next);
+      } finally { itineraryUpdatePending.current = false; setUpdatingItineraryData(false); }
+    },
     removeDestinationFromLibrary(destination) {
       ++destinationRequest.current;
       destinationRequestPending.current=false;
@@ -750,7 +816,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
         const sequence: string[] = [];
         for (const row of clean) {
           if (seen.has(row.location)) return s;
-          const destination = destinationByName(row.location);
+          const destination = withPlanDestinations(s.plan, () => destinationByName(row.location));
           if (!destination || !destination.overnight_allowed) return s;
           seen.add(row.location);
           for (let i = 0; i < row.nights; i++) sequence.push(row.location);
@@ -764,7 +830,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     setNightSequence(sequence) {
       setState((s) => {
         if (!s.plan || sequence.length !== s.plan.nights) return s;
-        if (sequence.some((name) => { const d = destinationByName(name); return !d || !d.overnight_allowed; })) return s;
+        if (withPlanDestinations(s.plan, () => sequence.some((name) => { const d = destinationByName(name); return !d || !d.overnight_allowed; }))) return s;
         try {
           const nextPlan = rebuildPlanFromNightSequence(reschedulePlan(s.plan, s.costModel), sequence);
           return applyPlanEdit(s, nextPlan);
@@ -831,7 +897,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     updateHotelRecord(id, patch) {
       setState((s) => {
         const hotelDatabase = s.hotelDatabase.map((h) => h.id === id ? { ...h, ...patch, lastUpdated: new Date().toISOString().slice(0, 10) } : h);
-        const hotelSelections = s.plan ? syncHotelSelections(s.plan, s.hotelSelections, hotelDatabase, s.input) : s.hotelSelections;
+        const hotelSelections = s.plan && s.plan.referenceMode !== 'saved' ? syncHotelSelections(s.plan, s.hotelSelections, hotelDatabase, s.input) : s.hotelSelections;
         return { ...s, hotelDatabase, hotelSelections };
       });
     },
@@ -841,7 +907,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       setHotelConnection('ready'); setHotelConnectionError('');
       setState((s) => {
         const clean = records.filter((r) => r && r.id && r.destination && r.name);
-        const hotelSelections = s.plan ? syncHotelSelections(s.plan, s.hotelSelections, clean, s.input) : s.hotelSelections;
+        const hotelSelections = s.plan && s.plan.referenceMode !== 'saved' ? syncHotelSelections(s.plan, s.hotelSelections, clean, s.input) : s.hotelSelections;
         return { ...s, hotelDatabase: clean, hotelSelections };
       });
     },
@@ -852,12 +918,15 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       });
     },
     deleteHotelRecord(id) {
-      setState((s) => ({ ...s, hotelDatabase: s.hotelDatabase.filter((h) => h.id !== id), hotelSelections: s.hotelSelections.map((h) => h.hotelId === id ? { ...h, status: 'Hotel record removed; reselect before confirmation' } : h) }));
+      setState((s) => ({ ...s, hotelDatabase: s.hotelDatabase.filter((h) => h.id !== id), hotelSelections: s.plan?.referenceMode === 'saved' ? s.hotelSelections : s.hotelSelections.map((h) => h.hotelId === id ? { ...h, status: 'Hotel record removed; reselect before confirmation' } : h) }));
     },
     resetHotelDatabase() {
-      setState((s) => ({ ...s, hotelDatabase: importedHotels, hotelSelections: s.plan ? syncHotelSelections(s.plan, s.hotelSelections, importedHotels, s.input) : s.hotelSelections }));
+      setState((s) => ({ ...s, hotelDatabase: importedHotels, hotelSelections: s.plan && s.plan.referenceMode !== 'saved' ? syncHotelSelections(s.plan, s.hotelSelections, importedHotels, s.input) : s.hotelSelections }));
     },
-    setCostModel(patch) { setState((s) => ({ ...s, costModel: { ...s.costModel, ...patch } })); },
+    setCostModel(patch) { setState((s) => {
+      const next = { ...s, costModel: { ...s.costModel, ...patch } };
+      return s.plan && (patch.activityCosts || patch.activitySelections) ? applyPlanEdit(next, s.plan) : next;
+    }); },
     setTransport(vehicle) {
       setState((s) => ({
         ...s,
@@ -877,7 +946,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     addDayBlock(day, block) {
       setState((s) => {
         if (!s.plan) return s;
-        return { ...s, plan: { ...s.plan, dayPlans: s.plan.dayPlans.map((d) => d.day === day ? { ...d, blocks: [...d.blocks, {
+        return applyPlanEdit(s, { ...s.plan, dayPlans: s.plan.dayPlans.map((d) => d.day === day ? { ...d, blocks: [...d.blocks, {
           name: block.name,
           description: block.description || 'Added from the Kashmir destination library.',
           reason: block.reason || 'Added by the trip planner.',
@@ -885,18 +954,18 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
           source: block.source,
           conditional: block.conditional,
           kind: block.kind || 'custom',
-        }] } : d) } };
+        }] } : d) });
       });
     },
     removeDayBlock(day, index) {
-      setState((s) => s.plan ? { ...s, plan: { ...s.plan, dayPlans: s.plan.dayPlans.map((d) => d.day === day ? { ...d, blocks: d.blocks.filter((_, i) => i !== index) } : d) } } : s);
+      setState((s) => s.plan ? applyPlanEdit(s, { ...s.plan, dayPlans: s.plan.dayPlans.map((d) => d.day === day ? { ...d, blocks: d.blocks.filter((_, i) => i !== index) } : d) }) : s);
     },
     reset() { try { localStorage.removeItem(STORAGE); } catch {} location.href = '/'; },
     loadSavedItinerary(id, snapshot) {
-      setState((s) => reconcilePlannerState({ ...s, ...snapshot, packageQuotes: validPackageQuotes(snapshot.packageQuotes) ? snapshot.packageQuotes : undefined, costModel: { ...defaultCost, ...snapshot.costModel, activitySelections: snapshot.costModel?.activitySelections || {}, manualInclusions: Array.isArray(snapshot.costModel?.manualInclusions) ? snapshot.costModel.manualInclusions : [], manualExclusions: Array.isArray(snapshot.costModel?.manualExclusions) ? snapshot.costModel.manualExclusions : [], transportIsCustom: snapshot.costModel?.transportIsCustom === true || (Boolean(snapshot.input?.transport) && !transportOptions.includes(snapshot.input.transport)) }, hotelDatabase: s.hotelDatabase, savedItineraryId: id }));
+      setState((s) => restoreSavedItinerary(s, id, snapshot));
     },
-    markSavedItinerary(id) { setState((s) => ({ ...s, savedItineraryId: id })); },
-  }), [state, scheduledState, mounted, hotelConnection, hotelConnectionError, destinationCatalog, destinationConnection, destinationConnectionError, destinationRefreshing, packageDefaults, packageDefaultsConnection, packageDefaultsError]);
+    markSavedItinerary(id) { setState((s) => ({ ...freezePlannerState(sameTrip(s, state) ? scheduledState : s, packageDefaults), savedItineraryId: id })); },
+  }), [state, scheduledState, mounted, hotelConnection, hotelConnectionError, destinationCatalog, destinationConnection, destinationConnectionError, destinationRefreshing, packageDefaults, packageDefaultsConnection, packageDefaultsError, updatingItineraryData]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
@@ -930,7 +999,10 @@ export function PackagePlanner({ category, children }: { category: string; child
         nightlyRate: s.hotelDefaults.nightlyRate || hotel.nightlyRate, extraBedRate: s.hotelDefaults.extraBedRate || hotel.extraBedRate,
         cnbRate: s.hotelDefaults.cnbRate || hotel.cnbRate, rateConfirmed: false, confirmedSignature: undefined })) }));
     },
-    setCostModel: (patch) => update((s) => ({ ...s, costModel: { ...s.costModel, ...patch } })),
+    setCostModel: (patch) => update((s) => {
+      const next = { ...s, costModel: { ...s.costModel, ...patch } };
+      return s.plan && (patch.activityCosts || patch.activitySelections) ? applyPlanEdit(next, s.plan) : next;
+    }),
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

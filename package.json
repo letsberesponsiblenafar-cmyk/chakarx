@@ -3,6 +3,7 @@
   "private": true,
   "version": "1.3.0",
   "scripts": {
+    "test:saved-data": "node tests/saved-data-isolation.cjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

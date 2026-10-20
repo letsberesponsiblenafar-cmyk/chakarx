@@ -4,12 +4,17 @@ import { getSavedItinerary, itineraryStoreConfigured, listSavedItineraries, save
 import type { ItinerarySnapshot } from '@/components/PlannerProvider';
 import { validPackageQuotes } from '@/lib/package-quotes';
 import { hotelCategories } from '@/lib/data';
+import { validatedTripInput } from '@/lib/itinerary';
 
 export const runtime = 'nodejs';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function validSnapshot(value: unknown): value is ItinerarySnapshot {
   if (!value || typeof value !== 'object') return false;
   const x = value as Partial<ItinerarySnapshot>;
+  try {
+    validatedTripInput(x.input!);
+    validatedTripInput(x.plan?.input!);
+  } catch { return false; }
   return Boolean(x.input && typeof x.input.name === 'string' && x.input.name.length <= 200 && x.plan &&
     Array.isArray(x.plan.dayPlans) && x.plan.dayPlans.length > 0 && x.plan.dayPlans.length <= 31 &&
     Array.isArray(x.hotelSelections) && x.hotelSelections.length <= 62 && x.costModel && x.hotelDefaults && validPackageQuotes(x.packageQuotes) &&

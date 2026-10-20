@@ -367,8 +367,8 @@ export default function ClientPdf() {
     return arrivalSave.current;
   }
   useEffect(() => {
-    if (hydrated && plan && hotelConnection === 'ready' && destinationConnection === 'ready') void ensureSaved().catch(() => {});
-  }, [hydrated, plan, hotelConnection, destinationConnection]);
+    if (hydrated && plan && hotelConnection === 'ready' && destinationConnection === 'ready' && packageDefaultsConnection === 'ready') void ensureSaved().catch(() => {});
+  }, [hydrated, plan, hotelConnection, destinationConnection, packageDefaultsConnection]);
   const costs = plan ? calculateCosts(plan,hotelSelections,costModel) : null;
   if (!hydrated) return <PlannerChrome title="Client-ready itinerary PDF" eyebrow="STEP 06 · CLIENT PDF"><div className="empty-panel"><FileText size={28}/><h2>Loading your itinerary PDF…</h2></div></PlannerChrome>;
   if (!plan || !costs) return <PlannerChrome title="Client-ready itinerary PDF" eyebrow="STEP 06 · CLIENT PDF"><div className="empty-panel"><FileText size={28}/><h2>Complete the itinerary first.</h2><Link className="primary-cta inline" href="/">Build Your Trip</Link></div></PlannerChrome>;

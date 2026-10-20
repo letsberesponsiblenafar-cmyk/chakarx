@@ -7,6 +7,8 @@ import { priceTrip } from '@/lib/pricing';
 import { scheduleDayPlans, type ScheduleQuote } from '@/lib/day-scheduler';
 import { snapshotPlanDestinations, srinagarLogisticsGuide, withPlanDestinations } from '@/lib/plan-destinations';
 import { packageCategories } from '@/lib/package-quotes';
+import { utcDay } from '@/lib/trip-dates';
+import type { PackageDefaults } from '@/lib/package-defaults';
 
 export type TripInput = {
   name: string; arrival: string; departure: string; arrivalTime?: string; departureTime?: string; pickup: string; adults: number; youngAges: number[]; budget: number;
@@ -27,13 +29,18 @@ export type Plan = {
   estimatedTotal: number; rangeLow: number; rangeHigh: number; costs: { accommodation: number; transport: number; meals: number; activities: number; contingency: number };
   hotelPlans: HotelPlan[]; evaluation: { budgetFit: string; season: string; capacity: string; route: string; dataConfidence: string; alerts: string[]; ruleTrace: string[]; exclusions: string[] };
   destinationSnapshot?: Destination[];
+  /** Saved trips use their own reference data until the operator updates them. */
+  referenceMode?: 'saved';
+  hotelSnapshot?: Hotel[];
+  packageDefaultsSnapshot?: PackageDefaults;
 };
 
 export const ROUTE_VERSION = 'kashmir-balanced-visits-2026-10-13';
 const transportRates: Record<string, number> = { Sedan: 3400, Ertiga: 4200, Innova: 5200, 'Tempo Traveller': 7600 };
 
 function daysBetween(a: string, b: string) {
-  return Math.round((new Date(`${b}T12:00:00`).getTime() - new Date(`${a}T12:00:00`).getTime()) / 86400000);
+  const start = utcDay(a), end = utcDay(b);
+  return start === null || end === null ? NaN : (end - start) / 86400000;
 }
 
 function clamp(n: number, min: number, max: number) { return Math.max(min, Math.min(max, n)); }
@@ -304,13 +311,13 @@ function validateInput(input: TripInput) {
   if (!input || typeof input !== 'object') throw new Error('Trip details are required.');
   if (!input.arrival || !input.departure) throw new Error('Arrival and departure dates are required.');
   for (const value of [input.arrivalTime, input.departureTime]) if (value && minutesOfDay(value) === null) throw new Error('Enter valid arrival and departure times.');
-  if (!Number.isFinite(new Date(`${input.arrival}T12:00:00`).getTime()) || !Number.isFinite(new Date(`${input.departure}T12:00:00`).getTime())) throw new Error('Please provide valid travel dates.');
+  if (utcDay(input.arrival) === null || utcDay(input.departure) === null) throw new Error('Please provide valid calendar dates.');
   const nights = tripNights(input);
   if (nights < 1) throw new Error('Departure date must be after arrival date.');
   if (nights > 30) throw new Error('Chakar Experience currently supports trips up to 30 nights.');
-  if (!Number.isFinite(input.adults) || input.adults < 1) throw new Error('At least one adult traveler is required.');
+  if (!Number.isInteger(input.adults) || input.adults < 1) throw new Error('Enter a whole number of adults, at least 1.');
   if (!Array.isArray(input.youngAges)) throw new Error('Child ages must be supplied as a list.');
-  if (input.youngAges.some((age) => !Number.isFinite(age) || age < 0 || age > 99)) throw new Error('Child ages must be valid non-negative ages.');
+  if (input.youngAges.some((age) => !Number.isInteger(age) || age < 0 || age > 99)) throw new Error('Child ages must be whole numbers from 0 to 99.');
   if (!Array.isArray(input.interests)) throw new Error('Interests must be supplied as a list.');
   if (!travelStyles.includes(input.style)) throw new Error('Invalid itinerary configuration.');
   if (!hotelCategories.includes(input.hotelCategory)) throw new Error('Invalid itinerary category.');
@@ -440,7 +447,7 @@ function rebuildExistingPlanFromNightSequence(plan: Plan, requestedSequence: str
     travelLoad: m.travelLoad,
     evaluation: { ...plan.evaluation, capacity: `${segments.length} stay segments using destination day and night windows`, route: `${Math.round(m.routeKm)} km across ${m.driveHours.toFixed(1)} planning driving hours` },
   };
-  return { ...rebuilt, destinationSnapshot: snapshotPlanDestinations(rebuilt) };
+  return { ...rebuilt, destinationSnapshot: snapshotPlanDestinations(rebuilt, true) };
 }
 
 function dayContext(day: DayPlan) {
@@ -460,6 +467,10 @@ function carryDayEdits(previous: DayPlan | undefined, generated: DayPlan): DayPl
 
 /** Retarget a single day to a new overnight-capable destination and refresh that day's local sightseeing. */
 export function retargetDay(plan: Plan, dayNumber: number, destinationName: string): Plan {
+  return withPlanDestinations(plan, () => retargetExistingDay(plan, dayNumber, destinationName));
+}
+
+function retargetExistingDay(plan: Plan, dayNumber: number, destinationName: string): Plan {
   const target = destinationByName(destinationName);
   if (!target) throw new Error('Destination not found in the library.');
   if (!target.overnight_allowed) throw new Error(`${destinationName} is a sightseeing destination and is not marked as an overnight base.`);
@@ -493,7 +504,7 @@ function setExistingPlanDayTrip(plan: Plan, dayNumber: number, destinationName: 
   const merged = days.map((day) => carryDayEdits(plan.dayPlans[day.day - 1], day));
   const m = metrics(merged, plan.nights);
   const updated = { ...plan, dayPlans: merged, routeKm: m.routeKm, driveHours: m.driveHours, travelLoad: m.travelLoad, evaluation: { ...plan.evaluation, route: `${Math.round(m.routeKm)} km across ${m.driveHours.toFixed(1)} planning driving hours` } };
-  return { ...updated, destinationSnapshot: snapshotPlanDestinations(updated) };
+  return { ...updated, destinationSnapshot: snapshotPlanDestinations(updated, true) };
 }
 
 export function setPlanDeparturePoint(plan: Plan, departurePoint: string): Plan {
@@ -510,7 +521,7 @@ function setExistingPlanDeparturePoint(plan: Plan, departurePoint: string): Plan
   const merged = days.map((day) => carryDayEdits(plan.dayPlans[day.day - 1], day));
   const m = metrics(merged, plan.nights);
   const updated = { ...plan, dayPlans: merged, routeKm: m.routeKm, driveHours: m.driveHours, travelLoad: m.travelLoad, evaluation: { ...plan.evaluation, route: `${Math.round(m.routeKm)} km across ${m.driveHours.toFixed(1)} planning driving hours` } };
-  return { ...updated, destinationSnapshot: snapshotPlanDestinations(updated) };
+  return { ...updated, destinationSnapshot: snapshotPlanDestinations(updated, true) };
 }
 
 function enforceDepartureNight(plan: Plan): Plan {

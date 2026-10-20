@@ -7,6 +7,7 @@ import { hotelRateValidity } from '@/lib/hotel-rate-validity';
 import { isHouseboatHotel, sameHotelDestination, matchesPackageCategory } from '@/lib/hotels';
 import { hotelNightDates, hotelNightNumbers, hotelSelectionKey, hotelStayLabel, hotelStayType, hotelStayWindow } from '@/lib/accommodation';
 import { hotelOptions, hotelOptionMatchesCategory, hotelOptionIdentity, isUnusedHotelOption, sharedCustomHotelRates } from '@/lib/hotel-options';
+import { savedHotelMaster } from '@/lib/saved-plan-data';
 
 export function hotelConfirmationSignature(plan: Plan, hotel: HotelSelection, mealPlan: string) {
   const window = hotelStayWindow(plan, hotel);
@@ -41,6 +42,7 @@ export function quoteReadiness(
   hotelConnection: string,
   destinationConnection: string,
 ) {
+  hotelMaster = savedHotelMaster(plan, hotelMaster);
   const issues: string[] = [];
   for (const day of plan.dayPlans) for (const issue of day.timing?.issues || []) issues.push(`Day ${day.day}: ${issue}`);
   if (planInputsNeedRefresh(plan, input)) issues.push('Rebuild the itinerary after changing trip details.');

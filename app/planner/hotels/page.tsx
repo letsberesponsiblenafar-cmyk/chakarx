@@ -1,4 +1,5 @@
 'use client';
+import { savedHotelMaster } from '@/lib/saved-plan-data';
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -64,7 +65,8 @@ export default function HotelsPage() { return useHotelPackageEditor(false); }
 function HotelPackageEditor() { return useHotelPackageEditor(true); }
 
 function useHotelPackageEditor(embedded: boolean) {
-  const { plan, input, hotelSelections, replaceHotel, replaceHotelAlternative, useCustomHotel, setCustomHotelAlternative, setSharedCustomHotelRate, setHotelRate, setHotelOptionRate, setHotelMeta, setSrinagarHouseboatNights, hotelDatabase: db, hotelConnection, hotelConnectionError, refreshHotels, hydrated } = usePlanner();
+  const { plan, input, hotelSelections, replaceHotel, replaceHotelAlternative, useCustomHotel, setCustomHotelAlternative, setSharedCustomHotelRate, setHotelRate, setHotelOptionRate, setHotelMeta, setSrinagarHouseboatNights, hotelDatabase, hotelConnection, hotelConnectionError, refreshHotels, hydrated } = usePlanner();
+  const db = plan ? savedHotelMaster(plan, hotelDatabase) : hotelDatabase;
   const [editing, setEditing] = useState<string | null>(null);
   const [hotelSearch, setHotelSearch] = useState<Record<string, string>>({});
   const [houseboatOpen, setHouseboatOpen] = useState(false);

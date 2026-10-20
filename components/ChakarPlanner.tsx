@@ -58,7 +58,7 @@ export default function ChakarPlanner(){
  function submit(){
   setQuickError('');
   try{
-   if(!adultsText.trim() || Number(adultsText)<1) throw new Error('Enter at least one adult.');
+   if(!adultsText.trim() || !Number.isInteger(Number(adultsText)) || Number(adultsText)<1) throw new Error('Enter a whole number of adults, at least 1.');
    if(childrenText.trim() && (!Number.isInteger(Number(childrenText)) || Number(childrenText)<0)) throw new Error('Enter a valid number of children.');
    if(childrenText.trim()!==''&&input.youngAges.some((_,i)=>ageText[i]==='' || !Number.isInteger(Number(ageText[i])))) throw new Error('Enter an age for every child.');
    setBusy(true);

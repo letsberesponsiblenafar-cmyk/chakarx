@@ -63,6 +63,18 @@ try {
   assert.equal(cronReject.status, 401);
   assert.match((await cronReject.json()).error, /Unauthorized cron request/, 'Bearer cron requests must reach the handler instead of the admin-cookie gate');
 
+  for (const overrides of [{ arrival: '2026-02-30' }, { departure: '2026-11-31' }, { adults: 1.5 }, { youngAges: [5.5] }]) {
+    const invalidInput = { ...input(5), ...overrides };
+    const origin = `http://localhost:${port}`;
+    const headers = { 'Content-Type': 'application/json', Cookie: `chakar_admin=${token}`, Origin: origin, Host: new URL(origin).host };
+    const generated = await fetch(`${base}/api/itinerary`, { method: 'POST', headers, body: JSON.stringify({ input: invalidInput }) });
+    assert.equal(generated.status, 400, `Generation must reject ${JSON.stringify(overrides)} before reading live libraries.`);
+    const saved = await fetch(`${base}/api/itineraries`, { method: 'POST', headers,
+      body: JSON.stringify({ snapshot: { input: invalidInput, plan: { input: invalidInput } }, total: 0, downloaded: false }) });
+    assert.equal(saved.status, 400, `Saving must reject ${JSON.stringify(overrides)} without writing to the database.`);
+  }
+  console.log('Generation and saving reject impossible calendar dates and fractional travellers/ages.');
+
   const short = await planFor(4);
   assert.deepEqual(short.dayPlans.slice(0, -1).map((day) => day.stay), ['Srinagar', 'Srinagar', 'Srinagar']);
   assert.deepEqual(short.dayPlans.map((day) => day.dayTripDestination).filter(Boolean), ['Gulmarg', 'Pahalgam', 'Sonamarg']);

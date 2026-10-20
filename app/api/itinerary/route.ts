@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createPlan } from '@/lib/itinerary';
+import { createPlan, validatedTripInput } from '@/lib/itinerary';
 import { destinationStoreConfigured, listDestinations } from '@/lib/destination-store';
 
 export const runtime = 'nodejs';
@@ -8,6 +8,7 @@ export async function POST(request: Request) {
   try {
     input = (await request.json())?.input;
     if (!input) throw new Error('Trip input is required.');
+    input = validatedTripInput(input);
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Invalid trip input.' }, { status: 400 });
   }

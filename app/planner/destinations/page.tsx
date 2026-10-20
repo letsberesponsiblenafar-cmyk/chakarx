@@ -5,11 +5,13 @@ import { ChevronLeft, ChevronRight, Clock3, MapPin, Moon, ArrowRight } from 'luc
 import AppShell from '@/components/AppShell';
 import PlannerChrome from '@/components/PlannerChrome';
 import SearchableDestinationSelect from '@/components/SearchableDestinationSelect';
+import ItineraryDataUpdate from '@/components/ItineraryDataUpdate';
 import { usePlanner } from '@/components/PlannerProvider';
 import { routeByName } from '@/lib/data';
 import { ROUTE_VERSION, requiresSrinagarFinalNight } from '@/lib/itinerary';
 import { dayVisitDestination } from '@/lib/journey-labels';
 import { dayTitle } from '@/lib/narrative';
+import { planDestinations } from '@/lib/plan-destinations';
 import '../destination-refinement.css';
 
 function displayDate(value: string) {
@@ -33,13 +35,15 @@ function duration(minutes: number) {
 }
 
 export default function DestinationsPage() {
-  const { plan, routeVersion, destinationCatalog, destinationConnection, replanDestinations, setDayDestination, setDayTrip, setDeparturePoint } = usePlanner();
+  const { plan, routeVersion, destinationCatalog: currentCatalog, destinationConnection, replanDestinations, setDayDestination, setDayTrip, setDeparturePoint } = usePlanner();
+  const destinationCatalog = plan ? planDestinations(plan, currentCatalog) : currentCatalog;
   if (!plan) return <AppShell><PlannerChrome title="Choose your journey" eyebrow="STEP 01 · DESTINATIONS"><div className="empty-panel"><MapPin size={28}/><h2>Start with your trip details</h2><p>Choose your dates and travellers first to see a suggested day-by-day route.</p><Link className="primary-cta inline" href="/">Build Your Trip <ChevronRight size={16}/></Link></div></PlannerChrome></AppShell>;
 
   const overnightOptions = destinationCatalog.filter((place) => place.overnight_allowed).sort((a, b) => a.name.localeCompare(b.name));
   const visited = [...new Set(plan.dayPlans.slice(0, plan.nights).map(dayVisitDestination))];
 
   return <AppShell><PlannerChrome title="Choose your journey" eyebrow="STEP 01 · DESTINATIONS"><div className="journey-refinement">
+    <ItineraryDataUpdate/>
     {routeVersion !== ROUTE_VERSION && <section className="route-update-banner"><div><b>More balanced route suggestions are available.</b><p>Rebuild the destinations and day descriptions for this trip. Hotels and agreed rates for retained stays, your vehicle, and activities at retained destinations are kept; totals follow the new night allocation.</p></div><button type="button" className="secondary-link" disabled={destinationConnection !== 'ready'} onClick={replanDestinations}>Rebuild suggestions</button></section>}
     <section className="journey-intro"><div><span className="eyebrow">YOUR SUGGESTED ROUTE</span><h2>Where you explore. Where you stay.</h2><p>Choose the destination to explore and the hotel base for each night. Your next day starts from that hotel base, and sightseeing is arranged around the journey time.</p></div><div className="journey-intro-count"><strong>{plan.days}</strong><span>days · {plan.nights} nights</span></div></section>
     {requiresSrinagarFinalNight(plan.input) && <p className="journey-time-line" role="note"><Moon size={14} aria-hidden="true"/><span>Departure at {plan.input.departureTime}: the final hotel night is in Srinagar. You can still choose a day visit before returning for the night.</span></p>}
