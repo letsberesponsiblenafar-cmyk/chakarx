@@ -71,8 +71,28 @@ export function defaultDayNote(destination: Destination) {
   return destinationStory[destination.name] || destination.description || `Explore ${destination.name}.`;
 }
 
-/** The library and editor must show the same saved introduction. */
+/** Clean generated sentences without changing names, facts or manual paragraphs. */
+export function cleanGeneratedSentence(value: string) {
+  const text = value.trim().replace(/\s+/g, ' ').replace(/\s+([,.;:!?])/g, '$1')
+    .replace(/([!?])\1+/g, '$1').replace(/\.{2,}$/g, '.');
+  if (!text) return '';
+  const capitalized = text[0].toUpperCase() + text.slice(1);
+  return /[.!?]$/.test(capitalized) ? capitalized : `${capitalized}.`;
+}
+
+export function generatedDestinationAbout(destination: Destination) {
+  const checked = new Set(enabledSightseeing(destination));
+  const activities = new Set(destination.enabled_activities || []);
+  const sentences = [
+    ...destination.local_sightseeing.filter((sight) => checked.has(sight.name)).map(sightseeingSentence),
+    ...destination.activities.filter((name) => activities.has(name)).map((name) => destination.activity_copy?.[name]?.trim() || activitySentence(name)),
+  ].map(cleanGeneratedSentence).filter(Boolean);
+  return [...new Map(sentences.map((sentence) => [sentence.toLowerCase(), sentence])).values()].join(' ');
+}
+
+/** Legacy saved copy stays intact until its owner chooses automatic generation. */
 export function destinationAbout(destination: Destination) {
+  if (destination.day_note_mode === 'auto') return generatedDestinationAbout(destination);
   return destination.day_note == null ? defaultDayNote(destination) : destination.day_note;
 }
 
@@ -199,18 +219,12 @@ function visitCopy(day: DayPlan, destination: string, planned: string[], quote?:
   // Introduce a destination only on its main visit, with actual assigned places
   // or experiences, rather than repeating its guide whenever the hotel is here.
   const hasProgramme = clientStops.length > 0 || quotedActivities.length > 0;
+  if (guide?.day_note_mode === 'manual' && options.introduction !== false && primary && hasProgramme) return destinationAbout(guide);
   const noteSentences = options.introduction !== false && hasProgramme && primary && noteSource
-    ? (noteSource.match(/[^.!?]+[.!?]?/g) || []).map((sentence) => sentence.trim()).filter((sentence) => {
-      if (/\b(after breakfast|check out|check in|overnight|drive to|return to|departure|pick-up|pickup)\b/i.test(sentence)) return false;
-      if (/\b(confirm|subject to|weather|road access|availability|provisional)\b/i.test(sentence)) return false;
-      if (/\b(own pace|at leisure|rest of the day|free time|comfortable pace)\b/i.test(sentence)) return false;
-      if (quote && /gondola|shikara|pony ride|horse rid|rafting|skiing|snowboarding/i.test(sentence)) return false;
-      // A place gets its own authored sentence below; the introduction should
-      // never consume or duplicate one of those selected sightseeing lines.
-      return referencedPlaces(sentence, guide!).length === 0;
-    }).slice(0, 2) : [];
+    && guide?.day_note_mode !== 'auto'
+    ? [noteSource] : [];
   const note = noteSentences.join(' ');
-  const selectedLines = sightseeingLines(day, clientStops, guide);
+  const selectedLines = sightseeingLines(day, clientStops, guide).map(cleanGeneratedSentence);
   const stops = selectedLines.join(' ');
   const experiences = guide ? [...new Set(quotedActivities)].filter((item) => {
     if (timedActivities !== undefined) return true;
@@ -220,7 +234,7 @@ function visitCopy(day: DayPlan, destination: string, planned: string[], quote?:
   }) : [];
   const sentenceForActivity = (name: string) => {
     const authored = guide?.activity_copy?.[name]?.trim();
-    return authored ? /[.!?]$/.test(authored) ? authored : `${authored}.` : activitySentence(name);
+    return cleanGeneratedSentence(authored || activitySentence(name));
   };
   const early = (name: string) => (guide?.activity_timing?.[name]?.time_window?.end ?? 1440) <= 8 * 60;
   const uniqueSentences = new Set([...noteSentences, ...selectedLines]

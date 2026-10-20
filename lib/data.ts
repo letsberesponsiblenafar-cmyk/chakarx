@@ -52,6 +52,7 @@ export type Destination = {
   srinagar_hours?: number;
   srinagar_km?: number;
   day_note?: string;
+  day_note_mode?: 'auto' | 'manual';
   enabled_things_to_do?: string[];
   enabled_sightseeing?: string[];
   enabled_activities?: string[];

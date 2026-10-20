@@ -60,7 +60,7 @@ type PlannerContextValue = PlannerState & {
   setDayDestination: (day: number, destination: string) => void;
   setDayTrip: (day: number, destination: string | null) => void;
   setDeparturePoint: (destination: string) => void;
-  setDayContent: (day: number, patch: { title?: string; about?: string }) => void;
+  setDayContent: (day: number, patch: { title?: string; about?: string | null }) => void;
   setStayAllocation: (entries: { location: string; nights: number }[]) => void;
   setNightSequence: (sequence: string[]) => void;
   setSrinagarHouseboatNights: (nightNumbers: number[]) => void;
@@ -736,7 +736,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       setState((s) => {
         if (!s.plan) return s;
         const plan = reschedulePlan(s.plan, s.costModel);
-        return { ...s, plan: { ...plan, dayPlans: plan.dayPlans.map((d) => d.day === day ? { ...d, customTitle: patch.title ?? d.customTitle, customAbout: patch.about ?? d.customAbout, customAboutContext: patch.about !== undefined ? withPlanDestinations(plan, () => dayScheduleContext(d)) : d.customAboutContext } : d) } };
+        return { ...s, plan: { ...plan, dayPlans: plan.dayPlans.map((d) => d.day === day ? { ...d, customTitle: patch.title ?? d.customTitle, customAbout: patch.about === null ? undefined : patch.about ?? d.customAbout, customAboutContext: patch.about === null ? undefined : patch.about !== undefined ? withPlanDestinations(plan, () => dayScheduleContext(d)) : d.customAboutContext } : d) } };
       });
     },
     setStayAllocation(entries) {

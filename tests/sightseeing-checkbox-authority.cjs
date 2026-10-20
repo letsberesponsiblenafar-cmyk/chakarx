@@ -111,11 +111,12 @@ try {
     assert.ok(copy(result, quote).includes(authoredActivity), 'The separately priced activity must retain its own sentence.');
   });
 
-  test('unticked places cannot leak through the general destination note', () => {
+  test('automatic About excludes unticked places even when older manual text mentions them', () => {
     const chosen = sight('Checked woodland walk');
     const unchecked = sight('Unticked palace');
     select('Srinagar', [chosen, unchecked], [chosen.name], {
       day_note: 'Discover Srinagar. Visit Unticked palace. Explore Checked woodland walk.',
+      day_note_mode: 'auto',
     });
     const result = schedule([day('Srinagar')]);
     assertSelectedCopy(result, [chosen], [unchecked]);

@@ -106,7 +106,11 @@ export function dayScheduleContext(day: DayPlan, includeLibrarySights = true, in
           destinationByName(selection.destination)?.local_sightseeing.find((sight) => sight.name === selection.name)?.description,
           ...(includeLibraryOrder ? [order.get(key(selection.destination, selection.name))] : [])])]
         : [])]),
-    [...programme].filter((name) => day.primaryVisitFor?.includes(name)).map((name) => [name, destinationByName(name)?.day_note]),
+    [...programme].filter((name) => day.primaryVisitFor?.includes(name)).map((name) => {
+      const guide = destinationByName(name);
+      // Keep old context bytes stable until an operator actually changes mode.
+      return [name, guide?.day_note, ...(guide?.day_note_mode ? [guide.day_note_mode] : [])];
+    }),
     day.scheduledActivities?.map((activity) => [activity.key, destinationByName(activity.destination)?.activity_copy?.[activity.name]])]);
 }
 

@@ -75,6 +75,70 @@ function renderLibrary(catalog, reset = true, overrides = {}) {
 }
 
 try {
+  test('automatic About follows checked library order, activities, punctuation and empty selections', () => {
+    const record = { ...srinagar, day_note_mode: 'auto', day_note: 'Old manual text.',
+      local_sightseeing: [
+        { name: 'First', description: '', tags: [], client_sentence: '  explore   the garden  ' },
+        { name: 'Second', description: '', tags: [], client_sentence: 'visit the lake .' },
+        { name: 'Hidden', description: '', tags: [], client_sentence: 'This is unchecked.' },
+      ], enabled_sightseeing: ['Second', 'First'], activities: ['Shikara ride', 'Hidden activity'],
+      enabled_activities: ['Shikara ride'], activity_copy: {} };
+    assert.equal(destinationAbout(record), 'Explore the garden. Visit the lake. Enjoy a shikara ride.');
+    assert.equal(destinationAbout({ ...record, enabled_sightseeing: ['Second'] }), 'Visit the lake. Enjoy a shikara ride.');
+    assert.equal(destinationAbout({ ...record, enabled_sightseeing: [], enabled_activities: [] }), '');
+    const reloaded = validateDestination(JSON.parse(JSON.stringify({ ...record, id: 'automatic-test' })));
+    assert.equal(reloaded.day_note_mode, 'auto');
+    assert.equal(destinationAbout(reloaded), destinationAbout(record));
+    assert.throws(() => validateDestination({ ...record, id: 'automatic-test', day_note_mode: 'invalid' }), /automatic or manual/);
+  });
+
+  test('manual library About reaches itinerary in full and manual day copy has final priority', () => {
+    const about = 'A complete introduction. A second sentence.\nA third paragraph, subject to local permissions.';
+    const record = { ...srinagar, day_note_mode: 'manual', day_note: about };
+    replaceDestinationCatalog([record]);
+    const day = { day: 2, date: '2026-10-21', label: 'Sightseeing day', from: 'Srinagar', to: 'Srinagar', stay: 'Srinagar', transfer: false,
+      primaryVisitFor: ['Srinagar'], drive: { km: 0, hours: 0, via: [], known: true }, notes: [],
+      blocks: [{ destination: 'Srinagar', name: enabledSightseeing(record)[0], kind: 'sightseeing' }] };
+    const copy = dayNarrative(day, 'Srinagar');
+    assert.ok(copy.includes(about), 'Manual paragraphs must not be filtered or capped at two sentences.');
+    assert.equal(copy.split(about).length - 1, 1);
+    assert.equal(dayNarrative({ ...day, customAbout: 'Client-specific wording.' }, 'Srinagar'), 'Client-specific wording.');
+    assert.equal(destinationAbout({ ...record, enabled_sightseeing: [] }), about);
+  });
+
+  test('automatic itinerary uses only that day’s assigned library experiences and included activities', () => {
+    const record = { ...srinagar, day_note_mode: 'auto', day_note: 'Old manual introduction.',
+      local_sightseeing: [
+        { name: 'First', description: '', tags: [], client_sentence: 'Explore the garden.' },
+        { name: 'Second', description: '', tags: [], client_sentence: 'Visit the lake.' },
+      ], enabled_sightseeing: ['First', 'Second'], activities: ['Shikara ride'], enabled_activities: ['Shikara ride'],
+      activity_copy: {}, activity_timing: {} };
+    replaceDestinationCatalog([record]);
+    const day = { day: 2, date: '2026-10-21', label: 'Sightseeing day', from: 'Srinagar', to: 'Srinagar', stay: 'Srinagar', transfer: false,
+      primaryVisitFor: ['Srinagar'], drive: { km: 0, hours: 0, via: [], known: true }, notes: [], scheduledActivities: [],
+      blocks: [{ destination: 'Srinagar', name: 'First', kind: 'sightseeing' }] };
+    const copy = dayNarrative(day, 'Srinagar', emptyQuote);
+    assert.match(copy, /Explore the garden\./);
+    assert.doesNotMatch(copy, /Visit the lake|shikara|Old manual/);
+    const second = dayNarrative({ ...day, day: 3, primaryVisitFor: [], blocks: [{ destination: 'Srinagar', name: 'Second', kind: 'sightseeing' }] }, 'Srinagar', emptyQuote);
+    assert.match(second, /Visit the lake\./);
+    assert.doesNotMatch(second, /Explore the garden/);
+  });
+
+  test('automatic editor preview changes to manual only when typed and can return to automatic', () => {
+    const record = { ...srinagar, day_note_mode: 'auto', day_note: '' };
+    hooks.length = 0; hookIndex = 0;
+    let tree = DestinationEditor({ initial: record, onSaved: async () => {} });
+    let field = all(tree, (element) => element.props?.['aria-label'] === 'About this day')[0];
+    assert.equal(field.props.value, destinationAbout(record));
+    field.props.onChange({ target: { value: 'My own wording.\nKeep this paragraph.' } });
+    hookIndex = 0; tree = DestinationEditor({ initial: record, onSaved: async () => {} });
+    assert.equal(all(tree, (element) => element.props?.['aria-label'] === 'About this day mode')[0].props.value, 'manual');
+    all(tree, (element) => element.props?.['aria-label'] === 'About this day mode')[0].props.onChange({ target: { value: 'auto' } });
+    hookIndex = 0; tree = DestinationEditor({ initial: record, onSaved: async () => {} });
+    assert.equal(all(tree, (element) => element.props?.['aria-label'] === 'About this day')[0].props.value, destinationAbout(record));
+  });
+
   test('initial loading and failure never present bundled destination cards as saved data', () => {
     for (const destinationConnection of ['loading', 'error']) {
       let retries = 0;
@@ -237,6 +301,13 @@ async function storeRoundTrip() {
   };
   try {
     const { saveDestination, listDestinations } = require('../lib/destination-store.ts');
+    for (const day_note_mode of ['auto', 'manual']) {
+      const saved = validateDestination({ ...srinagar, id: 'Srinagar', day_note_mode, day_note: 'Saved manual paragraph.' });
+      await saveDestination(saved);
+      const loaded = (await listDestinations()).find((destination) => destination.id === 'Srinagar');
+      assert.equal(loaded.day_note_mode, day_note_mode);
+      assert.equal(destinationAbout(loaded), destinationAbout(saved));
+    }
     const legacy = bundled.find((destination) => destination.name === 'Srinagar');
     for (const day_note of [undefined, '', '   ', legacy.description, 'An authored replacement.\nA second paragraph.']) {
       const inputRecord = { ...srinagar, id: 'Srinagar', day_note };

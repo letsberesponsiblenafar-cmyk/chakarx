@@ -52,6 +52,7 @@ function hubRoute(raw: unknown): HubRoute | undefined {
 export function validateDestination(raw: unknown): Destination {
   if (!raw || typeof raw !== 'object') throw new Error('Destination details are required.');
   const d = raw as Record<string,unknown>;
+  if (d.day_note_mode !== undefined && d.day_note_mode !== 'auto' && d.day_note_mode !== 'manual') throw new Error('Choose automatic or manual About text.');
   const id = string(d.id, 'Destination ID', 100);
   const name = string(d.name, 'Destination name', 100);
   if (!id || !name) throw new Error('Destination ID and name are required.');
@@ -97,7 +98,7 @@ export function validateDestination(raw: unknown): Destination {
     id, name, tier: string(d.tier, 'Tier', 80), district: string(d.district, 'District', 100), tags: list(d.tags, 'Tags'),
     min_days, ideal_days, max_days, min_nights, ideal_nights, max_nights,
     overnight_allowed: Boolean(d.overnight_allowed), season: string(d.season, 'Season', 80), access: string(d.access, 'Access', 80),
-    source: string(d.source, 'Source', 200), description: string(d.description, 'Description', 2500), day_note: d.day_note == null ? undefined : string(d.day_note, 'About this day', 2500),
+    source: string(d.source, 'Source', 200), description: string(d.description, 'Description', 2500), day_note: d.day_note == null ? undefined : string(d.day_note, 'About this day', 2500), day_note_mode: d.day_note_mode as Destination['day_note_mode'],
     highlights: list(d.highlights, 'Highlights'), local_sightseeing, things_to_do, activities, activity_copy, activity_timing, hub_route: hubRoute(d.hub_route), enabled_things_to_do, enabled_sightseeing, enabled_activities, default_inclusions, default_exclusions,
     photoQuery: string(d.photoQuery, 'Photo query', 150), sites: Array.isArray(d.sites) ? d.sites as Destination['sites'] : [],
     base: Boolean(d.base), cluster: string(d.cluster, 'Cluster', 80),

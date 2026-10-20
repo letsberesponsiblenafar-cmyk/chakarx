@@ -151,10 +151,10 @@ check('ready encoded guide displays saved About and sightseeing in library order
   reset();
   const tree = render(DetailPage);
   assert.match(text(tree), /Saved Sinthan introduction/);
-  assert.match(text(tree), /introduction above stays separate/);
+  assert.match(text(tree), /Checked places build the automatic description/);
   const labels = all(tree, (element) => element.type === 'label' && element.props?.className?.startsWith('destination-'));
   assert.deepEqual(labels.map((element) => all(element, (child) => child.type === 'b').map(text)[0]), ['Second named stop', 'First named stop']);
-  assert.equal(all(tree, (element) => element.props?.href === '/library/Sinthan%20Top/edit').length, 1);
+  assert.equal(all(tree, (element) => element.props?.href === '/library/Sinthan%20Top/edit').length, 2);
 });
 check('changing guide routes cannot flash the previous destination or optimistic selections', () => {
   reset(); render(DetailPage);
