@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import AppShell from '@/components/AppShell';
 import { useMemo, useState } from 'react';
-import { ChevronRight, MapPin, Moon, Plus, Search, Sparkles, Sun } from 'lucide-react';
+import { ChevronRight, MapPin, Moon, Plus, RefreshCw, Search, Sparkles, Sun } from 'lucide-react';
 import { type Destination } from '@/lib/data';
 import { usePlanner } from '@/components/PlannerProvider';
 import { destinationAbout } from '@/lib/narrative';
@@ -11,7 +11,7 @@ import PackageDefaultsEditor from '@/components/PackageDefaultsEditor';
 const destinationUrl = (destination: Destination) => `/library/${encodeURIComponent(destination.id || destination.name)}`;
 
 export default function LibraryPage() {
-  const { destinationCatalog: destinations, destinationConnection, destinationConnectionError, refreshDestinations } = usePlanner();
+  const { destinationCatalog: destinations, destinationConnection, destinationConnectionError, destinationRefreshing, refreshDestinations } = usePlanner();
   const [q, setQ] = useState('');
   const [tier, setTier] = useState('All');
   const [overnight, setOvernight] = useState<'All' | 'Yes' | 'No'>('All');
@@ -24,9 +24,19 @@ export default function LibraryPage() {
       && (overnight === 'All' || (overnight === 'Yes' ? destination.overnight_allowed : !destination.overnight_allowed));
   }), [q, tier, overnight, destinations]);
 
+  // A successful deployment must not initially look like the bundled starter
+  // library while the saved catalogue is still loading or unavailable.
+  if(destinationConnection !== 'ready') return <AppShell><main className="page">
+    <div className="empty-panel" role={destinationConnection === 'error' ? 'alert' : 'status'} aria-busy={destinationConnection === 'loading'}>
+      <h1>{destinationConnection === 'loading' ? 'Loading saved destination library…' : 'Could not load destination library'}</h1>
+      <p>{destinationConnection === 'error' ? destinationConnectionError || 'The saved library could not be verified.' : 'Fetching your saved About text, sightseeing places and selections.'}</p>
+      {destinationConnection === 'error' && <button type="button" className="secondary-link" onClick={() => void refreshDestinations()}>Retry connection</button>}
+    </div>
+  </main></AppShell>;
+
   return <AppShell><main className="page">
-    <div className="planner-heading library-heading"><div><span className="eyebrow">KASHMIR DESTINATION LIBRARY</span><h1>Find the right places for every trip.</h1><p>Open a destination to review its sightseeing places and choose which experiences are available for client itineraries.</p></div><div className="library-heading-actions"><div className="heading-pill">{destinations.length} destinations · {sightseeingCount} sights</div><Link className="primary-cta inline" href="/library/new"><Plus size={17}/> Add destination</Link></div></div>
-    {destinationConnection === 'error' && <div className="destination-connection-error" role="alert"><span>Destination changes are unavailable: {destinationConnectionError}</span><button type="button" onClick={() => void refreshDestinations()}>Retry connection</button></div>}
+    <div className="planner-heading library-heading"><div><span className="eyebrow">KASHMIR DESTINATION LIBRARY</span><h1>Find the right places for every trip.</h1><p>Open a destination to review its sightseeing places and choose which experiences are available for client itineraries.</p></div><div className="library-heading-actions"><div className="heading-pill">{destinations.length} destinations · {sightseeingCount} sights</div><div className="library-action-buttons"><button type="button" className="secondary-link" aria-label="Refresh destination library" aria-busy={destinationRefreshing} disabled={destinationRefreshing} onClick={() => void refreshDestinations(false, { background: true })}><RefreshCw size={16}/> {destinationRefreshing ? 'Refreshing…' : 'Refresh'}</button><Link className="primary-cta inline" href="/library/new"><Plus size={17}/> Add destination</Link></div></div></div>
+    {destinationConnectionError && <div className="destination-connection-error" role="alert"><span>Showing the last loaded library. Could not check for changes: {destinationConnectionError}</span><button type="button" disabled={destinationRefreshing} onClick={() => void refreshDestinations(false, { background: true })}>Retry connection</button></div>}
     <section className="library-essentials" aria-label="Essential Kashmir destinations"><div className="library-essentials-intro"><span className="eyebrow">START HERE</span><h2>The four essentials</h2><p>Srinagar is the main base. Gulmarg, Pahalgam and Sonamarg can be day visits on shorter trips or overnight stays when time allows.</p></div><div className="library-essentials-grid">{featured.map((destination, index) => <Link key={destination.id || destination.name} href={destinationUrl(destination)}><span className="library-essential-number">0{index + 1}</span><b>{destination.name}</b><small>{destination.name === 'Srinagar' ? 'Main base & local sightseeing' : `${destination.district} · day visit or overnight`}</small><ChevronRight size={19}/></Link>)}</div></section>
     <section className="library-panel">
       <div className="library-toolbar library-toolbar-enhanced">

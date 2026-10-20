@@ -67,14 +67,48 @@ function text(element) {
   if (Array.isArray(element)) return element.map(text).join('');
   return typeof element === 'object' ? text(element.props?.children) : String(element);
 }
-function renderLibrary(catalog, reset = true) {
+function renderLibrary(catalog, reset = true, overrides = {}) {
   if (reset) hooks.length = 0;
   hookIndex = 0;
-  planner = { destinationCatalog: catalog, destinationConnection: 'ready', destinationConnectionError: '', refreshDestinations: async () => {} };
+  planner = { destinationCatalog: catalog, destinationConnection: 'ready', destinationConnectionError: '', refreshDestinations: async () => {}, ...overrides };
   return LibraryPage();
 }
 
 try {
+  test('initial loading and failure never present bundled destination cards as saved data', () => {
+    for (const destinationConnection of ['loading', 'error']) {
+      let retries = 0;
+      const tree = renderLibrary([srinagar], true, { destinationConnection, destinationConnectionError: 'Read unavailable.', refreshDestinations: async () => { retries++; } });
+      assert.equal(all(tree, (element) => element.props?.className === 'dest-card rich').length, 0);
+      assert.equal(all(tree, (element) => element.props?.className === 'dest-description').length, 0);
+      if (destinationConnection === 'loading') assert.match(text(tree), /Loading saved destination library/);
+      else {
+        assert.match(text(tree), /Read unavailable/);
+        all(tree, (element) => element.type === 'button' && text(element) === 'Retry connection')[0].props.onClick();
+        assert.equal(retries, 1);
+      }
+    }
+  });
+
+  test('confirmed library has a working Refresh control and labels a failed background check', () => {
+    let refreshes = 0;
+    let argumentsSeen;
+    const tree = renderLibrary([srinagar], true, { destinationConnectionError: 'Temporary timeout.', refreshDestinations: async (...args) => { refreshes++; argumentsSeen = args; } });
+    assert.equal(all(tree, (element) => element.props?.className === 'dest-description').length, 1);
+    assert.match(text(tree), /Showing the last loaded library/);
+    const refresh = all(tree, (element) => element.props?.['aria-label'] === 'Refresh destination library')[0];
+    assert.ok(refresh);
+    refresh.props.onClick();
+    assert.equal(refreshes, 1);
+    assert.deepEqual(argumentsSeen, [false, { background: true }], 'Manual refresh keeps the confirmed page and any shared-default draft mounted.');
+    const pendingTree = renderLibrary([srinagar], true, { destinationRefreshing: true });
+    const pending = all(pendingTree, (element) => element.props?.['aria-label'] === 'Refresh destination library')[0];
+    assert.equal(pending.props.disabled, true);
+    assert.equal(pending.props['aria-busy'], true);
+    assert.match(text(pending), /Refreshing/);
+    assert.equal(all(pendingTree, (element) => element.props?.className === 'dest-description').length, 1);
+  });
+
   test('authored About takes precedence over named defaults and an older custom description', () => {
     const about = 'A newly curated local introduction.\nA second paragraph with private-promenade detail.';
     for (const name of ['Srinagar', 'Custom valley']) {

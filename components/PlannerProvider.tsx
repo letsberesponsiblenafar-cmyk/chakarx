@@ -14,6 +14,7 @@ import { withPlanDestinations } from '@/lib/plan-destinations';
 import { allHotelOptionsCustom, highestCompleteHotelRates, sharedCustomHotelRates, hotelAlternativeCandidates, hotelOptionCategory, hotelOptionFromSelection, hotelOptionIdentity, sameHotelOption, type HotelOptionQuote, type HotelRateBundle } from '@/lib/hotel-options';
 import { hotelConfirmationSignature } from '@/lib/quote-readiness';
 import { packageCategories, packageView, validPackageQuotes, type PackageQuote } from '@/lib/package-quotes';
+import { observeDestinationFreshness } from '@/lib/destination-freshness';
 
 export type HotelSelection = {
   location: string; hotelId: string; hotelName: string; category: string; starRating: number | null; address: string; roomType: string; website: string;
@@ -39,8 +40,9 @@ type PlannerContextValue = PlannerState & {
   destinationCatalog: Destination[];
   destinationConnection: 'loading' | 'ready' | 'error';
   destinationConnectionError: string;
+  destinationRefreshing: boolean;
   /** True only when this request applied a confirmed, current catalogue. */
-  refreshDestinations: (rebuildCurrent?: boolean) => Promise<boolean>;
+  refreshDestinations: (rebuildCurrent?: boolean, options?: { background?: boolean }) => Promise<boolean>;
   removeDestinationFromLibrary: (destination: Destination) => void;
   packageDefaults: PackageDefaults;
   packageDefaultsConnection: 'loading' | 'ready' | 'error';
@@ -490,7 +492,10 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   const [destinationCatalog,setDestinationCatalog]=useState<Destination[]>([...destinations]);
   const [destinationConnection,setDestinationConnection]=useState<'loading'|'ready'|'error'>('loading');
   const [destinationConnectionError,setDestinationConnectionError]=useState('');
+  const [destinationRefreshing,setDestinationRefreshing]=useState(false);
   const destinationRequest=useRef(0);
+  const destinationRequestPending=useRef(false);
+  const destinationConfirmed=useRef(false);
   const [packageDefaults,setPackageDefaults]=useState<PackageDefaults>(initialPackageDefaults);
   const [packageDefaultsConnection,setPackageDefaultsConnection]=useState<'loading'|'ready'|'error'>('loading');
   const [packageDefaultsError,setPackageDefaultsError]=useState('');
@@ -535,9 +540,16 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       throw error;
     }
   }
-  async function refreshDestinations(rebuildCurrent = false) {
+  async function refreshDestinations(rebuildCurrent = false, options: { background?: boolean } = {}) {
+    // Focus/visibility events can arrive together. Never supersede a save or
+    // initial load, and never expose bundled data as a background fallback.
+    const background=Boolean(options.background);
+    if(background && (!destinationConfirmed.current || destinationRequestPending.current))return false;
     const request=++destinationRequest.current;
-    setDestinationConnection('loading'); setDestinationConnectionError('');
+    destinationRequestPending.current=true;
+    setDestinationRefreshing(true);
+    if(!background)setDestinationConnection('loading');
+    setDestinationConnectionError('');
     try {
       const response=await fetch('/api/destinations',{cache:'no-store',signal:AbortSignal.timeout(15000)});
       const payload=await response.json().catch(()=>({}));
@@ -549,6 +561,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       replaceArchivedDestinationCatalog(Array.isArray(payload.archivedDestinations) ? payload.archivedDestinations : []);
       replaceDestinationCatalog(catalog);
       setDestinationCatalog([...destinations]);
+      destinationConfirmed.current=true;
       setState((current) => {
         if (!current.plan) return current;
         try {
@@ -562,11 +575,18 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       return true;
     } catch(error) {
       if(request!==destinationRequest.current)return false;
-      setDestinationConnection('error');
+      // Retain a verified read-only list during a failed background check.
+      // Explicit loads/saves still fail closed and pause editing as before.
+      if(!background)setDestinationConnection('error');
       setDestinationConnectionError(error instanceof Error?error.message:'Could not load destination database.');
       // Initial loads and Retry are intentionally non-throwing. Save callers
       // inspect this result before claiming success or navigating away.
       return false;
+    } finally {
+      if(request===destinationRequest.current){
+        destinationRequestPending.current=false;
+        setDestinationRefreshing(false);
+      }
     }
   }
   async function refreshHotels(){
@@ -604,6 +624,9 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     // remounts this provider and loads the hotel master with the new cookie.
     if(window.location.pathname!=='/login') { void refreshHotels(); void refreshDestinations(); void refreshPackageDefaults(); }
   }, []);
+  useEffect(() => observeDestinationFreshness(window, document, () => {
+    void refreshDestinations(false, { background: true });
+  }), []);
   const scheduledPlan = useMemo(() => state.plan ? destinationConnection === 'ready' ? reschedulePlan(state.plan, state.costModel) : state.plan : null,
     [state.plan, state.costModel.activityCosts, state.costModel.activitySelections, destinationCatalog, destinationConnection]);
   const scheduledState = useMemo(() => stateWithScheduledPlan(state, scheduledPlan), [state, scheduledPlan]);
@@ -614,9 +637,12 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     destinationCatalog,
     destinationConnection,
     destinationConnectionError,
+    destinationRefreshing,
     refreshDestinations,
     removeDestinationFromLibrary(destination) {
       ++destinationRequest.current;
+      destinationRequestPending.current=false;
+      setDestinationRefreshing(false);
       const id = destination.id || destination.name;
       replaceArchivedDestinationCatalog([...archivedDestinationCatalog().filter((item) => (item.id || item.name) !== id), destination]);
       replaceDestinationCatalog(destinations.filter((item) => (item.id || item.name) !== id));
@@ -866,7 +892,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       setState((s) => reconcilePlannerState({ ...s, ...snapshot, packageQuotes: validPackageQuotes(snapshot.packageQuotes) ? snapshot.packageQuotes : undefined, costModel: { ...defaultCost, ...snapshot.costModel, activitySelections: snapshot.costModel?.activitySelections || {}, manualInclusions: Array.isArray(snapshot.costModel?.manualInclusions) ? snapshot.costModel.manualInclusions : [], manualExclusions: Array.isArray(snapshot.costModel?.manualExclusions) ? snapshot.costModel.manualExclusions : [], transportIsCustom: snapshot.costModel?.transportIsCustom === true || (Boolean(snapshot.input?.transport) && !transportOptions.includes(snapshot.input.transport)) }, hotelDatabase: s.hotelDatabase, savedItineraryId: id }));
     },
     markSavedItinerary(id) { setState((s) => ({ ...s, savedItineraryId: id })); },
-  }), [state, scheduledState, mounted, hotelConnection, hotelConnectionError, destinationCatalog, destinationConnection, destinationConnectionError, packageDefaults, packageDefaultsConnection, packageDefaultsError]);
+  }), [state, scheduledState, mounted, hotelConnection, hotelConnectionError, destinationCatalog, destinationConnection, destinationConnectionError, destinationRefreshing, packageDefaults, packageDefaultsConnection, packageDefaultsError]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

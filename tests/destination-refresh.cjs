@@ -40,6 +40,7 @@ for (const extension of ['.ts', '.tsx']) require.extensions[extension] = functio
 };
 const data = require('../lib/data.ts');
 const { PlannerProvider } = require('../components/PlannerProvider.tsx');
+const { observeDestinationFreshness } = require('../lib/destination-freshness.ts');
 const originalCatalog = [...data.destinations];
 const originalArchived = data.archivedDestinationCatalog();
 const first = originalCatalog[0];
@@ -58,6 +59,11 @@ let checks = 0;
 async function check(name, run) { await run(); checks++; console.log(`PASS ${name}`); }
 
 (async () => {
+  await check('background checks cannot expose or refresh unconfirmed starter data', async () => {
+    assert.equal(await render().refreshDestinations(false, { background: true }), false);
+    assert.equal(requests.length, 0);
+    assert.equal(render().destinationConnection, 'loading');
+  });
   await check('a slower catalogue response cannot overwrite a newer confirmed response', async () => {
     let planner = render();
     const firstRead = planner.refreshDestinations();
@@ -116,6 +122,64 @@ async function check(name, run) { await run(); checks++; console.log(`PASS ${nam
     assert.equal(render().destinationCatalog.length, 0);
     assert.equal(data.destinations.length, 0);
     assert.ok(data.archivedDestinationCatalog().some((item) => item.name === newest.name));
+  });
+
+  await check('background refresh stays visible, deduplicates pending checks and cannot supersede a foreground save refresh', async () => {
+      let read = render().refreshDestinations();
+      requests.at(-1).resolve(response(newest));
+      assert.equal(await read, true);
+      let before = requests.length;
+      read = render().refreshDestinations(false, { background: true });
+      assert.equal(render().destinationConnection, 'ready', 'A background check must not hide confirmed cards or unmount pages.');
+      assert.equal(render().destinationRefreshing, true);
+      assert.equal(await render().refreshDestinations(false, { background: true }), false);
+      assert.equal(requests.length, before + 1, 'Only one background request may be active.');
+      requests.at(-1).resolve(response(older));
+      assert.equal(await read, true);
+      assert.equal(render().destinationRefreshing, false);
+      assert.equal(render().destinationCatalog[0].day_note, older.day_note);
+      read = render().refreshDestinations(true);
+      before = requests.length;
+      assert.equal(await render().refreshDestinations(false, { background: true }), false);
+      assert.equal(requests.length, before, 'A focus event must not supersede an explicit save verification.');
+      requests.at(-1).resolve(response(newest));
+      assert.equal(await read, true);
+      read = render().refreshDestinations(false, { background: true });
+      requests.at(-1).reject(new Error('Temporary background timeout.'));
+      assert.equal(await read, false);
+      assert.equal(render().destinationConnection, 'ready');
+      assert.equal(render().destinationRefreshing, false);
+      assert.equal(render().destinationCatalog[0].day_note, newest.day_note);
+      assert.match(render().destinationConnectionError, /background timeout/);
+  });
+
+  await check('focus, visibility and reconnect refresh only the visible library, and listeners are cleaned up', async () => {
+    const browser = new EventTarget();
+    browser.location = { pathname: '/library' };
+    const page = new EventTarget();
+    page.visibilityState = 'visible';
+    let refreshes = 0;
+    const cleanup = observeDestinationFreshness(browser, page, () => { refreshes++; });
+    browser.dispatchEvent(new Event('focus'));
+    page.dispatchEvent(new Event('visibilitychange'));
+    browser.dispatchEvent(new Event('online'));
+    assert.equal(refreshes, 3);
+    page.visibilityState = 'hidden';
+    browser.dispatchEvent(new Event('focus'));
+    assert.equal(refreshes, 3);
+    page.visibilityState = 'visible';
+    for (const pathname of ['/library/Srinagar/edit', '/library/new', '/planner/itinerary']) {
+      browser.location.pathname = pathname;
+      browser.dispatchEvent(new Event('focus'));
+      page.dispatchEvent(new Event('visibilitychange'));
+    }
+    assert.equal(refreshes, 3, 'Background updates must not interrupt editable drafts or planner work.');
+    browser.location.pathname = '/library';
+    cleanup();
+    browser.dispatchEvent(new Event('focus'));
+    page.dispatchEvent(new Event('visibilitychange'));
+    browser.dispatchEvent(new Event('online'));
+    assert.equal(refreshes, 3);
   });
   console.log(`${checks} destination refresh race, failure and recovery checks passed.`);
 })().catch((error) => { console.error(error); process.exitCode = 1; })
