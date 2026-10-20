@@ -234,7 +234,8 @@ function visitCopy(day: DayPlan, destination: string, planned: string[], quote?:
   const earlyText = activityCopy(experiences.filter(early));
   const experienceText = activityCopy(experiences.filter((name) => !early(name)));
   const programme = [earlyText, stops, experienceText].filter(Boolean).join(' ');
-  return [note, programme].filter(Boolean).join('\n\n');
+  // Compose one client-facing paragraph without changing the saved library copy.
+  return [note, programme].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
 }
 
 function travelCopy(from: string, to: string, via: string[] = []) {

@@ -101,10 +101,13 @@ try {
       primaryVisitFor: ['Srinagar'], drive: { km: 0, hours: 0, via: [], known: true }, notes: [],
       blocks: [{ destination: 'Srinagar', name: enabledSightseeing(record)[0], kind: 'sightseeing' }] };
     const copy = dayNarrative(day, 'Srinagar');
-    assert.ok(copy.includes(about), 'Manual paragraphs must not be filtered or capped at two sentences.');
-    assert.equal(copy.split(about).length - 1, 1);
+    const paragraph = about.replace(/\s+/g, ' ').trim();
+    assert.ok(copy.includes(paragraph), 'All authored sentences must remain in the single itinerary paragraph.');
+    assert.equal(copy.split(paragraph).length - 1, 1);
     const sentence = sightseeingSentence(record.local_sightseeing.find(sight => sight.name === enabledSightseeing(record)[0]));
-    assert.ok(copy.includes(`${about}\n\n${sentence}`), 'Introduction must be followed by a separate sightseeing paragraph, never suppress the visits.');
+    assert.ok(copy.includes(`${paragraph} ${sentence}`), 'Introduction and selected sightseeing must form one continuous paragraph.');
+    assert.doesNotMatch(copy, /[\r\n]/);
+    assert.equal(destinationAbout(record), about, 'Paragraph formatting must not rewrite the saved library introduction.');
     assert.equal(dayNarrative({ ...day, customAbout: 'Client-specific wording.' }, 'Srinagar'), 'Client-specific wording.');
     assert.equal(destinationAbout({ ...record, enabled_sightseeing: [] }), about);
   });
@@ -123,7 +126,7 @@ try {
     const copy = dayNarrative(day, 'Srinagar', emptyQuote);
     assert.match(copy, /Explore the garden\./);
     assert.doesNotMatch(copy, /Visit the lake|shikara/);
-    assert.ok(copy.includes('Old manual introduction.\n\nExplore the garden.'));
+    assert.ok(copy.includes('Old manual introduction. Explore the garden.'));
     const second = dayNarrative({ ...day, day: 3, primaryVisitFor: [], blocks: [{ destination: 'Srinagar', name: 'Second', kind: 'sightseeing' }] }, 'Srinagar', emptyQuote);
     assert.match(second, /Visit the lake\./);
     assert.doesNotMatch(second, /Explore the garden/);
