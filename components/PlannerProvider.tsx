@@ -13,6 +13,7 @@ import { initialPackageDefaults, validatePackageDefaults, type PackageDefaults }
 import { withPlanDestinations } from '@/lib/plan-destinations';
 import { allHotelOptionsCustom, highestCompleteHotelRates, sharedCustomHotelRates, hotelAlternativeCandidates, hotelOptionCategory, hotelOptionFromSelection, hotelOptionIdentity, sameHotelOption, type HotelOptionQuote, type HotelRateBundle } from '@/lib/hotel-options';
 import { hotelConfirmationSignature } from '@/lib/quote-readiness';
+import { confirmHotelRatesInState } from '@/lib/hotel-confirmation';
 import { packageCategories, packageView, validPackageQuotes, type PackageQuote } from '@/lib/package-quotes';
 import { observeDestinationFreshness } from '@/lib/destination-freshness';
 import { freezePlannerState, savedHotelMaster } from '@/lib/saved-plan-data';
@@ -78,6 +79,7 @@ type PlannerContextValue = PlannerState & {
   setSharedCustomHotelRate: (location: string, field: keyof HotelRateBundle, value: number) => void;
   setHotelRate: (location: string, field: 'nightlyRate' | 'extraBedRate' | 'cnbRate', value: number) => void;
   setHotelMeta: (location: string, patch: Partial<HotelSelection>) => void;
+  confirmHotelRates: (confirmed: boolean) => void;
   setHotelDefaults: (patch: Partial<HotelDefaults>) => void;
   applyHotelDefaults: () => void;
   updateHotelRecord: (id: string, patch: Partial<Hotel>) => void;
@@ -250,7 +252,7 @@ export function setSharedCustomHotelRateInState(state: PlannerState, location: s
   const selections = state.plan ? syncHotelSelections(state.plan, state.hotelSelections, state.hotelDatabase, state.plan.input) : state.hotelSelections;
   const selected = selections.find((hotel) => hotelSelectionKey(hotel) === location);
   const rates = selected && sharedCustomHotelRates(selected, state.plan?.input.hotelOptionMode || state.input.hotelOptionMode);
-  if (!selected || !rates) return state;
+  if (!selected || !rates || rates[field] === value) return state;
   const replacement = { ...selected, sharedCustomRates: { ...rates, [field]: value }, rateConfirmed: false, confirmedSignature: undefined };
   return { ...state, hotelSelections: selections.map((hotel) => hotel === selected ? replacement : hotel) };
 }
@@ -294,8 +296,9 @@ export function setHotelOptionRateInState(state: PlannerState, location: string,
   const selections = state.plan ? syncHotelSelections(state.plan, state.hotelSelections, state.hotelDatabase, state.plan.input) : state.hotelSelections;
   return { ...state, hotelSelections: selections.map((hotel) => {
     if (hotelSelectionKey(hotel) !== location) return hotel;
-    if (hotelOptionIdentity(hotel) === optionId) return { ...hotel, [field]: amount, status: 'user-edited', rateConfirmed: false, confirmedSignature: undefined };
+    if (hotelOptionIdentity(hotel) === optionId) return hotel[field] === amount ? hotel : { ...hotel, [field]: amount, status: 'user-edited', rateConfirmed: false, confirmedSignature: undefined };
     if (!(hotel.alternatives || []).some((option) => hotelOptionIdentity(option) === optionId)) return hotel;
+    if (hotel.alternatives!.find((option) => hotelOptionIdentity(option) === optionId)![field] === amount) return hotel;
     return { ...hotel, alternatives: hotel.alternatives!.map((option) => hotelOptionIdentity(option) === optionId ? { ...option, [field]: amount, status: 'user-edited' } : option), rateConfirmed: false, confirmedSignature: undefined };
   }) };
 }
@@ -733,6 +736,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       return { ...s, input: { ...s.input, [key]: value } };
     }); },
     updatePackageState(category, update) { setState((s) => updatePackageInState(s, category, update)); },
+    confirmHotelRates(confirmed) { setState((s) => confirmHotelRatesInState(syncPackageQuotes(s), confirmed)); },
     setPackageTransport(category, vehicle, custom = false) {
       setState((s) => {
         if (!s.plan || category === s.plan.input.hotelCategory || !packageCategories(s.plan.input).includes(category)) return s;

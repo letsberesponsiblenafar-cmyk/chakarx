@@ -61,7 +61,7 @@ function fixture(customSlots = [], sharedCustomRates) {
   return {
     input, hydrated: true, hotelConnection: 'ready', hotelDatabase: masters, hotelSelections: [stay],
     plan: { input, nights: 3, days: 4, hotelPlans: [{ location: 'Srinagar', nights: 3 }], dayPlans: [1, 2, 3, 4].map((day) => ({ day, date: `2026-12-${13 + day}`, stay: 'Srinagar' })) },
-    ...Object.fromEntries(['replaceHotel', 'replaceHotelAlternative', 'setCustomHotelAlternative', 'useCustomHotel', 'setSharedCustomHotelRate', 'setHotelRate', 'setHotelOptionRate', 'setHotelMeta', 'setSrinagarHouseboatNights', 'refreshHotels'].map((name) => [name, (...args) => calls.push({ name, args })])),
+    ...Object.fromEntries(['confirmHotelRates', 'replaceHotel', 'replaceHotelAlternative', 'setCustomHotelAlternative', 'useCustomHotel', 'setSharedCustomHotelRate', 'setHotelRate', 'setHotelOptionRate', 'setHotelMeta', 'setSrinagarHouseboatNights', 'refreshHotels'].map((name) => [name, (...args) => calls.push({ name, args })])),
   };
 }
 function reset(customSlots = [], sharedCustomRates) { hooks.length = 0; calls.length = 0; planner = fixture(customSlots, sharedCustomRates); return render(); }
@@ -122,22 +122,22 @@ test('one valid shared quote permits stay verification without individual custom
   const stay = planner.hotelSelections[0];
   for (const option of [stay, ...stay.alternatives]) Object.assign(option, { nightlyRate: 0, extraBedRate: 0, cnbRate: 0 });
   let tree = render();
-  const verification = all(tree, (element) => element.type === 'input' && element.props.type === 'checkbox')[0];
+  const final = all(tree, (element) => element.type?.name === 'HotelFinalConfirmation');
+  assert.equal(final.length, 1, 'The single final check lives outside the individual stay editors.');
+  const verification = all(final[0].type(), (element) => element.type === 'input' && element.props.type === 'checkbox')[0];
   assert.ok(verification);
   assert.equal(verification.props.disabled, false, 'The shared positive room rate is sufficient for every named custom option.');
   assert.doesNotMatch(text(tree), /Enter the room rate/);
   assert.deepEqual(rates(tree).map((field) => field.props.value), [4200, 900, 300]);
   verification.props.onChange({ target: { checked: true } });
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].name, 'setHotelMeta');
-  assert.equal(calls[0].args[0], 'Srinagar');
-  assert.equal(calls[0].args[1].rateConfirmed, true);
-  assert.ok(calls[0].args[1].confirmedSignature);
+  assert.deepEqual(calls[0], { name: 'confirmHotelRates', args: [true] });
 
   calls.length = 0;
   stay.sharedCustomRates.nightlyRate = 0;
   tree = render();
-  const invalidVerification = all(tree, (element) => element.type === 'input' && element.props.type === 'checkbox')[0];
+  const invalidFinal = all(tree, (element) => element.type?.name === 'HotelFinalConfirmation')[0];
+  const invalidVerification = all(invalidFinal.type(), (element) => element.type === 'input' && element.props.type === 'checkbox')[0];
   assert.equal(invalidVerification.props.disabled, true, 'An unpriced shared quote cannot be verified.');
   invalidVerification.props.onChange({ target: { checked: true } });
   assert.deepEqual(calls, [], 'The handler also guards invalid shared pricing, beyond the disabled checkbox.');
@@ -178,6 +178,29 @@ test('an old alternative review closes when the last database option becomes cus
   assert.deepEqual(rates(tree).map((field) => field.props.value), [6100, 850, 375]);
   rates(tree)[0].props.onCommit(6200);
   assert.deepEqual(calls, [{ name: 'setSharedCustomHotelRate', args: ['Srinagar', 'nightlyRate', 6200] }]);
+});
+
+test('filled database rates remain optional to edit, even with old supplier validity text', () => {
+  reset();
+  planner.hotelDatabase = planner.hotelDatabase.map((hotel) => ({ ...hotel, rateValidity: 'October 2025' }));
+  const tree = render();
+  assert.equal(rateRequests(tree).length, 3, 'Every property remains independently editable.');
+  assert.equal(buttons(tree, 'Review rate').length, 0);
+  assert.equal(buttons(tree, 'Set rate').length, 0);
+  const final = all(tree, (element) => element.type?.name === 'HotelFinalConfirmation')[0];
+  assert.equal(all(final.type(), (element) => element.type === 'input' && element.props.type === 'checkbox')[0].props.disabled, false);
+  const adjustments = all(tree, (element) => element.type === 'details' && element.props.className === 'hotel-adjustments');
+  assert.equal(adjustments[0].props.open, false, 'Already-filled rate fields start collapsed.');
+});
+
+test('multiple packages render one final confirmation, outside every package editor', () => {
+  reset();
+  planner = { ...planner, input: { ...planner.input, packagePreferences: ['Signature', 'Signature Plus'] }, plan: { ...planner.plan, input: { ...planner.plan.input, packagePreferences: ['Signature', 'Signature Plus'] } } };
+  const comparison = render().type();
+  assert.equal(all(comparison, (element) => element.type?.name === 'HotelFinalConfirmation').length, 1);
+  const editors = all(comparison, (element) => element.type?.name === 'HotelPackageEditor');
+  assert.equal(editors.length, 2);
+  for (const editor of editors) assert.equal(all(editor.type(), (element) => element.type?.name === 'HotelFinalConfirmation').length, 0);
 });
 
 console.log(`Multiple custom hotel UI: ${checks} interaction regressions passed${failures ? `, ${failures} failed` : ''}.`);

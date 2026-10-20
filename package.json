@@ -11,7 +11,7 @@
     "test:navigation": "node tests/navigation-recovery.cjs",
     "test:packages": "node tests/package-comparison.cjs && node tests/package-comparison-pdf.cjs",
     "test:destinations": "node tests/destination-library.cjs && node tests/destination-content.cjs && node tests/destination-route-ui.cjs && node tests/destination-refresh.cjs && node tests/destination-package-defaults.cjs && node tests/package-defaults-store.cjs && node tests/destination-deletion.cjs && node tests/deleted-destination-quotes.cjs",
-    "test:hotels": "node tests/hotel-suggestions.cjs && node tests/houseboat-stays.cjs && node tests/hotel-options.cjs && node tests/custom-hotel-options.cjs && node tests/multiple-custom-hotel-ui.cjs && node tests/hotel-package-category.cjs",
+    "test:hotels": "node tests/hotel-suggestions.cjs && node tests/houseboat-stays.cjs && node tests/hotel-options.cjs && node tests/custom-hotel-options.cjs && node tests/multiple-custom-hotel-ui.cjs && node tests/hotel-package-category.cjs && node tests/hotel-confirmation.cjs",
     "test:hotel-imports": "node tests/hotel-excel-import.cjs",
     "test:store": "node tests/database-retry.cjs && node tests/saved-itinerary-copy.cjs && node tests/saved-itinerary-menu.cjs",
     "test:model": "node scripts/verify-model.mjs && node scripts/verify-recommendations.cjs",

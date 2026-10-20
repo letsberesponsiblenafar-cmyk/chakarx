@@ -233,15 +233,15 @@ test('legacy input without mode is single; changing mode requires Next', () => {
   assert.equal(planInputsNeedRefresh(legacy, { ...input, hotelOptionMode: 'single' }), false);
   assert.equal(planInputsNeedRefresh(legacy, input), true);
 });
-test('a lower-priced option with expired supplier dates can be reviewed without changing the highest quote', () => {
+test('filled database rates need no manual edit because of supplier validity text', () => {
   const lower = hotelOptions(hotel, 'multiple')[0];
   const changed = { ...state, hotelDatabase: state.hotelDatabase.map((record) => record.id === lower.hotelId ? { ...record, rateValidity: 'October 2025' } : record) };
-  assert(readiness(changed).some((issue) => issue.includes(lower.hotelName) && issue.includes('outside')));
+  assert(!readiness(changed).some((issue) => issue.includes(lower.hotelName) && issue.includes('outside')));
   const total = calculateCosts(changed.plan, changed.hotelSelections, changed.costModel).sellingTotal;
   const reviewed = setHotelOptionRateInState(changed, key, lower.hotelId, 'nightlyRate', lower.nightlyRate);
   assert(!readiness(reviewed).some((issue) => issue.includes(lower.hotelName) && issue.includes('outside')));
   assert.equal(calculateCosts(reviewed.plan, reviewed.hotelSelections, reviewed.costModel).sellingTotal, total);
-  assert.equal(reviewed.hotelSelections[0].rateConfirmed, false);
+  assert.deepEqual(reviewed.hotelSelections[0], changed.hotelSelections[0], 'Leaving an imported rate unchanged must preserve its status and confirmation.');
 });
 test('houseboat alternatives remain separate and never double-charge Srinagar nights', () => {
   const boats = ['main', 'second', 'third'].map((suffix, index) => master('Srinagar', `boat-${suffix}`, 3000 + index * 200, { name: `Lake ${suffix} Houseboat` }));

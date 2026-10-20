@@ -3,7 +3,6 @@ import { packageCategories, packageView } from '@/lib/package-quotes';
 import type { Hotel } from '@/lib/data';
 import { arrivalDayVisitAllowed, requiresSrinagarFinalNight, type Plan, type TripInput } from '@/lib/itinerary';
 import { activitySelected, quotedActivityCost, tripActivities } from '@/lib/activities';
-import { hotelRateValidity } from '@/lib/hotel-rate-validity';
 import { isHouseboatHotel, sameHotelDestination, matchesPackageCategory } from '@/lib/hotels';
 import { hotelNightDates, hotelNightNumbers, hotelSelectionKey, hotelStayLabel, hotelStayType, hotelStayWindow } from '@/lib/accommodation';
 import { hotelOptions, hotelOptionMatchesCategory, hotelOptionIdentity, isUnusedHotelOption, sharedCustomHotelRates } from '@/lib/hotel-options';
@@ -102,10 +101,8 @@ export function quoteReadiness(
         if (record && !sameHotelDestination(record.destination, stay.location)) issues.push(`Select accommodation in ${stay.location}; the current property belongs to ${record.destination}.`);
         if (record && isHouseboatHotel(record) !== (hotelStayType(selected) === 'houseboat')) issues.push(`Select a ${hotelStayType(selected)} property for ${optionLabel}.`);
         if (!record && !option.customId && options.length > 1 && alternative && isHouseboatHotel({ name: option.hotelName, roomType: option.roomType, sourceCategory: option.category, sourceType: option.source }) !== (hotelStayType(selected) === 'houseboat')) issues.push(`Select a ${hotelStayType(selected)} property for ${optionLabel}.`);
-        if (record && option.status !== 'user-edited') {
-          const window = hotelStayWindow(plan, selected);
-          if (hotelRateValidity(record, window.arrival, window.departure) === 'outside') issues.push(`The ${optionLabel} master rate is outside the stay dates. Enter a current rate in Hotels.`);
-        }
+        // Imported rates need no manual edit. The final Hotels confirmation
+        // acknowledges this quote's dates, prices and supplier availability.
       }
     }
     if ([...coverage.values()].some((count) => count !== 1)) issues.push(`Assign every ${stay.location} night to exactly one hotel${stay.location === 'Srinagar' ? ' or houseboat' : ''}.`);
