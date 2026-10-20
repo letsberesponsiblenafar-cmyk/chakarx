@@ -22,3 +22,4 @@
 .itinerary-planning-estimates p{margin:9px 0}
 .itinerary-planning-estimates ul{margin:9px 0 0;padding-left:19px}
 @media(max-width:640px){.itinerary-planning-window{align-items:flex-start;font-size:.78rem}.itinerary-planning-window svg{margin-top:4px}.itinerary-planning-estimates{margin-left:0;font-size:.8rem}}
+.itinerary-review-copy p { white-space: pre-wrap; }

@@ -75,7 +75,7 @@ function renderLibrary(catalog, reset = true, overrides = {}) {
 }
 
 try {
-  test('automatic About follows checked library order, activities, punctuation and empty selections', () => {
+  test('library About remains the introduction regardless of checkboxes or legacy mode', () => {
     const record = { ...srinagar, day_note_mode: 'auto', day_note: 'Old manual text.',
       local_sightseeing: [
         { name: 'First', description: '', tags: [], client_sentence: '  explore   the garden  ' },
@@ -83,16 +83,17 @@ try {
         { name: 'Hidden', description: '', tags: [], client_sentence: 'This is unchecked.' },
       ], enabled_sightseeing: ['Second', 'First'], activities: ['Shikara ride', 'Hidden activity'],
       enabled_activities: ['Shikara ride'], activity_copy: {} };
-    assert.equal(destinationAbout(record), 'Explore the garden. Visit the lake. Enjoy a shikara ride.');
-    assert.equal(destinationAbout({ ...record, enabled_sightseeing: ['Second'] }), 'Visit the lake. Enjoy a shikara ride.');
-    assert.equal(destinationAbout({ ...record, enabled_sightseeing: [], enabled_activities: [] }), '');
+    assert.equal(destinationAbout(record), 'Old manual text.');
+    assert.equal(destinationAbout({ ...record, enabled_sightseeing: ['Second'] }), 'Old manual text.');
+    assert.equal(destinationAbout({ ...record, enabled_sightseeing: [], enabled_activities: [] }), 'Old manual text.');
+    assert.equal(destinationAbout({ ...record, day_note: '' }), '');
     const reloaded = validateDestination(JSON.parse(JSON.stringify({ ...record, id: 'automatic-test' })));
     assert.equal(reloaded.day_note_mode, 'auto');
     assert.equal(destinationAbout(reloaded), destinationAbout(record));
     assert.throws(() => validateDestination({ ...record, id: 'automatic-test', day_note_mode: 'invalid' }), /automatic or manual/);
   });
 
-  test('manual library About reaches itinerary in full and manual day copy has final priority', () => {
+  test('library introduction precedes selected sightseeing even on legacy manual records', () => {
     const about = 'A complete introduction. A second sentence.\nA third paragraph, subject to local permissions.';
     const record = { ...srinagar, day_note_mode: 'manual', day_note: about };
     replaceDestinationCatalog([record]);
@@ -102,6 +103,8 @@ try {
     const copy = dayNarrative(day, 'Srinagar');
     assert.ok(copy.includes(about), 'Manual paragraphs must not be filtered or capped at two sentences.');
     assert.equal(copy.split(about).length - 1, 1);
+    const sentence = sightseeingSentence(record.local_sightseeing.find(sight => sight.name === enabledSightseeing(record)[0]));
+    assert.ok(copy.includes(`${about}\n\n${sentence}`), 'Introduction must be followed by a separate sightseeing paragraph, never suppress the visits.');
     assert.equal(dayNarrative({ ...day, customAbout: 'Client-specific wording.' }, 'Srinagar'), 'Client-specific wording.');
     assert.equal(destinationAbout({ ...record, enabled_sightseeing: [] }), about);
   });
@@ -119,13 +122,14 @@ try {
       blocks: [{ destination: 'Srinagar', name: 'First', kind: 'sightseeing' }] };
     const copy = dayNarrative(day, 'Srinagar', emptyQuote);
     assert.match(copy, /Explore the garden\./);
-    assert.doesNotMatch(copy, /Visit the lake|shikara|Old manual/);
+    assert.doesNotMatch(copy, /Visit the lake|shikara/);
+    assert.ok(copy.includes('Old manual introduction.\n\nExplore the garden.'));
     const second = dayNarrative({ ...day, day: 3, primaryVisitFor: [], blocks: [{ destination: 'Srinagar', name: 'Second', kind: 'sightseeing' }] }, 'Srinagar', emptyQuote);
     assert.match(second, /Visit the lake\./);
     assert.doesNotMatch(second, /Explore the garden/);
   });
 
-  test('automatic editor preview changes to manual only when typed and can return to automatic', () => {
+  test('editor shows only an editable introduction with no automatic or manual switch', () => {
     const record = { ...srinagar, day_note_mode: 'auto', day_note: '' };
     hooks.length = 0; hookIndex = 0;
     let tree = DestinationEditor({ initial: record, onSaved: async () => {} });
@@ -133,10 +137,8 @@ try {
     assert.equal(field.props.value, destinationAbout(record));
     field.props.onChange({ target: { value: 'My own wording.\nKeep this paragraph.' } });
     hookIndex = 0; tree = DestinationEditor({ initial: record, onSaved: async () => {} });
-    assert.equal(all(tree, (element) => element.props?.['aria-label'] === 'About this day mode')[0].props.value, 'manual');
-    all(tree, (element) => element.props?.['aria-label'] === 'About this day mode')[0].props.onChange({ target: { value: 'auto' } });
-    hookIndex = 0; tree = DestinationEditor({ initial: record, onSaved: async () => {} });
-    assert.equal(all(tree, (element) => element.props?.['aria-label'] === 'About this day')[0].props.value, destinationAbout(record));
+    assert.equal(all(tree, (element) => element.props?.['aria-label'] === 'About this day mode').length, 0);
+    assert.equal(all(tree, (element) => element.props?.['aria-label'] === 'About this day')[0].props.value, 'My own wording.\nKeep this paragraph.');
   });
 
   test('initial loading and failure never present bundled destination cards as saved data', () => {

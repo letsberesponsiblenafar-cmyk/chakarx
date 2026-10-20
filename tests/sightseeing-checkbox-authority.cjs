@@ -111,11 +111,11 @@ try {
     assert.ok(copy(result, quote).includes(authoredActivity), 'The separately priced activity must retain its own sentence.');
   });
 
-  test('automatic About excludes unticked places even when older manual text mentions them', () => {
+  test('generated sightseeing excludes unticked places and follows the introduction', () => {
     const chosen = sight('Checked woodland walk');
     const unchecked = sight('Unticked palace');
     select('Srinagar', [chosen, unchecked], [chosen.name], {
-      day_note: 'Discover Srinagar. Visit Unticked palace. Explore Checked woodland walk.',
+      day_note: 'Discover Srinagar.',
       day_note_mode: 'auto',
     });
     const result = schedule([day('Srinagar')]);

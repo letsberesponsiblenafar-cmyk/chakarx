@@ -80,19 +80,8 @@ export function cleanGeneratedSentence(value: string) {
   return /[.!?]$/.test(capitalized) ? capitalized : `${capitalized}.`;
 }
 
-export function generatedDestinationAbout(destination: Destination) {
-  const checked = new Set(enabledSightseeing(destination));
-  const activities = new Set(destination.enabled_activities || []);
-  const sentences = [
-    ...destination.local_sightseeing.filter((sight) => checked.has(sight.name)).map(sightseeingSentence),
-    ...destination.activities.filter((name) => activities.has(name)).map((name) => destination.activity_copy?.[name]?.trim() || activitySentence(name)),
-  ].map(cleanGeneratedSentence).filter(Boolean);
-  return [...new Map(sentences.map((sentence) => [sentence.toLowerCase(), sentence])).values()].join(' ');
-}
-
-/** Legacy saved copy stays intact until its owner chooses automatic generation. */
+/** The library owns only the editable introduction; visits are composed per day. */
 export function destinationAbout(destination: Destination) {
-  if (destination.day_note_mode === 'auto') return generatedDestinationAbout(destination);
   return destination.day_note == null ? defaultDayNote(destination) : destination.day_note;
 }
 
@@ -219,9 +208,7 @@ function visitCopy(day: DayPlan, destination: string, planned: string[], quote?:
   // Introduce a destination only on its main visit, with actual assigned places
   // or experiences, rather than repeating its guide whenever the hotel is here.
   const hasProgramme = clientStops.length > 0 || quotedActivities.length > 0;
-  if (guide?.day_note_mode === 'manual' && options.introduction !== false && primary && hasProgramme) return destinationAbout(guide);
   const noteSentences = options.introduction !== false && hasProgramme && primary && noteSource
-    && guide?.day_note_mode !== 'auto'
     ? [noteSource] : [];
   const note = noteSentences.join(' ');
   const selectedLines = sightseeingLines(day, clientStops, guide).map(cleanGeneratedSentence);
@@ -246,7 +233,8 @@ function visitCopy(day: DayPlan, destination: string, planned: string[], quote?:
   }).join(' ');
   const earlyText = activityCopy(experiences.filter(early));
   const experienceText = activityCopy(experiences.filter((name) => !early(name)));
-  return [note, earlyText, stops, experienceText].filter(Boolean).join(' ');
+  const programme = [earlyText, stops, experienceText].filter(Boolean).join(' ');
+  return [note, programme].filter(Boolean).join('\n\n');
 }
 
 function travelCopy(from: string, to: string, via: string[] = []) {

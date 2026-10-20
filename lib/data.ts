@@ -52,6 +52,7 @@ export type Destination = {
   srinagar_hours?: number;
   srinagar_km?: number;
   day_note?: string;
+  /** Retained for old records only; About is always an introduction now. */
   day_note_mode?: 'auto' | 'manual';
   enabled_things_to_do?: string[];
   enabled_sightseeing?: string[];
