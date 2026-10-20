@@ -45,7 +45,6 @@ export default function DestinationsPage() {
   return <AppShell><PlannerChrome title="Choose your journey" eyebrow="STEP 01 · DESTINATIONS"><div className="journey-refinement">
     <ItineraryDataUpdate/>
     {routeVersion !== ROUTE_VERSION && <section className="route-update-banner"><div><b>More balanced route suggestions are available.</b><p>Rebuild the destinations and day descriptions for this trip. Hotels and agreed rates for retained stays, your vehicle, and activities at retained destinations are kept; totals follow the new night allocation.</p></div><button type="button" className="secondary-link" disabled={destinationConnection !== 'ready'} onClick={replanDestinations}>Rebuild suggestions</button></section>}
-    <section className="journey-intro"><div><span className="eyebrow">YOUR SUGGESTED ROUTE</span><h2>Where you explore. Where you stay.</h2><p>Choose the destination to explore and the hotel base for each night. Your next day starts from that hotel base, and sightseeing is arranged around the journey time.</p></div><div className="journey-intro-count"><strong>{plan.days}</strong><span>days · {plan.nights} nights</span></div></section>
     {requiresSrinagarFinalNight(plan.input) && <p className="journey-time-line" role="note"><Moon size={14} aria-hidden="true"/><span>Departure at {plan.input.departureTime}: the final hotel night is in Srinagar. You can still choose a day visit before returning for the night.</span></p>}
 
     <div className="journey-days">{plan.dayPlans.map((day) => {

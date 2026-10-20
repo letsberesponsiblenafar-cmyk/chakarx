@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { CheckCircle2, ChevronLeft, ChevronRight, Plus, Route, Search, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Route, Search, Trash2 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import PlannerChrome from '@/components/PlannerChrome';
 import { usePlanner } from '@/components/PlannerProvider';
@@ -68,7 +68,6 @@ export default function ActivitiesTransportPage() {
   }
 
   return <AppShell><PlannerChrome title="Activities & Transport" eyebrow="STEP 03 · ACTIVITIES & TRANSPORT">
-    <div className="services-intro"><div><span className="eyebrow">PACKAGE SERVICES</span><h2>Shape what the client receives.</h2><p>Set the vehicle, choose the activities you are quoting, then tailor the exact inclusion and exclusion lists shown in the client PDF.</p></div><div className="services-progress"><span><CheckCircle2 size={15}/> Vehicle and group rate</span><span><CheckCircle2 size={15}/> Destination activities</span><span><CheckCircle2 size={15}/> Client package lists</span></div></div>
     <div className="services-overview"><div><small>Transport</small><b>{money(chargedDays * costModel.transportDaily)}</b><span>{chargedDays} service days</span></div><div><small>Included activities</small><b>{includedCount} of {activities.length}</b><span>{money(activityTotal)} group total</span></div><div><small>Additional list items</small><b>{(costModel.manualInclusions || []).filter((item) => item.trim()).length + (costModel.manualExclusions || []).filter((item) => item.trim()).length}</b><span>Client-facing additions</span></div></div>
 
     <section className="transport-setup-card"><div><span className="overline">01 · TRANSPORT</span><h2>Choose your vehicle</h2><p>{categories.length > 1 ? 'This default vehicle applies to every package. Add an optional alternative below if a preference needs a different vehicle.' : `The daily rate covers ${chargedDays} service days in this itinerary. Enter a custom vehicle if the listed options do not fit this group.`}</p></div>
