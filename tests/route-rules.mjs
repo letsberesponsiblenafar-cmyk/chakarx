@@ -42,6 +42,23 @@ try {
   }
   assert.ok(ready, 'Local production server did not start');
 
+  const protectedPath = '/library/Sinthan%20Top/edit?review=1';
+  const unauthenticated = await fetch(`${base}${protectedPath}`, { redirect: 'manual' });
+  assert.equal(unauthenticated.status, 307);
+  assert.equal(new URL(unauthenticated.headers.get('location'), base).searchParams.get('next'), protectedPath);
+  const signedInReturn = await fetch(`${base}/login?next=${encodeURIComponent(protectedPath)}`, { redirect: 'manual', headers: { Cookie: `chakar_admin=${token}` } });
+  // Next can stream an authenticated server-component redirect after sending 200.
+  let returnLocation = signedInReturn.headers.get('location');
+  if (!returnLocation) {
+    assert.equal(signedInReturn.status, 200);
+    const html = await signedInReturn.text();
+    returnLocation = html.match(/<meta[^>]+http-equiv="refresh"[^>]+content="[^;]+;url=([^"]+)"/)?.[1];
+    assert.ok(returnLocation, 'The streamed login response must redirect to the requested page.');
+  } else assert.equal(signedInReturn.status, 307);
+  assert.equal(new URL(returnLocation, base).pathname, '/library/Sinthan%20Top/edit');
+  assert.equal(new URL(returnLocation, base).search, '?review=1');
+  console.log('Sign-in return navigation retains the requested page and query.');
+
   const cronReject = await fetch(`${base}/api/cron/sync`, { headers: { Authorization: 'Bearer invalid-secret' } });
   assert.equal(cronReject.status, 401);
   assert.match((await cronReject.json()).error, /Unauthorized cron request/, 'Bearer cron requests must reach the handler instead of the admin-cookie gate');

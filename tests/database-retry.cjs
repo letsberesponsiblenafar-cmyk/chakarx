@@ -18,7 +18,7 @@ require.extensions['.ts'] = function (module, filename) {
   module._compile(output, filename);
 };
 
-const { listHotels } = require(path.resolve(__dirname, '../lib/hotel-store.ts'));
+const { listHotels, getHotel } = require(path.resolve(__dirname, '../lib/hotel-store.ts'));
 const { listSavedItineraries } = require(path.resolve(__dirname, '../lib/itinerary-store.ts'));
 
 (async () => {
@@ -46,4 +46,17 @@ const { listSavedItineraries } = require(path.resolve(__dirname, '../lib/itinera
   assert.match(listCalls[0], /order=created_at\.desc,id\.desc.*offset=0/);
   assert.match(listCalls[1], /offset=500/);
   console.log('Database retries and complete, creation-date-ordered saved itinerary pagination passed.');
+  const hotelRows = new Map([
+    ['hotel with spaces', { id: 'hotel with spaces', name: 'Space Hotel', destination: 'Srinagar' }],
+    ['literal%20hotel', { id: 'literal%20hotel', name: 'Literal Hotel', destination: 'Srinagar' }],
+  ]);
+  global.fetch = async url => {
+    const id = new URL(url).searchParams.get('id').slice(3);
+    return Response.json(hotelRows.has(id) ? [hotelRows.get(id)] : []);
+  };
+  assert.equal((await getHotel('hotel%20with%20spaces')).id, 'hotel with spaces');
+  assert.equal((await getHotel('literal%20hotel')).id, 'literal%20hotel');
+  assert.equal((await getHotel('literal%2520hotel')).id, 'literal%20hotel');
+  assert.equal(await getHotel('malformed%zz'), null);
+  console.log('Encoded hotel links resolve once and exact stored IDs retain priority.');
 })().catch((error) => { console.error(error); process.exitCode = 1; });

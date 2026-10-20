@@ -22,12 +22,20 @@ export default function HotelEditor({ initialHotel }: { initialHotel?: Hotel }) 
   const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [message, setMessage] = useState('');
 
   function update(key: keyof Hotel, value: string) { setMessage(''); setHotel(current => ({ ...current, [key]: ['starRating', 'mapB2B', 'extraBedB2B', 'cnbB2B'].includes(key) ? value === '' ? null : Number(value) : value })); }
-  async function refreshPlanner() { const response = await fetch('/api/hotels', { cache: 'no-store' }); if (response.ok) replaceHotelDatabase((await response.json()).hotels); }
+  async function refreshPlanner() {
+    const response = await fetch('/api/hotels', { cache: 'no-store', signal: AbortSignal.timeout(15000) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !Array.isArray(data.hotels)) throw new Error('The change was saved, but the hotel list could not be refreshed. Please retry.');
+    replaceHotelDatabase(data.hotels);
+  }
   async function save(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError(''); setMessage('');
     try {
-      const response = await fetch(initialHotel ? `/api/hotels/${encodeURIComponent(initialHotel.id)}` : '/api/hotels', { method: initialHotel ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(hotel) });
+      const recordId = hotel.id || initialHotel?.id;
+      const response = await fetch(recordId ? `/api/hotels/${encodeURIComponent(recordId)}` : '/api/hotels', { method: recordId ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(hotel), signal: AbortSignal.timeout(15000) });
       const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Could not save hotel.');
+      if (!data.hotel?.id) throw new Error('The server did not confirm the saved hotel.');
+      setHotel(current => ({ ...current, id: data.hotel.id }));
       await refreshPlanner(); setMessage('Hotel saved to the shared database.');
       if (!initialHotel) router.replace(`/hotels/${encodeURIComponent(data.hotel.id)}`); else router.refresh();
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not save hotel.'); }

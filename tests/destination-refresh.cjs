@@ -181,6 +181,34 @@ async function check(name, run) { await run(); checks++; console.log(`PASS ${nam
     browser.dispatchEvent(new Event('online'));
     assert.equal(refreshes, 3);
   });
-  console.log(`${checks} destination refresh race, failure and recovery checks passed.`);
+  await check('stale hotel authentication failures cannot redirect a newer confirmed session or replace imported data', async () => {
+    const hotelReads = [];
+    const redirects = [];
+    global.window = { location: { origin: 'https://chakar.test', pathname: '/planner/itinerary', search: '?review=1', hash: '#day-2', replace: value => redirects.push(value) } };
+    global.fetch = (url) => {
+      assert.equal(url, '/api/hotels');
+      return new Promise(resolve => hotelReads.push(resolve));
+    };
+    const hotel = { id: 'current-hotel', name: 'Current hotel', destination: 'Srinagar' };
+    const old = render().refreshHotels();
+    const latest = render().refreshHotels();
+    hotelReads[1](Response.json({ configured: true, hotels: [hotel] }));
+    await latest;
+    hotelReads[0](Response.json({ error: 'Expired old request' }, { status: 401 }));
+    await old;
+    assert.equal(redirects.length, 0);
+    assert.equal(render().hotelConnection, 'ready');
+    const beforeImport = render().refreshHotels();
+    render().replaceHotelDatabase([{ ...hotel, name: 'New import' }]);
+    hotelReads[2](Response.json({ configured: true, hotels: [hotel] }));
+    await beforeImport;
+    assert.equal(render().hotelDatabase[0].name, 'New import');
+    assert.equal(render().hotelConnection, 'ready');
+    const expired = render().refreshHotels();
+    hotelReads[3](Response.json({}, { status: 401 }));
+    await expired;
+    assert.equal(new URL(redirects[0]).searchParams.get('next'), '/planner/itinerary?review=1#day-2');
+  });
+  console.log(`${checks} catalogue refresh race, failure and recovery checks passed.`);
 })().catch((error) => { console.error(error); process.exitCode = 1; })
   .finally(() => { data.replaceDestinationCatalog(originalCatalog); data.replaceArchivedDestinationCatalog(originalArchived); });

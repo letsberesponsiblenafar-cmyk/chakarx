@@ -595,9 +595,10 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     try {
       const response=await fetch('/api/hotels',{cache:'no-store',signal:AbortSignal.timeout(15000)});
       const payload=await response.json().catch(()=>({}));
+      if(request!==hotelRequest.current)return;
       if(response.status===401){
         const login=new URL('/login',window.location.origin);
-        login.searchParams.set('next',window.location.pathname+window.location.search);
+        login.searchParams.set('next',window.location.pathname+window.location.search+window.location.hash);
         window.location.replace(login.toString());
         throw new Error('Admin session expired. Sign in to load hotel suggestions.');
       }
@@ -835,6 +836,9 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       });
     },
     replaceHotelDatabase(records) {
+      // A confirmed save/import supersedes any older in-flight catalogue read.
+      ++hotelRequest.current;
+      setHotelConnection('ready'); setHotelConnectionError('');
       setState((s) => {
         const clean = records.filter((r) => r && r.id && r.destination && r.name);
         const hotelSelections = s.plan ? syncHotelSelections(s.plan, s.hotelSelections, clean, s.input) : s.hotelSelections;

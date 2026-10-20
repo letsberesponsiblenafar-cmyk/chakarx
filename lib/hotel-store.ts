@@ -31,7 +31,13 @@ async function call(path:string,init:RequestInit={}){
   throw new Error('Hotel database did not respond.');
 }
 export async function listHotels():Promise<Hotel[]>{return (await call('?select=*&order=destination.asc,name.asc&limit=1000') as Row[]).map(toHotel);}
-export async function getHotel(id:string):Promise<Hotel|null>{const rows=await call(`?select=*&id=eq.${encodeURIComponent(id)}&limit=1`) as Row[];return rows[0]?toHotel(rows[0]):null;}
+export async function getHotel(id:string):Promise<Hotel|null>{
+  const read=async(value:string)=>await call(`?select=*&id=eq.${encodeURIComponent(value)}&limit=1`) as Row[];
+  let rows=await read(id);
+  // App Router can pass an encoded segment; exact stored IDs still win.
+  if(!rows.length){let decoded=id;try{decoded=decodeURIComponent(id);}catch{}if(decoded!==id)rows=await read(decoded);}
+  return rows[0]?toHotel(rows[0]):null;
+}
 export async function upsertHotels(hotels:Hotel[]){
   if(!hotels.length)return;
   await call('?on_conflict=id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(hotels.map(toRow))});
