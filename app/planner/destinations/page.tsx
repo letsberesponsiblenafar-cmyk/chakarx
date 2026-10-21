@@ -11,7 +11,8 @@ import { routeByName } from '@/lib/data';
 import { ROUTE_VERSION, requiresSrinagarFinalNight } from '@/lib/itinerary';
 import { dayVisitDestination } from '@/lib/journey-labels';
 import { dayTitle } from '@/lib/narrative';
-import { planDestinations } from '@/lib/plan-destinations';
+import { planDestinations, withPlanDestinations } from '@/lib/plan-destinations';
+import { dayTimingForReview, pickupTimingNotice } from '@/lib/day-scheduler';
 import '../destination-refinement.css';
 
 function displayDate(value: string) {
@@ -56,8 +57,10 @@ export default function DestinationsPage() {
         return rank(a.name) - rank(b.name) || a.name.localeCompare(b.name);
       });
       const title = dayTitle(day, plan.input.pickup || 'Srinagar');
-      const driveMinutes = day.timing?.driveMinutes ?? day.drive.hours * 60;
-      const timingIssues = day.timing?.issues || [];
+      const timing = withPlanDestinations(plan, () => dayTimingForReview(day, plan.input));
+      const pickupNotice = pickupTimingNotice(day, plan.input);
+      const driveMinutes = timing?.driveMinutes ?? day.drive.hours * 60;
+      const timingIssues = timing?.issues || [];
       return <article className="journey-day" key={day.day}>
         <div className="journey-day-index"><span>DAY</span><strong>{String(day.day).padStart(2, '0')}</strong></div>
         <div className="journey-day-main"><div className="journey-day-heading"><div><h3>Day {day.day} — {title}</h3><span>{displayDate(day.date)}{day.day === 1 ? ' · Arrival day' : departure ? ' · Final day' : ''}</span></div><span className={departure ? 'journey-kind departure' : day.dayTripDestination ? 'journey-kind' : 'journey-kind overnight'}>{departure ? 'Departure' : day.dayTripDestination ? day.from === day.stay ? 'Return to hotel base' : 'Continue to hotel base' : 'Overnight stay'}</span></div>
@@ -66,7 +69,7 @@ export default function DestinationsPage() {
             <div><span>{departure ? 'DEPART FROM' : 'EXPLORE'}</span><strong>{departure ? day.to : visit}</strong></div>
             {!departure && <><ArrowRight aria-hidden="true" size={16}/><div><span><Moon size={11} aria-hidden="true"/> OVERNIGHT</span><strong>{day.stay}</strong></div></>}
           </div>
-          <div className="journey-time-line"><Clock3 size={14} aria-hidden="true"/><span>{day.drive.known === false ? 'Add a driving estimate in the destination library' : driveMinutes > 0 ? `Estimated driving · ${duration(driveMinutes)}${day.dayTripDestination && day.from === day.stay ? ' round trip' : ' total'}${day.drive.via?.length ? ` · via ${day.drive.via.join(' → ')}` : ''}` : 'Explore within the destination'}</span></div>
+          <div className="journey-time-line"><Clock3 size={14} aria-hidden="true"/><span>{pickupNotice ? 'Custom pickup · confirm travel time. PDF download remains available.' : day.drive.known === false && !driveMinutes ? 'Add a driving estimate in the destination library' : driveMinutes > 0 ? `Estimated driving · ${duration(driveMinutes)}${day.dayTripDestination && day.from === day.stay ? ' round trip' : ' total'}${day.drive.via?.length ? ` · via ${day.drive.via.join(' → ')}` : ''}` : 'Explore within the destination'}</span></div>
           {departure ? <div className="journey-choice single"><label htmlFor="departure-point">Departure point</label><SearchableDestinationSelect id="departure-point" label="Departure point" value={day.to} onChange={setDeparturePoint} options={['Srinagar', ...overnightOptions.filter((place) => place.name !== 'Srinagar').map((place) => place.name), 'Jammu'].map((name) => ({ value: name, label: name }))}/><small>No hotel night on the departure day. Any sightseeing fits around the departure time.</small></div> : <div className="journey-choices"><div className="journey-choice"><label htmlFor={`visit-${day.day}`}><MapPin size={13} aria-hidden="true"/> Destination to explore</label><SearchableDestinationSelect id={`visit-${day.day}`} label="Destination to explore" value={visit} onChange={(name) => setDayTrip(day.day, name)} options={visits.map((place) => {
               const travel = hoursBetween(day.from, place.name) + hoursBetween(place.name, day.stay);
               return { value: place.name, label: `${place.name}${travel >= 99 ? ' · timing needed' : travel > 6 ? ' · long journey' : ''}` };

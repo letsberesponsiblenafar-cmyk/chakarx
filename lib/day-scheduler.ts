@@ -1,6 +1,7 @@
 import { destinationByName, destinations, enabledSightseeing, type Destination, type Sightseeing, type VisitWindow } from '@/lib/data';
 import { quotedActivityCost } from '@/lib/activities';
 import { isGurezAllowed } from '@/lib/intelligence';
+import { journeyDrive } from '@/lib/journey-drive';
 import type { DayBlock, DayPlan, TripInput } from '@/lib/itinerary';
 
 export type ScheduleQuote = { activityCosts: Record<string, number>; activitySelections?: Record<string, boolean> };
@@ -34,6 +35,15 @@ const sightIdentity = (name: string, destination?: string) => {
   return normalized;
 };
 
+const missingRoadTime = 'Set a road distance and drive time for this route in the destination library.';
+const isPickupDay = (day: DayPlan, input: TripInput) => day.day === 1 && day.label === 'Arrival day' &&
+  day.from.trim().toLowerCase() === input.pickup.trim().toLowerCase();
+
+export function pickupTimingNotice(day: DayPlan, input: TripInput) {
+  if (!isPickupDay(day, input) || day.drive.known || ['jammu', 'srinagar'].includes(day.from.trim().toLowerCase())) return null;
+  return `Custom pickup: ${input.pickup}. Confirm the transfer distance and travel time with your driver. This flag does not block the PDF.`;
+}
+
 function windowFor(day: DayPlan, input: TripInput) {
   const startOfDay = 8 * 60;
   const endOfDay = 22 * 60;
@@ -57,14 +67,37 @@ function windowFor(day: DayPlan, input: TripInput) {
   const availableMinutes = Math.max(0, end - start);
   const remainingMinutes = Math.max(0, availableMinutes - driveMinutes - serviceMinutes - accessMinutes);
   const issues: string[] = [];
-  if (!day.drive.known) issues.push('Set a road distance and drive time for this route in the destination library.');
+  const pickupNotice = pickupTimingNotice(day, input);
+  const advisories: string[] = pickupNotice ? [pickupNotice] : [];
+  if (!day.drive.known && !pickupNotice) issues.push(missingRoadTime);
+  if (isPickupDay(day, input) && day.from === 'Jammu') advisories.push('Jammu pickup uses a 7-hour NH-44 road-transfer estimate. Confirm current road conditions and pickup time.');
+  if (day.day === 1 && end > 24 * 60) advisories.push('The arrival transfer may finish after midnight. Confirm pickup time and late hotel check-in.');
   if (day.drive.preference === 'NOT_ALLOWED') issues.push('This route is not permitted by the routing rules; choose another journey.');
   if (start < 0) issues.push('The departure transfer would start the previous night. Move the final overnight closer to the departure point.');
   if ((!departure || clockMinutes(input.departureTime) !== null) && driveMinutes + serviceMinutes + accessMinutes > availableMinutes) {
     issues.push('The transfers and required buffers exceed the available day. Change the route or travel times.');
   }
   if ([day.from, day.stay, day.dayTripDestination].includes('Gurez') && !isGurezAllowed(day.date)) issues.push('Gurez is outside the May–October planning window. Choose another destination.');
-  return { startMinutes: start, endMinutes: end, availableMinutes, driveMinutes, serviceMinutes: serviceMinutes + accessMinutes, scheduledMinutes: 0, remainingMinutes, overrunMinutes: 0, issues, advisories: [] as string[] };
+  return { startMinutes: start, endMinutes: end, availableMinutes, driveMinutes, serviceMinutes: serviceMinutes + accessMinutes, scheduledMinutes: 0, remainingMinutes, overrunMinutes: 0, issues, advisories };
+}
+
+/** Repair only obsolete pickup diagnostics on saved quotes; never rebuild their
+ * sightseeing, authored descriptions, dates, hotel agreements or costs. */
+export function dayTimingForReview(day: DayPlan, input: TripInput) {
+  if (!day.timing || day.drive.known || !isPickupDay(day, input)) return day.timing;
+  const drive = day.from === 'Jammu' ? journeyDrive(day.from, day.to, day.dayTripDestination) : day.drive;
+  const retainedIssues = day.timing.issues.filter((issue) => issue !== missingRoadTime);
+  if (drive.known) {
+    const timing = windowFor({ ...day, drive }, input);
+    const load = timing.driveMinutes + timing.serviceMinutes + day.timing.scheduledMinutes;
+    return { ...timing, scheduledMinutes: day.timing.scheduledMinutes,
+      remainingMinutes: Math.max(0, timing.availableMinutes - load), overrunMinutes: Math.max(0, load - timing.availableMinutes),
+      issues: [...new Set([...retainedIssues, ...timing.issues])],
+      advisories: [...new Set([...(day.timing.advisories || []), ...timing.advisories,
+        ...(load > timing.availableMinutes ? ['Review the saved arrival programme against the pickup transfer time. The saved itinerary is unchanged.'] : [])])] };
+  }
+  const notice = pickupTimingNotice(day, input);
+  return notice ? { ...day.timing, issues: retainedIssues, advisories: [...new Set([...(day.timing.advisories || []), notice])] } : day.timing;
 }
 
 function visiting(day: DayPlan, name: string) {
@@ -72,7 +105,7 @@ function visiting(day: DayPlan, name: string) {
   if (day.label === 'Departure day') return day.stay === name;
   // Returning to a Srinagar hotel continues the outlying destination visit;
   // staying in Srinagar does not turn every excursion into city sightseeing.
-  if (day.transfer && day.stay === 'Srinagar' && day.from !== day.stay) return day.from === name;
+  if (day.day > 1 && day.transfer && day.stay === 'Srinagar' && day.from !== day.stay) return day.from === name;
   return day.stay === name;
 }
 function activityVisiting(day: DayPlan, name: string) {

@@ -23,3 +23,6 @@
 .itinerary-planning-estimates ul{margin:9px 0 0;padding-left:19px}
 @media(max-width:640px){.itinerary-planning-window{align-items:flex-start;font-size:.78rem}.itinerary-planning-window svg{margin-top:4px}.itinerary-planning-estimates{margin-left:0;font-size:.8rem}}
 .itinerary-review-copy p { white-space: pre-wrap; }
+.itinerary-pickup-flag { display: flex; align-items: flex-start; gap: 9px; margin: 0 0 18px 62px; padding: 11px 13px; border: 1px solid #e5d6b8; border-radius: 9px; background: #faf5e9; color: #735b35; font-size: 12px; line-height: 1.6; }
+.itinerary-pickup-flag svg { flex: none; margin-top: 2px; }
+@media(max-width:640px) { .itinerary-pickup-flag { margin-left: 0; } }

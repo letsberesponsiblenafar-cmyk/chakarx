@@ -4,6 +4,8 @@
   "version": "1.3.0",
   "scripts": {
     "test:saved-data": "node tests/saved-data-isolation.cjs",
+    "test:pickups": "node tests/pickup-timing.cjs",
+    "test:services": "node tests/services-ui.cjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

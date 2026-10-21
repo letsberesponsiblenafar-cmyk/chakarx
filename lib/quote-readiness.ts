@@ -7,6 +7,8 @@ import { isHouseboatHotel, sameHotelDestination, matchesPackageCategory } from '
 import { hotelNightDates, hotelNightNumbers, hotelSelectionKey, hotelStayLabel, hotelStayType, hotelStayWindow } from '@/lib/accommodation';
 import { hotelOptions, hotelOptionMatchesCategory, hotelOptionIdentity, isUnusedHotelOption, sharedCustomHotelRates } from '@/lib/hotel-options';
 import { savedHotelMaster } from '@/lib/saved-plan-data';
+import { dayTimingForReview } from '@/lib/day-scheduler';
+import { withPlanDestinations } from '@/lib/plan-destinations';
 
 export function hotelConfirmationSignature(plan: Plan, hotel: HotelSelection, mealPlan: string) {
   const window = hotelStayWindow(plan, hotel);
@@ -43,7 +45,7 @@ export function quoteReadiness(
 ) {
   hotelMaster = savedHotelMaster(plan, hotelMaster);
   const issues: string[] = [];
-  for (const day of plan.dayPlans) for (const issue of day.timing?.issues || []) issues.push(`Day ${day.day}: ${issue}`);
+  for (const day of plan.dayPlans) for (const issue of withPlanDestinations(plan, () => dayTimingForReview(day, input))?.issues || []) issues.push(`Day ${day.day}: ${issue}`);
   if (planInputsNeedRefresh(plan, input)) issues.push('Rebuild the itinerary after changing trip details.');
   if (requiresSrinagarFinalNight(input) && plan.dayPlans[plan.nights - 1]?.stay !== 'Srinagar') issues.push('Keep the final night in Srinagar for departures at or before 2:00 pm.');
   if (hotelConnection !== 'ready') issues.push('Load the hotel database before sharing a quote.');

@@ -4,7 +4,7 @@ import type { DayPlan } from '@/lib/itinerary';
 export function dayVisitDestination(day: DayPlan): string {
   if (day.dayTripDestination) return day.dayTripDestination;
   if (day.label === 'Departure day') return day.stay;
-  if (day.transfer && day.stay === 'Srinagar' && day.from !== day.stay) return day.from;
+  if (day.day > 1 && day.transfer && day.stay === 'Srinagar' && day.from !== day.stay) return day.from;
   return day.stay;
 }
 

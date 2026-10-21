@@ -1,0 +1,97 @@
+/* Local styling keeps Costing and the client PDF unchanged. */
+.services-workspace { --service-ink: #443421; --service-muted: #756958; }
+.services-workspace .services-overview { gap: 10px; margin-bottom: 14px; }
+.services-workspace .services-overview > div { padding: 13px 16px; gap: 4px; border-radius: 12px; background: #fcfaf6; }
+.services-workspace .services-overview small { font-size: 9px; font-weight: 600; letter-spacing: .08em; }
+.services-workspace .services-overview b { font: 600 21px/1.4 var(--sans); }
+.services-workspace .services-overview span { font-size: 11px; color: var(--service-muted); }
+.services-workspace .transport-setup-card, .services-workspace .activity-cost-card { margin: 14px 0; padding: 20px; border: 1px solid #e5dccd; border-radius: 15px; background: #fffefa; box-shadow: 0 3px 16px #35271304; }
+.services-workspace .transport-setup-card h2, .services-workspace .activity-cost-head h3 { font: 500 26px/1.2 var(--serif); margin: 5px 0; }
+.services-workspace .activity-cost-head h3 { font-size: 26px !important; }
+.services-workspace .transport-setup-card p, .services-workspace .activity-cost-head p { font-size: 12px; line-height: 1.5; color: var(--service-muted); }
+.services-workspace .transport-setup-fields { margin-top: 14px; grid-template-columns: minmax(0,1.2fr) minmax(0,1fr) minmax(0,.9fr); gap: 12px; }
+.services-workspace .transport-setup-fields > label { padding: 0; border: 0; border-radius: 0; background: none; gap: 7px; font-size: 11px; font-weight: 500; }
+.services-workspace .transport-setup-fields select, .services-workspace .transport-money-input { min-height: 44px; height: 44px; font: 400 14px/1.4 var(--sans); border-color: #dfd4c3; border-radius: 9px; }
+.services-workspace .transport-money-input input { font: inherit; padding: 10px 8px; }
+.services-workspace .transport-setup-total { padding: 10px 13px; gap: 3px; background: #f4efe5; border-color: #e7ddc9; border-radius: 10px; font-size: 10px; }
+.services-workspace .transport-setup-total b { font: 600 21px/1.3 var(--sans); }
+.services-workspace .transport-setup-total small { font-size: 10px; }
+.services-workspace .transport-setup-card .transport-suggestion { margin-top: 12px; padding: 0; font-size: 11px; color: var(--service-muted); }
+.services-workspace .custom-transport-name { margin-top: 12px; font-size: 12px; }
+.services-workspace .package-vehicle-options { margin-top: 14px; }
+.services-workspace .package-vehicle-options > summary { padding-top: 14px; }
+.services-workspace .package-vehicle-options summary b { font-size: 12px; }
+.services-workspace .package-vehicle-options summary span { font-size: 11px; }
+.services-workspace .package-vehicle-options-body { padding-top: 12px; gap: 12px; }
+.services-workspace .package-vehicle-card { padding: 15px; background: #fcfaf6; border-radius: 11px; }
+.services-workspace .package-vehicle-heading { margin-bottom: 12px; }
+.services-workspace .package-vehicle-heading h3 { font-size: 22px; }
+.services-workspace .activity-cost-head { gap: 14px; }
+.services-workspace .activity-cost-total { padding: 0; border: 0; background: none; text-align: right; width: auto; min-width: 110px; }
+.services-workspace .activity-cost-total strong { font: 600 22px/1.4 var(--sans); }
+.services-workspace .activity-cost-total span, .services-workspace .activity-cost-total small { font-size: 10px; }
+.services-workspace .services-help { margin: 10px 0 14px; font-size: 11px; color: var(--service-muted); }
+.services-workspace .services-help summary { cursor: pointer; width: fit-content; }
+.services-workspace .services-help p { max-width: 660px; margin: 8px 0; line-height: 1.7; }
+.services-workspace .activity-toolbar { margin: 0 0 12px; gap: 10px; flex-wrap: wrap; }
+.services-workspace .activity-view-tabs { padding: 3px; gap: 3px; background: #f2ede3; border-radius: 9px; }
+.services-workspace .activity-view-tabs button { min-height: 38px; padding: 8px 12px; border-radius: 7px; font-size: 11px; font-weight: 500; }
+.services-workspace .activity-view-tabs button[aria-pressed=true] { background: #49351f; color: #fff; box-shadow: 0 2px 4px #33241412; }
+.services-workspace .activity-search { min-height: 44px; padding: 0 12px; border-color: #dfd5c5; border-radius: 9px; }
+.services-workspace .activity-search input { font-size: 13px; }
+.services-workspace .activity-cost-groups { grid-template-columns: 1fr; align-items: start; gap: 9px; }
+.services-workspace .activity-cost-group { border: 1px solid #e7dfd2; border-radius: 10px; overflow: hidden; background: #fff; }
+.services-workspace .activity-group-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; gap: 10px; list-style: none; background: #f7f3eb; cursor: pointer; }
+.services-workspace .activity-group-head::-webkit-details-marker { display: none; }
+.services-workspace .activity-group-head b { font: 600 13px/1.5 var(--sans); }
+.services-workspace .activity-group-head > span { display: inline-flex; align-items: center; gap: 10px; font-size: 11px; color: var(--service-muted); }
+.services-workspace .activity-cost-group[open] > summary svg { transform: rotate(90deg); }
+.services-workspace .activity-cost-rows { padding: 0 12px; }
+.services-workspace .activity-cost-row { padding: 11px 0; gap: 14px; grid-template-columns: minmax(0,1fr) 140px; }
+.services-workspace .activity-cost-row.selected { background: transparent; }
+.services-workspace .activity-quote-info { position: relative; min-width: 0; padding-right: 100px; }
+.services-workspace .activity-quote-choice { display: flex; align-items: center; gap: 9px; }
+.services-workspace .activity-cost-row .activity-quote-choice input { width: 18px; min-width: 18px; height: 18px; accent-color: #5a6a46; }
+.services-workspace .activity-quote-choice b { color: var(--service-ink); font-size: 13px; font-weight: 500; overflow-wrap: anywhere; }
+.services-workspace .activity-cost-row .activity-quote-info > span { margin: 4px 0 0 27px; font-size: 11px; color: var(--service-muted); }
+.services-workspace .activity-exclude-toggle { position: absolute; right: 0; top: 50%; transform: translateY(-50%); margin: 0; padding: 8px 10px; min-height: 36px; font-size: 10px; font-weight: 500; border-radius: 7px; background: #fffdfa; border-color: #e4dbcd; color: #7c6750; }
+.services-workspace .activity-exclude-toggle[aria-pressed=true] { background: #f6ece7; color: #854c37; border-color: #e1c8bd; }
+.services-workspace .activity-cost-row > label > span { font-size: 10px; font-weight: 500; }
+.services-workspace .activity-cost-row > label input { padding: 10px 8px; min-height: 42px; font-size: 14px; }
+.services-workspace .activity-cost-row > label input[aria-invalid=true] { background: #fff9f0; }
+.services-workspace .client-package-lists { gap: 12px; }
+.services-workspace .client-package-lists .client-list-card { margin: 0; min-height: 0; padding: 18px; }
+.services-workspace .client-list-card .activity-cost-head { margin-bottom: 12px; }
+.services-workspace .client-list-card h3 { font-size: 23px !important; }
+.services-workspace .client-list-card p, .services-workspace .client-list-card > small { font-size: 11px; }
+.services-workspace .client-list-card > .secondary-link { align-self: flex-start; min-height: 40px; padding: 9px 12px; font-size: 11px; }
+.services-workspace .manual-exclusion-list { margin-top: 12px; gap: 8px; }
+.services-workspace .manual-exclusion-row input { min-width: 0; min-height: 42px; padding: 10px 11px; font-size: 13px; border-radius: 8px; }
+.services-workspace .manual-exclusion-row button { min-width: 42px; min-height: 42px; }
+.services-workspace :is(button,summary,input,select):focus-visible { outline: 2px solid #987744; outline-offset: 3px; }
+@media(max-width:800px) {
+  .services-workspace .transport-setup-fields { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+  .services-workspace .transport-setup-total { grid-column: 1/-1; display: flex; flex-direction: row; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 7px; }
+  .services-workspace .transport-setup-total small { margin-left: auto; }
+}
+@media(max-width:560px) {
+  .services-workspace .services-overview { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 7px; }
+  .services-workspace .services-overview > div { padding: 11px 9px; }
+  .services-workspace .services-overview b { font-size: 18px; }
+  .services-workspace .services-overview small { font-size: 8px; letter-spacing: .03em; }
+  .services-workspace .services-overview span { font-size: 10px; line-height: 1.5; }
+  .services-workspace .transport-setup-card, .services-workspace .activity-cost-card { padding: 16px 13px; }
+  .services-workspace .activity-cost-head { flex-direction: row; align-items: flex-start; }
+  .services-workspace .activity-cost-head h3 { font-size: 24px !important; }
+  .services-workspace .activity-cost-total { min-width: 85px; }
+  .services-workspace .activity-cost-total strong { font-size: 19px; }
+  .services-workspace .activity-view-tabs { width: 100%; }
+  .services-workspace .activity-view-tabs button { padding: 8px 9px; }
+  .services-workspace .activity-search { width: 100%; }
+  .services-workspace .activity-cost-row { grid-template-columns: minmax(0,1fr) 105px; gap: 10px; }
+  .services-workspace .activity-quote-info { padding-right: 0; }
+  .services-workspace .activity-exclude-toggle { position: static; transform: none; margin: 6px 0 0 27px; padding: 6px 8px; min-height: 34px; }
+  .services-workspace .activity-cost-row > label { align-self: start; max-width: none; padding-top: 2px; }
+  .services-workspace .activity-cost-row > label input, .services-workspace .transport-setup-fields select, .services-workspace .transport-money-input input, .services-workspace .manual-exclusion-row input { font-size: 16px; }
+  .services-workspace .package-vehicle-card { padding: 12px; }
+}

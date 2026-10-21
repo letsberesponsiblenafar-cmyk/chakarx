@@ -1,4 +1,18 @@
 {
+  "Jammu|Srinagar": {
+    "km": 290,
+    "hours": 7,
+    "hours_max": 7,
+    "source": "District Srinagar road guide · NH-44 · 6–7h baseline, allow 7h for planning · https://srinagar.nic.in/how-to-reach/ · checked 2026-10-21; confirm live road conditions",
+    "live_required": true
+  },
+  "Srinagar|Jammu": {
+    "km": 290,
+    "hours": 7,
+    "hours_max": 7,
+    "source": "District Srinagar road guide · NH-44 · 6–7h baseline, allow 7h for planning · https://srinagar.nic.in/how-to-reach/ · checked 2026-10-21; confirm live road conditions",
+    "live_required": true
+  },
   "Srinagar|Gulmarg": {
     "km": 54,
     "hours": 1.7,

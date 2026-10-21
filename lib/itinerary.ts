@@ -1,7 +1,8 @@
 import { destinationByName, destinations, withDestinationCatalog, hotelCategories, interests, mealOptions, routeByName, transportOptions, travelStyles } from '@/lib/data';
 import type { Destination, Route, Site, Hotel } from '@/lib/data';
 import { firstHotelCandidate, roomsRequired, cnbChildren, extraBedsRequired } from '@/lib/hotels';
-import { destinationPriority, recommendationWeight, routeDecision, routeRule, isGurezAllowed, shouldPreferOffbeat, destinationAccessFlags, engineRules } from '@/lib/intelligence';
+import { destinationPriority, recommendationWeight, isGurezAllowed, shouldPreferOffbeat, destinationAccessFlags, engineRules } from '@/lib/intelligence';
+import { journeyDrive, routeLeg } from '@/lib/journey-drive';
 import { seasonMatches } from '@/lib/seasons';
 import { priceTrip } from '@/lib/pricing';
 import { scheduleDayPlans, type ScheduleQuote } from '@/lib/day-scheduler';
@@ -75,32 +76,6 @@ function seasonFit(d: Destination | Site, date: string) {
   return seasonMatches(season, date) === true ? 1 : 0.45;
 }
 
-function routeLeg(from: string, to: string): RouteLeg {
-  const policy = routeDecision(from, to);
-  if (from === to) return { from, to, km: 0, hours: 0, source: 'No movement', live_required: false, known: true, preference: 'ALLOWED', vehicleDaysCharged: 0, rationale: policy.rationale };
-  const direct = routeByName(from, to);
-  const a = routeByName(from, 'Srinagar'); const b = routeByName('Srinagar', to);
-  if (a && b && from !== 'Srinagar' && to !== 'Srinagar' && (!direct || policy.preference === 'AVOID')) return { from, to, via: ['Srinagar'], km: a.km + b.km, hours: a.hours + b.hours, hours_max: (a.hours_max || a.hours) + (b.hours_max || b.hours), access_minutes: (a.access_minutes || 0) + (b.access_minutes || 0), source: 'Composed from destination-library Srinagar legs', live_required: true, known: true, preference: policy.preference, vehicleDaysCharged: policy.vehicleDays, rationale: policy.rationale, preferredAlternative: policy.preferredAlternative };
-  if (direct) return { ...direct, from, to, known: true, preference: policy.preference, vehicleDaysCharged: policy.vehicleDays, rationale: policy.rationale, preferredAlternative: policy.preferredAlternative };
-  return { from, to, km: 0, hours: 0, source: 'Live routing required', live_required: true, known: false, preference: policy.preference, vehicleDaysCharged: policy.vehicleDays, rationale: policy.rationale, preferredAlternative: policy.preferredAlternative };
-}
-
-function journeyDrive(from: string, to: string, visit?: string | null): RouteLeg {
-  const direct = routeLeg(from, to);
-  if (!visit || visit === to) return direct;
-  const outward = routeLeg(from, visit); const onward = routeLeg(visit, to);
-  return { ...direct, via: [...new Set([...(outward.via || []), ...(onward.via || [])])],
-    km: outward.km + onward.km, hours: outward.hours + onward.hours,
-    hours_max: (outward.hours_max || outward.hours) + (onward.hours_max || onward.hours),
-    access_minutes: (outward.access_minutes || 0) + (onward.access_minutes || 0),
-    source: `Day visit: ${from} → ${visit} → ${to}`, live_required: outward.live_required || onward.live_required,
-    known: outward.known && onward.known,
-    preference: outward.preference === 'NOT_ALLOWED' || onward.preference === 'NOT_ALLOWED' ? 'NOT_ALLOWED' : outward.preference === 'AVOID' || onward.preference === 'AVOID' ? 'AVOID' : outward.preference,
-    vehicleDaysCharged: Math.max(1, outward.vehicleDaysCharged, onward.vehicleDaysCharged),
-    rationale: `Day visit only. Overnight remains ${to}; next-day origin remains ${to}.`,
-  };
-}
-
 function scoredDestination(d: Destination, input: TripInput, date: string) {
   const season = seasonFit(d, date); const tagSet = new Set(input.interests.map((x) => x.toLowerCase()));
   if (d.name === 'Gurez' && !isGurezAllowed(date)) return -10000;
@@ -139,6 +114,9 @@ function departureNightSequence(input: TripInput, sequence: string[]) {
 }
 
 export function arrivalDayVisitAllowed(input: TripInput, destination: string) {
+  // The early-arrival excursion assumes arrival in Srinagar, not a Jammu
+  // road transfer or an unmeasured custom pickup.
+  if (!input.pickup.toLowerCase().includes('srinagar')) return false;
   const arrival = minutesOfDay(input.arrivalTime);
   const outward = routeByName('Srinagar', destination);
   if (arrival === null || !outward || arrival > 7 * 60 + 30) return false;
