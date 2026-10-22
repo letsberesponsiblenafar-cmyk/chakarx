@@ -83,7 +83,8 @@ for (const name of enabledSightseeing(destinationByName('Pahalgam'))) assert.equ
 assert.doesNotMatch(dayNarrative(longTransfer, 'Srinagar'), /Aru Valley|Betaab Valley|Chandanwari/);
 assert.doesNotMatch(dayNarrative(longTransfer, 'Srinagar'), /own pace|rest of the day/i);
 assert.match(dayNarrative(longTransfer, 'Srinagar'), /Lidder River|Pahalgam town/i);
-assert.match(dayNarrative(longTransfer, 'Srinagar'), /Tangmarg and Srinagar/);
+assert.match(dayNarrative(longTransfer, 'Srinagar'), /Drive to Pahalgam\./);
+assert.ok(longTransfer.drive.via.includes('Srinagar'), 'Shorter client wording must not change the actual Srinagar-hub routing.');
 assert.match(dayNarrative(fullPahalgamDay, 'Srinagar'), /Aru Valley|Betaab Valley|Chandanwari|Baisaran/);
 const handEdited = { ...twoPahalgamNights, dayPlans: twoPahalgamNights.dayPlans.map((day) => day.day === 4 ? { ...day, customTitle: 'Old Pahalgam day', customAbout: 'Old Pahalgam plan.' } : day.day === 1 ? { ...day, customAbout: 'Personal arrival note.' } : day) };
 const changedThirdDay = retargetDay(handEdited, 3, 'Sonamarg');

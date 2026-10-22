@@ -46,6 +46,48 @@ const fixtures = original.map((destination) => {
 
 try {
   replaceDestinationCatalog(fixtures);
+  // Travel copy is deliberately generic: changing destinations must not need
+  // another hard-coded scenic corridor or change the route/timing model.
+  for (const destination of original.filter((place) => place.name !== 'Srinagar' && place.hub_route?.access_mode === 'road')) {
+    const transfer = day({ from: 'Srinagar', to: destination.name, stay: destination.name, transfer: true });
+    const before = JSON.stringify(transfer);
+    assert.ok(dayNarrative(transfer, 'Srinagar').includes(`Drive to ${destination.name}.`), `${destination.name}: keep the generated transfer short.`);
+    assert.equal(JSON.stringify(transfer), before, 'Rendering must never change the route, timing or programme.');
+  }
+  const customTransfer = day({ from: 'Srinagar', to: 'New private destination', stay: 'New private destination', transfer: true });
+  assert.match(dayNarrative(customTransfer, 'Srinagar'), /Drive to New private destination\./,
+    'A newly added destination needs no hard-coded route wording.');
+  const crossValley = day({ from: 'Sonamarg', to: 'Pahalgam', stay: 'Pahalgam', transfer: true,
+    drive: { km: 200, hours: 6, via: ['Srinagar'], known: true } });
+  assert.match(dayNarrative(crossValley, 'Srinagar'), /Drive to Pahalgam\./);
+  assert.doesNotMatch(dayNarrative(crossValley, 'Srinagar'), /corridor|orchard belt|countryside|foothills/);
+
+  const localGulmarg = day({ from: 'Gulmarg', to: 'Gulmarg', stay: 'Gulmarg', primaryVisitFor: ['Gulmarg'],
+    blocks: [siteBlock('Gulmarg', 'Gulmarg Meadow')] });
+  replaceDestinationCatalog(fixtures.map((place) => place.name === 'Gulmarg'
+    ? { ...place, day_note: 'A simple introduction without a final full stop' } : place));
+  assert.match(dayNarrative(localGulmarg, 'Srinagar'), /A simple introduction without a final full stop\. Walk across Gulmarg Meadow\./,
+    'An introduction and sightseeing must not run together without punctuation.');
+  replaceDestinationCatalog(fixtures.map((place) => place.name === 'Gulmarg'
+    ? { ...place, day_note: 'Walk across Gulmarg Meadow' } : place));
+  assert.equal((dayNarrative(localGulmarg, 'Srinagar').match(/Walk across Gulmarg Meadow/g) || []).length, 1,
+    'The same introduction and selected sightseeing sentence must appear only once.');
+  assert.equal(require('../lib/data.ts').destinationByName('Gulmarg').day_note, 'Walk across Gulmarg Meadow',
+    'Rendering punctuation and duplicate handling must not rewrite the saved library text.');
+  replaceDestinationCatalog(fixtures);
+
+  for (const destination of original.filter((place) => place.hub_route && place.hub_route.access_mode !== 'road')) {
+    const access = destination.hub_route;
+    const excursion = day({ dayTripDestination: destination.name });
+    const copy = dayNarrative(excursion, 'Srinagar');
+    assert.ok(copy.includes(`Drive to ${access.road_endpoint}.`), `${destination.name}: stop the road transfer at its actual endpoint.`);
+    assert.ok(copy.includes(access.access_mode === 'trek' ? `Continue on foot towards ${destination.name}.`
+      : `Continue along the pilgrimage route towards ${destination.name}.`), 'Keep the non-road access instruction.');
+    assert.ok(copy.includes(`to ${access.road_endpoint} before the onward road transfer.`), 'Keep the return-to-road instruction.');
+    const alreadyAtRoadhead = dayNarrative({ ...excursion, from: access.road_endpoint }, 'Srinagar');
+    assert.ok(!alreadyAtRoadhead.includes(`Drive to ${access.road_endpoint}.`), 'Do not invent a drive when the guest is already at the road endpoint.');
+  }
+
   const excursion = day({ dayTripDestination: 'Gulmarg', primaryVisitFor: ['Srinagar', 'Gulmarg'],
     blocks: [siteBlock('Gulmarg', 'Gulmarg Meadow')] });
   const excursionCopy = dayNarrative(excursion, 'Srinagar');

@@ -6,28 +6,7 @@ import { dayVisitLabel } from '@/lib/journey-labels';
 export type NarrativeQuote = { activityCosts: Record<string, number>; activitySelections?: Record<string, boolean> };
 export type NarrativeAccommodation = { current?: 'hotel' | 'houseboat'; previous?: 'hotel' | 'houseboat' };
 
-// Route language follows the supplied Chakar itinerary playbook and sample packages.
-// Client copy is composed from the operator's selected route and destination guide.
-const corridors: Record<string,string> = {
-  'Srinagar|Gulmarg': 'through Tangmarg and the foothills of the Pir Panjal',
-  'Gulmarg|Srinagar': 'through Tangmarg into the Kashmir Valley',
-  'Srinagar|Pahalgam': 'through South Kashmir, the saffron and orchard belt, and the Lidder Valley',
-  'Pahalgam|Srinagar': 'along the Lidder Valley and South Kashmir countryside',
-  'Srinagar|Sonamarg': 'along the Sindh River corridor via Kangan',
-  'Sonamarg|Srinagar': 'along the Sindh River corridor through Kangan',
-  'Srinagar|Gurez': 'via Bandipora and Razdan Pass towards Dawar and the Kishanganga River',
-  'Gurez|Srinagar': 'over Razdan Pass and through Bandipora',
-  'Srinagar|Doodhpathri': 'through the Budgam countryside towards the Shaliganga River meadows',
-  'Doodhpathri|Srinagar': 'through the Budgam countryside',
-  'Srinagar|Naranag': 'through the Sindh Valley towards the Wangath and Naranag heritage area',
-  'Naranag|Srinagar': 'through the Sindh Valley',
-  'Gulmarg|Pahalgam': 'through Tangmarg and Srinagar, then south through the orchard belt into the Lidder Valley',
-  'Pahalgam|Gulmarg': 'through South Kashmir and Srinagar, then onwards through Tangmarg to the Pir Panjal foothills',
-  'Sonamarg|Pahalgam': 'along the Sindh River to Srinagar, then south towards the Lidder Valley',
-  'Pahalgam|Sonamarg': 'through South Kashmir and Srinagar, then along the Sindh River corridor',
-  'Sonamarg|Gulmarg': 'along the Sindh River to Srinagar, then through Tangmarg towards Gulmarg',
-  'Gulmarg|Sonamarg': 'through Tangmarg and Srinagar, then along the Sindh River towards Sonamarg',
-};
+// Library-authored sightseeing remains separate from short generated transfers.
 const sightSentences: Record<string, string> = {
   'Dal Lake & Boulevard': 'Begin beside Dal Lake and walk along Boulevard Road, with views of the houseboats and Zabarwan foothills.',
   'Shankaracharya Temple': 'Visit Shankaracharya Temple for its hilltop view over Srinagar and Dal Lake.',
@@ -78,6 +57,21 @@ export function cleanGeneratedSentence(value: string) {
   if (!text) return '';
   const capitalized = text[0].toUpperCase() + text.slice(1);
   return /[.!?]$/.test(capitalized) ? capitalized : `${capitalized}.`;
+}
+
+function sentenceIdentity(value: string) {
+  return value.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+}
+
+/** One identity rule for introductions, selected places and priced activities. */
+function uniqueSentenceFilter() {
+  const seen = new Set<string>();
+  return (sentence: string) => {
+    const identity = sentenceIdentity(sentence);
+    if (!identity || seen.has(identity)) return false;
+    seen.add(identity);
+    return true;
+  };
 }
 
 /** The library owns only the editable introduction; visits are composed per day. */
@@ -157,7 +151,7 @@ function sightseeingLines(day: DayPlan, stops: string[], destination: Destinatio
   // Alias source sentences can surround a different place in the library.
   // Sort those source lines, not the deduplicated physical-visit groups.
   const sentences = lines.map((line) => line.guide ? ordered[index++].sentence : line.sentence);
-  return [...new Map(sentences.map((sentence) => [sentence.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim(), sentence])).values()];
+  return sentences.filter(uniqueSentenceFilter());
 }
 
 export function activitySentence(raw: string) {
@@ -208,10 +202,11 @@ function visitCopy(day: DayPlan, destination: string, planned: string[], quote?:
   // Introduce a destination only on its main visit, with actual assigned places
   // or experiences, rather than repeating its guide whenever the hotel is here.
   const hasProgramme = clientStops.length > 0 || quotedActivities.length > 0;
-  const noteSentences = options.introduction !== false && hasProgramme && primary && noteSource
-    ? [noteSource] : [];
+  const keepSentence = uniqueSentenceFilter();
+  const noteSentences = (options.introduction !== false && hasProgramme && primary && noteSource
+    ? [cleanGeneratedSentence(noteSource)] : []).filter(keepSentence);
   const note = noteSentences.join(' ');
-  const selectedLines = sightseeingLines(day, clientStops, guide).map(cleanGeneratedSentence);
+  const selectedLines = sightseeingLines(day, clientStops, guide).map(cleanGeneratedSentence).filter(keepSentence);
   const stops = selectedLines.join(' ');
   const experiences = guide ? [...new Set(quotedActivities)].filter((item) => {
     if (timedActivities !== undefined) return true;
@@ -224,13 +219,7 @@ function visitCopy(day: DayPlan, destination: string, planned: string[], quote?:
     return cleanGeneratedSentence(authored || activitySentence(name));
   };
   const early = (name: string) => (guide?.activity_timing?.[name]?.time_window?.end ?? 1440) <= 8 * 60;
-  const uniqueSentences = new Set([...noteSentences, ...selectedLines]
-    .map((sentence) => sentence.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()));
-  const activityCopy = (names: string[]) => names.map(sentenceForActivity).filter((sentence) => {
-    const identity = sentence.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
-    if (!identity || uniqueSentences.has(identity)) return false;
-    uniqueSentences.add(identity); return true;
-  }).join(' ');
+  const activityCopy = (names: string[]) => names.map(sentenceForActivity).filter(keepSentence).join(' ');
   const earlyText = activityCopy(experiences.filter(early));
   const experienceText = activityCopy(experiences.filter((name) => !early(name)));
   const programme = [earlyText, stops, experienceText].filter(Boolean).join(' ');
@@ -238,15 +227,16 @@ function visitCopy(day: DayPlan, destination: string, planned: string[], quote?:
   return [note, programme].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
 }
 
-function travelCopy(from: string, to: string, via: string[] = []) {
+function travelCopy(from: string, to: string) {
   if (from === to) return '';
   const access = destinationByName(to)?.hub_route;
-  const corridor = corridors[`${from}|${to}`] || (via.length ? `via ${via.join(' and ')}` : 'through the Kashmir countryside');
+  // Route distances, times and intermediate hubs belong to the routing model,
+  // not a second list of scenic phrases that can contradict the chosen route.
   if (access && access.access_mode !== 'road') {
     const onward = access.access_mode === 'trek' ? `Continue on foot towards ${to}.` : `Continue along the pilgrimage route towards ${to}.`;
-    return `Drive to ${access.road_endpoint} ${corridor}. ${onward}`;
+    return [from !== access.road_endpoint ? `Drive to ${access.road_endpoint}.` : '', onward].filter(Boolean).join(' ');
   }
-  return `Drive to ${to} ${corridor}.`;
+  return `Drive to ${to}.`;
 }
 
 export function dayNarrative(day: DayPlan, pickup: string, quote?: NarrativeQuote, accommodation: NarrativeAccommodation = {}) {
@@ -265,7 +255,7 @@ export function dayNarrative(day: DayPlan, pickup: string, quote?: NarrativeQuot
     return day.stay === day.to
       ? [`${opening} from your ${day.stay} ${previousStay}.`, originCopy, `Your driver will transfer you to your departure point in ${day.to} for your onward journey.`].filter(Boolean).join(' ')
       : [`${opening} from your ${day.stay} ${previousStay}.`, originCopy,
-        travelCopy(day.stay, day.to, day.drive.via),
+        travelCopy(day.stay, day.to),
         finalCopy, 'Continue to your departure point for the onward journey.'].filter(Boolean).join(' ');
   }
 
@@ -291,7 +281,7 @@ export function dayNarrative(day: DayPlan, pickup: string, quote?: NarrativeQuot
     const access = destinationByName(destination)?.hub_route;
     const trailReturn = access && access.access_mode !== 'road'
       ? `${access.access_mode === 'trek' ? 'Walk back' : 'Return along the pilgrimage route'} to ${access.road_endpoint} before the onward road transfer.` : '';
-    return [opening, originCopy, travelCopy(day.from, destination, day.drive.via), visitCopy(day, destination, sights, quote), trailReturn, returnTransfer, hotelBaseCopy, overnight].filter(Boolean).join(' ');
+    return [opening, originCopy, travelCopy(day.from, destination), visitCopy(day, destination, sights, quote), trailReturn, returnTransfer, hotelBaseCopy, overnight].filter(Boolean).join(' ');
   }
 
   const localStops = plannedStops(day, day.stay);
@@ -304,7 +294,7 @@ export function dayNarrative(day: DayPlan, pickup: string, quote?: NarrativeQuot
     const localArrival = day.from === day.stay || day.stay.toLowerCase() === pickup.toLowerCase();
     const opening = localArrival
       ? `Arrive ${arrivalAt} ${pickup} and meet your Chakar representative.${arrivalAt === 'at' ? ` Transfer to ${day.stay}.` : ''}`
-      : `Arrive ${arrivalAt} ${pickup} and meet your Chakar representative. ${travelCopy(day.from, day.stay, day.drive.via)}`;
+      : `Arrive ${arrivalAt} ${pickup} and meet your Chakar representative. ${travelCopy(day.from, day.stay)}`;
     const checkIn = `Check in to your ${day.stay} ${currentStay}.`;
     return [opening, checkInFirst ? checkIn : '', destinationCopy, !checkInFirst ? checkIn : '', overnight].filter(Boolean).join(' ');
   }
@@ -313,7 +303,7 @@ export function dayNarrative(day: DayPlan, pickup: string, quote?: NarrativeQuot
     const originCopy = originStops.length || day.scheduledActivities?.some((activity) => activity.destination === day.from)
       ? visitCopy(day, day.from, originStops, quote) : '';
     const opening = `After breakfast, check out from your ${day.from} ${previousStay}.`;
-    const transfer = `${travelCopy(day.from, day.stay, day.drive.via)} ${currentStay === 'houseboat' ? 'Check in to your houseboat on arrival.' : 'Check in on arrival.'}`;
+    const transfer = `${travelCopy(day.from, day.stay)} ${currentStay === 'houseboat' ? 'Check in to your houseboat on arrival.' : 'Check in on arrival.'}`;
     return [opening, originCopy, transfer, destinationCopy, overnight].filter(Boolean).join(' ');
   }
   const programme = localStops.length || day.scheduledActivities?.some((activity) => activity.destination === day.stay);
