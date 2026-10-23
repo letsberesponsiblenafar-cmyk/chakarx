@@ -1,9 +1,12 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { ArrowRight, CalendarDays, Check, ChevronDown, Clock3, Hotel, MapPin, Minus, Plus, Users } from 'lucide-react';
+import { ArrowRight, CalendarDays, Check, ChevronDown, Clock3, Hotel, MapPin, Minus, Palette, Plus, Users } from 'lucide-react';
 import { usePlanner } from '@/components/PlannerProvider';
+import PdfThemePicker from '@/components/PdfThemePicker';
+import { resolvePdfTheme } from '@/lib/pdf-themes';
 import { hotelCategories, mealOptions } from '@/lib/data';
 import { ROUTE_VERSION } from '@/lib/itinerary';
 import { calculateCosts } from '@/lib/costing';
@@ -150,6 +153,11 @@ export default function ChakarPlanner() {
           {input.hotelOptionMode === 'multiple' && <small className="trip-field-hint">Up to 3 hotels. Costing uses the highest selected stay cost.</small>}
           <label className="trip-field trip-budget" htmlFor="trip-budget"><span>Budget per person <small>Optional</small></span><div><span aria-hidden="true">₹</span><input id="trip-budget" aria-label="Budget per person" type="number" inputMode="decimal" min="0" step="1000" value={budgetText} onChange={event => { const raw = event.target.value; setBudgetText(raw); if (raw !== '' && Number.isFinite(Number(raw)) && Number(raw) >= 0) setInputField('budget', Number(raw)); }} placeholder="Enter amount"/></div></label>
         </section>
+        <section className="trip-panel" aria-labelledby="trip-pdf-theme-title">
+          <div className="trip-panel-heading"><span>04</span><h2 id="trip-pdf-theme-title">PDF theme</h2><Palette size={19} aria-hidden="true"/></div>
+          <PdfThemePicker value={input.pdfTheme} onChange={theme => setInputField('pdfTheme', theme)}/>
+          <Link className="trip-theme-catalog-link" href="/pdf-designs">View PDF designs<ArrowRight size={13} aria-hidden="true"/></Link>
+        </section>
         {quickError && <div className="trip-form-error" role="alert">{quickError}</div>}
         <footer className="trip-form-footer"><span>{duration ? `${duration.days} days · ${duration.nights} nights` : 'Set your travel dates'}<small>{people} traveller{people !== 1 ? 's' : ''} · {selectedPackages.length} package{selectedPackages.length !== 1 ? 's' : ''}</small></span><button type="submit" className="trip-continue" disabled={busy}>{busy ? 'Building…' : 'Next: Destinations'}<ArrowRight size={18}/></button></footer>
       </form>
@@ -159,7 +167,7 @@ export default function ChakarPlanner() {
           <summary><span>Trip summary</span><span>{duration ? `${duration.days} days / ${duration.nights} nights` : 'Your trip'}<ChevronDown size={17}/></span></summary>
           <div className="trip-summary-content">
             <div className="trip-summary-photo"><img src="/chakar-cover-photo.jpg" alt="Mountain view from a balcony in Kashmir"/><div><span>CHAKAR EXPERIENCE</span><strong>Kashmir</strong></div></div>
-            <div className="trip-summary-body"><h2>{input.name.trim() || 'Your Kashmir trip'}</h2><dl><div><dt><CalendarDays size={15}/> Dates</dt><dd>{duration ? `${fmtDate(arrivals)} – ${fmtDate(departures)}` : 'Not set'}</dd></div><div><dt><Users size={15}/> Travellers</dt><dd>{people} people</dd></div><div><dt><MapPin size={15}/> Pick-up</dt><dd>{input.pickup || 'Not set'}</dd></div></dl><div className="trip-summary-packages">{selectedPackages.map(category => <span key={category}>{category}</span>)}</div><div className="trip-summary-budget"><span>Group budget</span><strong>{budgetText.trim() && Number(budgetText) > 0 ? money(Number(budgetText) * people) : 'Not set'}</strong></div>
+            <div className="trip-summary-body"><h2>{input.name.trim() || 'Your Kashmir trip'}</h2><dl><div><dt><CalendarDays size={15}/> Dates</dt><dd>{duration ? `${fmtDate(arrivals)} – ${fmtDate(departures)}` : 'Not set'}</dd></div><div><dt><Users size={15}/> Travellers</dt><dd>{people} people</dd></div><div><dt><MapPin size={15}/> Pick-up</dt><dd>{input.pickup || 'Not set'}</dd></div><div><dt><Palette size={15}/> PDF theme</dt><dd>{resolvePdfTheme(input.pdfTheme).name}</dd></div></dl><div className="trip-summary-packages">{selectedPackages.map(category => <span key={category}>{category}</span>)}</div><div className="trip-summary-budget"><span>Group budget</span><strong>{budgetText.trim() && Number(budgetText) > 0 ? money(Number(budgetText) * people) : 'Not set'}</strong></div>
               {plan && <div className="trip-draft-total"><span>{selectedPackages.length > 1 ? 'Package comparison' : draftNeedsRefresh ? 'Previous draft total' : 'Current draft total'}</span><strong>{selectedPackages.length > 1 ? `${selectedPackages.length} options` : money(calculateCosts(plan, hotelSelections, costModel).sellingTotal)}</strong></div>}
               {(draftNeedsRefresh || (plan && routeVersion !== ROUTE_VERSION)) && <p className="trip-draft-notice">{draftNeedsRefresh ? 'Trip details changed. Continue to update the itinerary.' : 'New route suggestions are available in Destinations.'}</p>}
             </div>

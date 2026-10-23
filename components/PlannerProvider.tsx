@@ -17,6 +17,7 @@ import { confirmHotelRatesInState } from '@/lib/hotel-confirmation';
 import { packageCategories, packageView, validPackageQuotes, type PackageQuote } from '@/lib/package-quotes';
 import { observeDestinationFreshness } from '@/lib/destination-freshness';
 import { freezePlannerState, savedHotelMaster } from '@/lib/saved-plan-data';
+import { resolvePdfTheme } from '@/lib/pdf-themes';
 
 export type HotelSelection = {
   location: string; hotelId: string; hotelName: string; category: string; starRating: number | null; address: string; roomType: string; website: string;
@@ -99,7 +100,7 @@ type PlannerContextValue = PlannerState & {
 
 const defaultInput: TripInput = {
   name: '', arrival: '', departure: '', arrivalTime: '', departureTime: '', pickup: 'Srinagar', adults: 2, youngAges: [], budget: 60000,
-  hotelCategory: 'Signature', transport: 'Ertiga', mealPlan: 'Breakfast & Dinner', hotelOptionMode: 'single', style: 'Balanced', interests: ['Nature', 'Photography', 'Relaxation'],
+  hotelCategory: 'Signature', transport: 'Ertiga', mealPlan: 'Breakfast & Dinner', hotelOptionMode: 'single', style: 'Balanced', interests: ['Nature', 'Photography', 'Relaxation'], pdfTheme: 'original',
 };
 const defaultCost: CostModel = { transportDaily: 4200, transportIsCustom: false, mealPerPersonNight: 0, activityBudget: 0, activityCosts: {}, activitySelections: {}, manualInclusions: [], manualExclusions: [], contingencyPct: 0, profitPct: 10, otherAmount: 0 };
 const defaultHotelDefaults: HotelDefaults = { rooms: 1, extraBeds: 0, cnb: 0, nightlyRate: 0, extraBedRate: 0, cnbRate: 0 };
@@ -495,6 +496,12 @@ export function reconcilePlannerState(state: PlannerState): PlannerState {
   return state.plan ? applyPlanEdit(state, state.plan) : state;
 }
 
+/** Design is stored on the trip brief; selecting it never schedules a new route. */
+export function setPdfThemeInState(state: PlannerState, theme?: string): PlannerState {
+  const pdfTheme = resolvePdfTheme(theme).id;
+  return state.input.pdfTheme === pdfTheme ? state : { ...state, input: { ...state.input, pdfTheme } };
+}
+
 export function restoreSavedItinerary(current: PlannerState, id: string, snapshot: ItinerarySnapshot): PlannerState {
   return freezePlannerState({ ...current, ...snapshot,
     packageQuotes: validPackageQuotes(snapshot.packageQuotes) ? snapshot.packageQuotes : undefined,
@@ -728,6 +735,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     hotelConnectionError,
     refreshHotels,
     setInputField(key, value) { setState((s) => {
+      if (key === 'pdfTheme') return setPdfThemeInState(s, value as string | undefined);
       if (key === 'packagePreferences') {
         const categories = packageCategories({ hotelCategory: s.input.hotelCategory, packagePreferences: value as string[] });
         return { ...s, input: { ...s.input, packagePreferences: categories, hotelCategory: categories[0] } };
@@ -859,7 +867,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
         if (!s.plan || s.plan.nights <= 1 || day < 1 || day > s.plan.days) return s;
         try {
           const nextPlan = removeTripDay(reschedulePlan(s.plan, s.costModel), day);
-          return applyPlanEdit({ ...s, input: nextPlan.input }, nextPlan);
+          return applyPlanEdit({ ...s, input: { ...nextPlan.input, pdfTheme: s.input.pdfTheme } }, nextPlan);
         } catch { return s; }
       });
     },

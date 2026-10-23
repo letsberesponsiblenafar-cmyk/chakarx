@@ -14,8 +14,12 @@ import { clientActivityLists } from '@/lib/activities';
 import { packageQuoteReadiness } from '@/lib/quote-readiness';
 import { packageCategories, packageView } from '@/lib/package-quotes';
 import { composeVectorClientPdf, type PdfArtworkPage, type PdfMasterManifest } from '@/lib/pdf-composition';
-import { accommodationDayNarrative, activeHotelSelections, hotelForNight, hotelNightNumbers, hotelSelectionKey, hotelStayLabel, hotelStayType } from '@/lib/accommodation';
-import { hotelOptionNames } from '@/lib/hotel-options';
+import { accommodationDayNarrative, hotelForNight, hotelSelectionKey, hotelStayLabel, hotelStayType } from '@/lib/accommodation';
+import { pdfHotels, pdfHotelName, pdfHotelLocation } from '@/lib/pdf-content';
+import type { Costs, PdfFonts, ActivityLists, ClientPdfPackageQuote } from '@/lib/pdf-types';
+import { resolvePdfTheme } from '@/lib/pdf-themes';
+export { pdfHotels, pdfHotelName, pdfHotelLocation } from '@/lib/pdf-content';
+export type { ClientPdfPackageQuote } from '@/lib/pdf-types';
 
 const PAGE_W = 540;
 const PAGE_H = 780;
@@ -33,12 +37,8 @@ const ART = {
   thanks: '/pdf-assets/standard-thanks.jpg',
 } as const;
 type ArtKey = keyof typeof ART;
-type Costs = ReturnType<typeof calculateCosts>;
 type PdfHotel = HotelSelection;
-type PdfFonts = { regular: string; bold: string; cover: string };
 type PdfArt = Record<ArtKey,string> & {brandWhite?:string; brandInk?:string; hotelRows?: Record<number,string>; vectorBackgrounds?: boolean};
-type ActivityLists = { included: string[]; excluded: string[] };
-export type ClientPdfPackageQuote = { category: string; plan: Plan; input: TripInput; selections: HotelSelection[]; costs: Costs; quote?: CostModel };
 const pdfArtwork = new WeakMap<jsPDF, PdfArtworkPage[]>();
 export function clientPdfArtwork(doc: jsPDF): PdfArtworkPage[] { return [...(pdfArtwork.get(doc) || [])]; }
 
@@ -232,10 +232,6 @@ function addHotelComparison(doc: jsPDF, data: PdfArt, quotes: readonly ClientPdf
     }
   }
 }
-export function pdfHotelName(hotel: HotelSelection, input: Pick<TripInput,'hotelOptionMode'>) {
-  const names = hotelOptionNames(hotel,input.hotelOptionMode);
-  return `${names.join(' / ') || 'Hotel to be confirmed'}${input.hotelOptionMode === 'multiple' && names.length > 1 ? ' or similar' : ''}`;
-}
 function addHotelPages(doc: jsPDF, data: Record<ArtKey,string>, hotels: PdfHotel[], input: TripInput) {
   // Keep the reference table and readable font. Very long property names
   // continue into another occupied row instead of being silently truncated.
@@ -285,21 +281,6 @@ function addClientList(doc: jsPDF, data: PdfArt, key: 'inclusions' | 'exclusions
     }
   }
 }
-export function pdfHotelLocation(_hotels: HotelSelection[], hotel: HotelSelection) {
-  return hotelStayType(hotel) === 'houseboat' ? 'Houseboats' : hotel.location;
-}
-
-export function pdfHotels(plan: Plan, selections: HotelSelection[], input: TripInput): PdfHotel[] {
-  const active = activeHotelSelections(plan, selections);
-  return plan.hotelPlans.flatMap((row)=>{
-    const existing=active.filter((hotel)=>hotel.location===row.location).sort((a,b) => Number(hotelStayType(a) === 'houseboat') - Number(hotelStayType(b) === 'houseboat'));
-    if (existing.length) return existing.map((hotel) => ({ ...hotel, nights: hotelNightNumbers(plan,hotel).length }));
-    return [{
-      location:row.location,hotelId:'',hotelName:'Hotel to be confirmed',category:input.hotelCategory,starRating:null,address:'',roomType:'',website:'',nights:row.nights,rooms:1,extraBeds:0,cnb:0,nightlyRate:0,extraBedRate:0,cnbRate:0,source:'',status:'',
-    }];
-  });
-}
-
 export function buildClientPdf(data: PdfArt, plan: Plan, input: TripInput, selections: HotelSelection[], costs: Costs, customerName: string, fonts: PdfFonts, activityLists: ActivityLists = {included:[],excluded:[]}, quote?: CostModel, comparison: readonly ClientPdfPackageQuote[] = []) {
   const doc=new jsPDF({unit:'pt',format:[PAGE_W,PAGE_H],orientation:'portrait',compress:true});
   pdfArtwork.set(doc, []);
@@ -343,6 +324,25 @@ export function buildClientPdf(data: PdfArt, plan: Plan, input: TripInput, selec
   return doc;
 }
 
+/** The download and export tests use this same theme dispatch. */
+export async function buildThemedClientPdf(options: {
+  data: PdfArt; plan: Plan; input: TripInput; selections: HotelSelection[];
+  costs: Costs; customerName: string; fonts: PdfFonts; activityLists: ActivityLists;
+  quote?: CostModel; comparison?: readonly ClientPdfPackageQuote[];
+  winterCover?: string; masterBytes?: ArrayBuffer | Uint8Array; manifest?: PdfMasterManifest;
+}): Promise<Uint8Array<ArrayBuffer>> {
+  const { data, plan, input, selections, costs, customerName, fonts, activityLists, quote, comparison = [] } = options;
+  if (resolvePdfTheme(input.pdfTheme).id === 'winter') {
+    if (!options.winterCover) throw new Error('Could not load the Winter artwork. Please retry.');
+    const { buildWinterClientPdf } = await import('@/lib/winter-pdf');
+    const doc = buildWinterClientPdf({cover:options.winterCover,brandWhite:data.brandWhite,brandInk:data.brandInk},plan,input,selections,costs,customerName,fonts,activityLists,quote,comparison);
+    return new Uint8Array(doc.output('arraybuffer'));
+  }
+  if (!options.masterBytes || !options.manifest) throw new Error('Could not load the original itinerary artwork. Please retry.');
+  const doc = buildClientPdf(data,plan,input,selections,costs,customerName,fonts,activityLists,quote,comparison);
+  return composeVectorClientPdf(doc.output('arraybuffer'),options.masterBytes,clientPdfArtwork(doc),options.manifest);
+}
+
 export default function ClientPdf() {
   const planner = usePlanner();
   const { plan, input, hotelSelections, costModel, destinationCatalog, destinationConnection, packageDefaults, packageDefaultsConnection, hotelConnection, hydrated, markSavedItinerary, reset } = planner;
@@ -381,20 +381,27 @@ export default function ClientPdf() {
   });
   const quoteIssues=packageQuoteReadiness(planner,hotelConnection,destinationConnection);
   const customerName=printable(input.name)||'Traveller';
+  const selectedTheme=resolvePdfTheme(input.pdfTheme);
   async function download() {
     if (downloading) return;
     if (quoteIssues.length) return;
     setDownloading(true);
     try {
       const data={...ART,vectorBackgrounds:true} as PdfArt;
-      const [masterResponse,manifestResponse]=await Promise.all([fetch('/pdf-assets/client-master.pdf',{cache:'no-cache'}),fetch('/pdf-assets/client-master.json',{cache:'no-cache'})]);
-      if (!masterResponse.ok || !manifestResponse.ok) throw new Error('Could not load the original itinerary artwork. Please retry.');
-      const [masterBytes,manifest]=await Promise.all([masterResponse.arrayBuffer(),manifestResponse.json() as Promise<PdfMasterManifest>]);
+      let masterBytes: ArrayBuffer | undefined, manifest: PdfMasterManifest | undefined, winterCover: string | undefined;
+      if (selectedTheme.id === 'winter') {
+        winterCover=await imageData(selectedTheme.coverArtwork);
+      } else {
+        const [masterResponse,manifestResponse]=await Promise.all([fetch('/pdf-assets/client-master.pdf',{cache:'no-cache'}),fetch('/pdf-assets/client-master.json',{cache:'no-cache'})]);
+        if (!masterResponse.ok || !manifestResponse.ok) throw new Error('Could not load the original itinerary artwork. Please retry.');
+        [masterBytes,manifest]=await Promise.all([masterResponse.arrayBuffer(),manifestResponse.json() as Promise<PdfMasterManifest>]);
+      }
       [data.brandWhite,data.brandInk]=await Promise.all([imageData('/chakar-logo-original-white.png'),imageData('/chakar-logo-original-ink.png')]);
       const [regular,bold,cover]=await Promise.all([imageData('/fonts/Evolventa-Regular.ttf'),imageData('/fonts/Evolventa-Bold.ttf'),imageData('/fonts/RedHatDisplay-400.ttf')]);
       const { included, excluded } = clientActivityLists(currentPlan, costModel.activityCosts, costModel.activitySelections, costModel.manualInclusions, costModel.manualExclusions, destinationCatalog, packageDefaults);
-      const doc=buildClientPdf(data,currentPlan,currentInput,hotelSelections,currentCosts,customerName,{regular:regular.split(',')[1],bold:bold.split(',')[1],cover:cover.split(',')[1]},{included,excluded},costModel,quotedPackages);
-      const bytes=await composeVectorClientPdf(doc.output('arraybuffer'),masterBytes,clientPdfArtwork(doc),manifest);
+      const bytes=await buildThemedClientPdf({data,plan:currentPlan,input:currentInput,selections:hotelSelections,costs:currentCosts,customerName,
+        fonts:{regular:regular.split(',')[1],bold:bold.split(',')[1],cover:cover.split(',')[1]},activityLists:{included,excluded},quote:costModel,
+        comparison:quotedPackages,winterCover,masterBytes,manifest});
       const blob=new Blob([bytes],{type:'application/pdf'});
       if (!blob || blob.size<1024) throw new Error('The PDF engine returned an empty document.');
       // The saved record is committed before offering the file, so a successful
@@ -404,7 +411,7 @@ export default function ClientPdf() {
       markSavedItinerary(id);
       const url=URL.createObjectURL(blob);
       const anchor=document.createElement('a');
-      anchor.href=url; anchor.download=`Chakar-Experience-${customerName.replace(/[^a-z0-9]+/gi,'-')}-Kashmir-Itinerary.pdf`;
+      anchor.href=url; anchor.download=`Chakar-Experience-${customerName.replace(/[^a-z0-9]+/gi,'-')}-Kashmir-Itinerary${selectedTheme.id==='winter'?'-Winter':''}.pdf`;
       document.body.appendChild(anchor); anchor.click(); anchor.remove();
       window.setTimeout(()=>URL.revokeObjectURL(url),3000);
     } catch (error) {
@@ -418,8 +425,9 @@ export default function ClientPdf() {
     <section className="pdf-preview">
       <div className="section-head"><div><span className="eyebrow">DOCUMENT CONTENT</span><h2>Review this itinerary</h2><p>These values are pulled from the live planner. Activity pricing controls the tailored inclusion and exclusion pages.</p></div></div>
       <div className="pdf-review-grid">
-        <div className="pdf-review-cover"><img src={ART.cover} alt="Discover Kashmir cover artwork"/><span className="pdf-preview-logo"><span className="original-logo" role="img" aria-label="Chakar Experience"/></span><span>Dear {customerName},</span></div>
+        <div className={`pdf-review-cover pdf-review-cover--${selectedTheme.id}`}><img src={selectedTheme.coverArtwork} alt={`${selectedTheme.name} theme artwork`}/><span className="pdf-preview-logo"><span className="original-logo" role="img" aria-label="Chakar Experience"/></span>{selectedTheme.id==='original'?<span>Dear {customerName},</span>:<div className="winter-review-title"><small>WINTER EDITION</small><strong>Kashmir</strong><span>{currentPlan.nights} nights / {currentPlan.days} days</span><span>{date(input.arrival)} – {date(input.departure)}</span></div>}</div>
         <div className="pdf-review-details">
+          <div><small>PDF theme</small><b>{selectedTheme.name}</b><Link href="/pdf-designs">Change design</Link></div>
           <div><small>Tour summary</small><b>{currentPlan.nights} nights / {currentPlan.days} days</b><span>{date(input.arrival)} – {date(input.departure)}</span><span>{input.pickup} pick-up · {input.adults} adults · {input.youngAges.length} {input.youngAges.length===1?'child':'children'}</span></div>
           {quotedPackages.map((item)=>{
             const packageHotels=pdfHotels(item.plan,item.selections,item.input);

@@ -36,7 +36,7 @@ const original = {
   created_at: '2026-10-01T10:00:00.000Z', updated_at: '2026-10-03T11:00:00.000Z',
   last_downloaded_at: '2026-10-03T12:00:00.000Z', download_count: 4,
   snapshot: {
-    input: { name: 'Test client', arrival: '2026-12-14', departure: '2026-12-16', transport: 'Custom vehicle', adults: 6 },
+    input: { name: 'Test client', arrival: '2026-12-14', departure: '2026-12-16', transport: 'Custom vehicle', adults: 6, pdfTheme: 'winter' },
     plan: { days: 3, nights: 2, dayPlans: [{ day: 1, destination: 'Srinagar', description: 'Original description', selections: ['Dal Lake'] }] },
     routeVersion: 'current', generated: true,
     hotelSelections: [{ hotelId: 'hotel-001', hotelName: 'Example hotel', nightlyRate: 4000, nights: 2, rateConfirmed: true, alternatives: [{ hotelName: 'Example alternative', customId: 'alternative-1', nightlyRate: 4200 }] }],
@@ -97,6 +97,7 @@ const context = (id = sourceId) => ({ params: Promise.resolve({ id }) });
   assert.equal(itinerary.client_name, original.client_name, 'Copying must not alter the name shown to the client.');
   assert.equal(itinerary.snapshot, undefined, 'The menu only needs the new card summary.');
   const copied = await store.getSavedItinerary(itinerary.id);
+  assert.equal(copied.snapshot.input.pdfTheme, 'winter', 'Copying retains the selected PDF design.');
   assert.deepEqual(copied.snapshot, original.snapshot, 'Every hotel, rate, activity, description, manual inclusion and route field is preserved.');
   for (const field of ['client_name', 'arrival', 'departure', 'days', 'nights', 'package_total']) assert.deepEqual(copied[field], original[field]);
   assert.equal(copied.created_at, copied.updated_at);

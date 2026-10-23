@@ -1,0 +1,28 @@
+.pdf-theme-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.pdf-theme-option{position:relative;display:flex;align-items:center;gap:14px;min-width:0;padding:13px;border:1px solid #e3ddd4;border-radius:15px;background:#faf8f4;cursor:pointer;transition:border-color .18s,background .18s,box-shadow .18s}
+.pdf-theme-option:hover{border-color:#aa9477}
+.pdf-theme-option.is-selected{border-color:#796146;background:#f6f0e7;box-shadow:0 0 0 1px #796146}
+.pdf-theme-option:has(input:focus-visible){outline:3px solid #537d99;outline-offset:4px}
+.pdf-theme-option>input{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.pdf-theme-preview{display:block;flex:none;width:78px;height:104px;overflow:hidden;border-radius:6px;background:#e6dfd2;box-shadow:0 2px 7px #35291f13}
+.pdf-theme-preview img{display:block;width:100%;height:100%;object-fit:cover;object-position:center}
+.pdf-theme-preview-winter{background:#e2ecf0}
+.pdf-theme-details{display:grid;gap:8px;min-width:0}
+.pdf-theme-name{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#35291f;font-size:13px;font-weight:700}
+.pdf-theme-check{display:grid;place-items:center;width:19px;height:19px;flex:none;border:1px solid #c9bda9;border-radius:50%;color:#fff}
+.pdf-theme-option.is-selected .pdf-theme-check{background:#796146;border-color:#796146}
+.pdf-theme-description{font-size:10px;line-height:1.65;color:#766b5f}
+.trip-theme-catalog-link{display:inline-flex;align-items:center;gap:5px;margin-top:15px;font-size:11px;color:#765638;text-decoration:none}
+.trip-theme-catalog-link:hover{text-decoration:underline}
+.pdf-designs-page{max-width:1080px}
+.pdf-designs-heading{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:28px}
+.pdf-designs-heading h1{margin:0;font-size:32px;letter-spacing:-1px;color:#35291f}
+.pdf-designs-heading a{font-size:12px;color:#765638;text-decoration:none}
+.pdf-designs-page .pdf-theme-option{flex-direction:column;align-items:stretch;padding:18px;gap:20px}
+.pdf-designs-page .pdf-theme-preview{width:100%;height:auto;aspect-ratio:3/4}
+.pdf-designs-page .pdf-theme-name{font-size:20px}
+.pdf-designs-page .pdf-theme-description{font-size:12px}
+.pdf-designs-selection{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:24px;font-size:13px;color:#766b5f}
+.pdf-designs-selection a{padding:13px 20px;border-radius:10px;background:#58402b;color:#fffaf1;text-decoration:none;font-size:12px;white-space:nowrap}
+@media(max-width:680px){.pdf-theme-options{gap:10px}.pdf-theme-option{flex-direction:column;align-items:stretch;padding:11px;gap:12px}.pdf-theme-preview{width:100%;height:125px}.pdf-theme-description{font-size:10px}.pdf-theme-name{font-size:12px}.pdf-designs-heading{align-items:flex-start;flex-direction:column}.pdf-designs-heading h1{font-size:28px}.pdf-designs-page .pdf-theme-option{padding:12px;gap:14px}.pdf-designs-page .pdf-theme-name{font-size:16px}.pdf-designs-page .pdf-theme-description{font-size:11px}.pdf-designs-selection{align-items:flex-start;flex-direction:column}}
+@media(prefers-reduced-motion:reduce){.pdf-theme-option{transition:none}}
