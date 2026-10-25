@@ -11,6 +11,7 @@ import { packageCategories } from '@/lib/package-quotes';
 import { utcDay } from '@/lib/trip-dates';
 import type { PackageDefaults } from '@/lib/package-defaults';
 import { resolvePdfTheme, type PdfThemeId } from '@/lib/pdf-themes';
+import { validatePdfDesign, type PdfDesignSettings } from '@/lib/pdf-designs';
 
 export type TripInput = {
   name: string; arrival: string; departure: string; arrivalTime?: string; departureTime?: string; pickup: string; adults: number; youngAges: number[]; budget: number;
@@ -19,6 +20,8 @@ export type TripInput = {
   packagePreferences?: string[];
   /** Presentation only; it never changes the route, services or quote. */
   pdfTheme?: PdfThemeId;
+  /** Immutable visual settings for this trip; never changes route or costing. */
+  pdfDesign?: PdfDesignSettings;
 };
 export type RouteLeg = Route & { from: string; to: string; via?: string[]; known: boolean; preference: 'PREFERRED' | 'ALLOWED' | 'AVOID' | 'NOT_ALLOWED'; vehicleDaysCharged: number; rationale: string; preferredAlternative?: string };
 export type DayBlock = { name: string; description: string; startMinute?: number; reason: string; tags: string[]; destination?: string; sights?: string[]; librarySights?: { destination: string; name: string; visitName: string }[]; source?: string; conditional?: boolean; kind?: 'sightseeing' | 'arrival' | 'transfer' | 'departure' | 'custom' | 'free-time'; intelligence?: { status: 'STANDARD' | 'OPTIONAL' | 'CONDITIONAL' | 'EXTRA' | 'EXCLUDED' | 'SEASONAL' | 'LIVE_CHECK'; extraCost?: boolean; note?: string } };
@@ -312,6 +315,7 @@ function validateInput(input: TripInput) {
 export function validatedTripInput(input: TripInput): TripInput {
   validateInput(input);
   const normalizedMix = normalizeChildrenAndAdults(input.adults, input.youngAges);
+  if (input.pdfDesign !== undefined) validatePdfDesign(input.pdfDesign);
   return { ...input, ...(input.packagePreferences ? { packagePreferences: packageCategories(input), hotelCategory: packageCategories(input)[0] } : {}), pdfTheme: resolvePdfTheme(input.pdfTheme).id, hotelOptionMode: input.hotelOptionMode || 'single', youngAges: normalizedMix.children, adults: normalizedMix.adults, budget: Math.max(0, input.budget) };
 }
 

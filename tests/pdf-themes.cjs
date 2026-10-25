@@ -29,7 +29,8 @@ for (const extension of ['.ts', '.tsx']) require.extensions[extension] = functio
 require.extensions['.css'] = () => {};
 const { pdfThemes, resolvePdfTheme } = require('../lib/pdf-themes.ts');
 const { validatedTripInput } = require('../lib/itinerary.ts');
-const { generatePlannerState, setPdfThemeInState, itinerarySnapshot, restoreSavedItinerary, PlannerProvider } = require('../components/PlannerProvider.tsx');
+const { generatePlannerState, setPdfThemeInState, applyPdfDesignInState, itinerarySnapshot, restoreSavedItinerary, PlannerProvider } = require('../components/PlannerProvider.tsx');
+const { defaultPdfDesign, effectivePdfDesign } = require('../lib/pdf-designs.ts');
 const { hotelDatabase } = require('../lib/data.ts');
 const { calculateCosts } = require('../lib/costing.ts');
 const { hotelConfirmationSignature, planInputsNeedRefresh, quoteReadiness } = require('../lib/quote-readiness.ts');
@@ -96,6 +97,23 @@ test('opening a legacy snapshot after a Winter trip selects Original', () => {
   const restored = restoreSavedItinerary(setPdfThemeInState(state, 'winter'), 'legacy', legacy);
   assert.equal(resolvePdfTheme(restored.input.pdfTheme).id, 'original');
   assert.deepEqual(restored.plan.dayPlans, legacy.plan.dayPlans);
+});
+
+test('custom colours and immutable image references stay with a saved trip until explicitly applied', () => {
+  const custom = defaultPdfDesign('winter');
+  custom.colors.accent = '#A0C4D4';
+  custom.images.coverMain = '/api/pdf-design-assets/' + 'a'.repeat(64);
+  const applied = applyPdfDesignInState(state, custom);
+  const snapshot = clone(itinerarySnapshot(applied));
+  const changedLibraryDesign = { ...custom, colors: { ...custom.colors, accent: '#B2CCDA' } };
+  const restored = restoreSavedItinerary(applyPdfDesignInState(state, changedLibraryDesign), 'frozen-design', snapshot);
+  assert.deepEqual(effectivePdfDesign(restored.input), custom);
+  assert.deepEqual(validatedTripInput(restored.input).pdfDesign, custom);
+  assert.deepEqual(clone(restored).input.pdfDesign, custom);
+  const updated = applyPdfDesignInState(restored, changedLibraryDesign);
+  assert.deepEqual(effectivePdfDesign(updated.input), changedLibraryDesign);
+  assert.deepEqual(effectivePdfDesign(restored.input), custom, 'Applying changes must not mutate the saved baseline');
+  for (const field of ['plan', 'hotelSelections', 'packageQuotes', 'costModel', 'savedItineraryId']) assert.equal(updated[field], restored[field]);
 });
 test('building the same itinerary in either theme produces the same trip and quote', () => {
   const original = generatePlannerState(state, { pdfTheme: 'original' });

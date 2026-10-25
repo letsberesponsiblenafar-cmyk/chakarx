@@ -1,6 +1,7 @@
 import 'server-only';
 import { destinations, enrichDestination, type Destination } from '@/lib/data';
 import { initialPackageDefaults, PACKAGE_DEFAULTS_RECORD_ID, validatePackageDefaults, type PackageDefaults } from '@/lib/package-defaults';
+import { PDF_DESIGN_RECORD_PREFIX } from '@/lib/pdf-designs';
 
 type Row = { id: string; record: unknown };
 type DeletedDestination = Destination & { kind: 'deleted-destination'; deleted_at: string };
@@ -29,11 +30,14 @@ async function call(path: string, init: RequestInit = {}) {
 }
 
 export async function loadDestinationCatalog(): Promise<{ destinations: Destination[]; archivedDestinations: Destination[] }> {
-  const rows = await call(`?select=id,record&id=neq.${PACKAGE_DEFAULTS_RECORD_ID}&limit=1000`) as Row[];
+  // Escape underscores in LIKE: these are literal reserved IDs, not arbitrary
+  // wildcard matches. Exclude large immutable image records at the database.
+  const pdfPrefix = encodeURIComponent(PDF_DESIGN_RECORD_PREFIX.replace(/_/g, '\\_'));
+  const rows = await call(`?select=id,record&id=neq.${PACKAGE_DEFAULTS_RECORD_ID}&id=not.like.${pdfPrefix}*&limit=1000`) as Row[];
   const byId = new Map<string,Destination>(destinations.map((d) => [d.id || d.name, { ...d, id: d.id || d.name }]));
   const archivedDestinations: Destination[] = [];
   for (const row of rows) {
-    if (row.id === PACKAGE_DEFAULTS_RECORD_ID) continue;
+    if (row.id === PACKAGE_DEFAULTS_RECORD_ID || row.id.startsWith(PDF_DESIGN_RECORD_PREFIX)) continue;
     if (isDeletedDestination(row.record)) {
       byId.delete(row.id);
       archivedDestinations.push(enrichDestination({ ...row.record, id: row.id }));
@@ -55,6 +59,7 @@ export async function listArchivedDestinations(): Promise<Destination[]> {
 function validateRecordId(id?: string) {
   if (!id || id.length > 100 || id.trim() !== id) throw new Error('A valid destination ID is required.');
   if (id === PACKAGE_DEFAULTS_RECORD_ID) throw new Error('This record is reserved for itinerary-wide package defaults.');
+  if (id.startsWith(PDF_DESIGN_RECORD_PREFIX)) throw new Error('This record is reserved for PDF designs.');
 }
 
 export async function saveDestination(destination: Destination) {

@@ -18,6 +18,7 @@ import { packageCategories, packageView, validPackageQuotes, type PackageQuote }
 import { observeDestinationFreshness } from '@/lib/destination-freshness';
 import { freezePlannerState, savedHotelMaster } from '@/lib/saved-plan-data';
 import { resolvePdfTheme } from '@/lib/pdf-themes';
+import { defaultPdfDesign, initialPdfDesignLibrary, validatePdfDesign, type PdfDesignSettings, type PdfDesignLibrary } from '@/lib/pdf-designs';
 
 export type HotelSelection = {
   location: string; hotelId: string; hotelName: string; category: string; starRating: number | null; address: string; roomType: string; website: string;
@@ -37,6 +38,9 @@ export function itinerarySnapshot(state: PlannerState, defaults?: PackageDefault
 }
 
 type PlannerContextValue = PlannerState & {
+  pdfDesigns: PdfDesignLibrary;
+  refreshPdfDesigns: () => Promise<void>;
+  applyPdfDesign: (settings: PdfDesignSettings) => void;
   updatePackageState: (category: string, update: (state: PlannerState) => PlannerState) => void;
   setPackageTransport: (category: string, vehicle: string | null, custom?: boolean) => void;
   setPackageTransportRate: (category: string, rate: number) => void;
@@ -497,9 +501,16 @@ export function reconcilePlannerState(state: PlannerState): PlannerState {
 }
 
 /** Design is stored on the trip brief; selecting it never schedules a new route. */
-export function setPdfThemeInState(state: PlannerState, theme?: string): PlannerState {
+export function setPdfThemeInState(state: PlannerState, theme?: string, settings?: PdfDesignSettings): PlannerState {
   const pdfTheme = resolvePdfTheme(theme).id;
-  return state.input.pdfTheme === pdfTheme ? state : { ...state, input: { ...state.input, pdfTheme } };
+  if (state.input.pdfTheme === pdfTheme) return state;
+  const pdfDesign = validatePdfDesign(settings?.theme === pdfTheme ? settings : defaultPdfDesign(pdfTheme));
+  return { ...state, input: { ...state.input, pdfTheme, pdfDesign } };
+}
+
+export function applyPdfDesignInState(state: PlannerState, settings: PdfDesignSettings): PlannerState {
+  const pdfDesign = validatePdfDesign(settings);
+  return { ...state, input: { ...state.input, pdfTheme: pdfDesign.theme, pdfDesign } };
 }
 
 export function restoreSavedItinerary(current: PlannerState, id: string, snapshot: ItinerarySnapshot): PlannerState {
@@ -530,6 +541,27 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
   const latestState = useRef(state);
   latestState.current = state;
   const [mounted, setMounted] = useState(false);
+  const [pdfDesigns, setPdfDesigns] = useState<PdfDesignLibrary>(initialPdfDesignLibrary);
+  const pdfDesignRequest = useRef(0);
+  async function refreshPdfDesigns() {
+    const request = ++pdfDesignRequest.current;
+    const response = await fetch('/api/pdf-designs', { cache: 'no-store', signal: AbortSignal.timeout(15000) });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || 'Could not load PDF designs.');
+    const library = initialPdfDesignLibrary();
+    for (const theme of ['original', 'winter'] as const) {
+      const record = payload.designs?.[theme];
+      if (!record || record.settings?.theme !== theme) throw new Error('Invalid PDF design library.');
+      library[theme] = { ...record, settings: validatePdfDesign(record.settings) };
+    }
+    if (request !== pdfDesignRequest.current) return;
+    setPdfDesigns(library);
+    // Only a fresh, unsaved brief inherits the current defaults. Existing trips
+    // keep their design snapshot until Apply to current trip is clicked.
+    setState(current => !current.plan && !current.savedItineraryId && !current.input.pdfDesign
+      ? applyPdfDesignInState(current, library[resolvePdfTheme(current.input.pdfTheme).id].settings) : current);
+  }
+  useEffect(() => { if (mounted) void refreshPdfDesigns().catch(() => {}); }, [mounted]);
   const [destinationCatalog,setDestinationCatalog]=useState<Destination[]>([...destinations]);
   const [destinationConnection,setDestinationConnection]=useState<'loading'|'ready'|'error'>('loading');
   const [destinationConnectionError,setDestinationConnectionError]=useState('');
@@ -734,8 +766,12 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
     hotelConnection,
     hotelConnectionError,
     refreshHotels,
+    pdfDesigns,
+    refreshPdfDesigns,
+    applyPdfDesign(settings) { setState(current => applyPdfDesignInState(current, settings)); },
     setInputField(key, value) { setState((s) => {
-      if (key === 'pdfTheme') return setPdfThemeInState(s, value as string | undefined);
+      if (key === 'pdfTheme') return setPdfThemeInState(s, value as string | undefined, pdfDesigns[resolvePdfTheme(value as string).id].settings);
+      if (key === 'pdfDesign') return value ? applyPdfDesignInState(s, value as PdfDesignSettings) : s;
       if (key === 'packagePreferences') {
         const categories = packageCategories({ hotelCategory: s.input.hotelCategory, packagePreferences: value as string[] });
         return { ...s, input: { ...s.input, packagePreferences: categories, hotelCategory: categories[0] } };
@@ -867,7 +903,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
         if (!s.plan || s.plan.nights <= 1 || day < 1 || day > s.plan.days) return s;
         try {
           const nextPlan = removeTripDay(reschedulePlan(s.plan, s.costModel), day);
-          return applyPlanEdit({ ...s, input: { ...nextPlan.input, pdfTheme: s.input.pdfTheme } }, nextPlan);
+          return applyPlanEdit({ ...s, input: { ...nextPlan.input, pdfTheme: s.input.pdfTheme, pdfDesign: s.input.pdfDesign } }, nextPlan);
         } catch { return s; }
       });
     },
@@ -977,7 +1013,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       setState((s) => restoreSavedItinerary(s, id, snapshot));
     },
     markSavedItinerary(id) { setState((s) => ({ ...freezePlannerState(sameTrip(s, state) ? scheduledState : s, packageDefaults), savedItineraryId: id })); },
-  }), [state, scheduledState, mounted, hotelConnection, hotelConnectionError, destinationCatalog, destinationConnection, destinationConnectionError, destinationRefreshing, packageDefaults, packageDefaultsConnection, packageDefaultsError, updatingItineraryData]);
+  }), [state, scheduledState, mounted, hotelConnection, hotelConnectionError, destinationCatalog, destinationConnection, destinationConnectionError, destinationRefreshing, packageDefaults, packageDefaultsConnection, packageDefaultsError, updatingItineraryData, pdfDesigns]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

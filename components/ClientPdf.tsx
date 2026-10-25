@@ -18,6 +18,9 @@ import { accommodationDayNarrative, hotelForNight, hotelSelectionKey, hotelStayL
 import { pdfHotels, pdfHotelName, pdfHotelLocation } from '@/lib/pdf-content';
 import type { Costs, PdfFonts, ActivityLists, ClientPdfPackageQuote } from '@/lib/pdf-types';
 import { resolvePdfTheme } from '@/lib/pdf-themes';
+import { effectivePdfDesign, validatePdfDesign, type PdfDesignSettings, type PdfImageSlot } from '@/lib/pdf-designs';
+import { stylePdfMaster, mapPdfDesignRgb } from '@/lib/pdf-master-style';
+import { loadPdfDesignAssets } from '@/lib/pdf-render-assets';
 export { pdfHotels, pdfHotelName, pdfHotelLocation } from '@/lib/pdf-content';
 export type { ClientPdfPackageQuote } from '@/lib/pdf-types';
 
@@ -38,7 +41,7 @@ const ART = {
 } as const;
 type ArtKey = keyof typeof ART;
 type PdfHotel = HotelSelection;
-type PdfArt = Record<ArtKey,string> & {brandWhite?:string; brandInk?:string; hotelRows?: Record<number,string>; vectorBackgrounds?: boolean};
+type PdfArt = Record<ArtKey,string> & {brandWhite?:string; brandInk?:string; hotelRows?: Record<number,string>; vectorBackgrounds?: boolean; design?: PdfDesignSettings};
 const pdfArtwork = new WeakMap<jsPDF, PdfArtworkPage[]>();
 export function clientPdfArtwork(doc: jsPDF): PdfArtworkPage[] { return [...(pdfArtwork.get(doc) || [])]; }
 
@@ -58,17 +61,6 @@ function textLines(doc: jsPDF, value: string, width: number, size: number, bold 
   doc.setFont('evolventa', bold ? 'bold' : 'normal'); doc.setFontSize(size);
   return doc.splitTextToSize(printable(value), width) as string[];
 }
-async function imageData(path: string) {
-  const response = await fetch(path, { cache: 'force-cache' });
-  if (!response.ok) throw new Error(`Could not load itinerary artwork: ${path}`);
-  const blob = await response.blob();
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error(`Could not read artwork: ${path}`));
-    reader.onerror = () => reject(new Error(`Could not read artwork: ${path}`));
-    reader.readAsDataURL(blob);
-  });
-}
 function artworkPage(doc: jsPDF, data: PdfArt, key: ArtKey, first = false, override?: string, hotelRows = 4, comparison = false) {
   if (!first) doc.addPage();
   pdfArtwork.get(doc)?.push({ key: key === 'hotels' ? `hotels${hotelRows}` : key, ...(comparison ? { comparison: true } : {}) });
@@ -82,7 +74,12 @@ function artworkPage(doc: jsPDF, data: PdfArt, key: ArtKey, first = false, overr
   if (!logo) return;
   const left = key === 'cover' || key === 'letter';
   const width = left ? 115 : 101, x = left ? 18 : PAGE_W - width - 17, y = left ? 8 : 6;
-  doc.addImage(logo, 'PNG', x, y, width, width * 223 / 593, lightArt ? 'chakar-brand-white' : 'chakar-brand-ink', 'NONE');
+  const boxHeight = width * 223 / 593;
+  const properties = doc.getImageProperties(logo);
+  const scale = Math.min(width / properties.width, boxHeight / properties.height);
+  const logoWidth = properties.width * scale, logoHeight = properties.height * scale;
+  doc.addImage(logo, logo.startsWith('data:image/jpeg') ? 'JPEG' : 'PNG', x + (left ? 0 : width - logoWidth), y + (boxHeight - logoHeight) / 2,
+    logoWidth, logoHeight, lightArt ? 'chakar-brand-white' : 'chakar-brand-ink', 'NONE');
 }
 function addCover(doc: jsPDF, data: PdfArt, name: string) {
   artworkPage(doc, data, 'cover', true);
@@ -108,7 +105,7 @@ function dayLayout(doc: jsPDF, day: DayPlan, pickup: string, story: string, plan
   return { titleLines, storyLines, height: titleLines.length * 12 + 12 + storyLines.length * 11 + 14 };
 }
 function addDaywise(doc: jsPDF, data: Record<ArtKey,string>, plan: Plan, pickup: string, quote?: CostModel, selections: HotelSelection[] = []) {
-  let index = 0;
+  let index = 0, lineOffset = 0;
   while (index < plan.dayPlans.length) {
     artworkPage(doc, data, 'daywise');
     doc.setFont('evolventa','normal'); doc.setFontSize(9.5); doc.setTextColor(40,29,14);
@@ -128,8 +125,13 @@ function addDaywise(doc: jsPDF, data: Record<ArtKey,string>, plan: Plan, pickup:
       doc.setFont('evolventa','bold'); doc.setFontSize(8.9); doc.text(day.label === 'Departure day' ? `Departure: ${printable(day.to)} (previous night: ${printable(day.stay)})` : `Overnight: ${printable(overnightLabel)}`, 84, bodyY + 2);
       bodyY += 12;
       doc.setFont('evolventa','normal'); doc.setFontSize(8.9); doc.setTextColor(38,33,29);
-      doc.text(layout.storyLines, 84, bodyY + 2, { lineHeightFactor: 1.22 });
-      y += layout.height; onPage++; index++;
+      const lineCapacity = Math.max(1, Math.floor((602 - bodyY - 2) / (8.9 * 1.22)) + 1);
+      const visible = layout.storyLines.slice(lineOffset, lineOffset + lineCapacity);
+      doc.text(visible, 84, bodyY + 2, { lineHeightFactor: 1.22 });
+      lineOffset += visible.length;
+      if (lineOffset < layout.storyLines.length) break;
+      y += lineOffset === layout.storyLines.length ? layout.height : visible.length * 11 + 40;
+      lineOffset = 0; onPage++; index++;
     }
   }
 }
@@ -264,7 +266,7 @@ function addClientList(doc: jsPDF, data: PdfArt, key: 'inclusions' | 'exclusions
     return true;
   });
   if (!entries.length) return;
-  let index=0;
+  let index=0, lineOffset=0;
   while(index<entries.length){
     artworkPage(doc,data,key);
     let y=158;
@@ -276,13 +278,29 @@ function addClientList(doc: jsPDF, data: PdfArt, key: 'inclusions' | 'exclusions
       if(y+height>696&&y>158)break;
       doc.setFont('evolventa','bold');doc.setFontSize(12);doc.setTextColor(222,184,91);doc.text('•',40,y);
       doc.setFont('evolventa','normal');doc.setFontSize(11.2);doc.setTextColor(255,255,255);
-      doc.text(lines,58,y,{lineHeightFactor:1.42});
-      y+=height;index++;
+      const capacity=Math.max(1,Math.floor((696-y)/(11.2*1.42))+1);
+      const visible=lines.slice(lineOffset,lineOffset+capacity);
+      doc.text(visible,58,y,{lineHeightFactor:1.42});
+      lineOffset+=visible.length;
+      if(lineOffset<lines.length)break;
+      y+=height;lineOffset=0;index++;
     }
   }
 }
 export function buildClientPdf(data: PdfArt, plan: Plan, input: TripInput, selections: HotelSelection[], costs: Costs, customerName: string, fonts: PdfFonts, activityLists: ActivityLists = {included:[],excluded:[]}, quote?: CostModel, comparison: readonly ClientPdfPackageQuote[] = []) {
   const doc=new jsPDF({unit:'pt',format:[PAGE_W,PAGE_H],orientation:'portrait',compress:true});
+  if (data.design) {
+    const colors = doc as unknown as Record<'setTextColor' | 'setFillColor' | 'setDrawColor', (...channels: (string | number)[]) => jsPDF>;
+    for (const method of ['setTextColor', 'setFillColor', 'setDrawColor'] as const) {
+      const original = colors[method].bind(doc);
+      colors[method] = (...args) => {
+        if (args.length === 3 && args.every(value => typeof value === 'number')) {
+          return original(...mapPdfDesignRgb(args as [number, number, number], data.design!));
+        }
+        return original(...args);
+      };
+    }
+  }
   pdfArtwork.set(doc, []);
   doc.addFileToVFS('Evolventa-Regular.ttf', fonts.regular);
   doc.addFileToVFS('Evolventa-Bold.ttf', fonts.bold);
@@ -329,18 +347,23 @@ export async function buildThemedClientPdf(options: {
   data: PdfArt; plan: Plan; input: TripInput; selections: HotelSelection[];
   costs: Costs; customerName: string; fonts: PdfFonts; activityLists: ActivityLists;
   quote?: CostModel; comparison?: readonly ClientPdfPackageQuote[];
-  winterCover?: string; masterBytes?: ArrayBuffer | Uint8Array; manifest?: PdfMasterManifest;
+  masterBytes?: ArrayBuffer | Uint8Array; manifest?: PdfMasterManifest;
+  design?: PdfDesignSettings; resolvedImages?: Partial<Record<PdfImageSlot, string>>;
 }): Promise<Uint8Array<ArrayBuffer>> {
   const { data, plan, input, selections, costs, customerName, fonts, activityLists, quote, comparison = [] } = options;
-  if (resolvePdfTheme(input.pdfTheme).id === 'winter') {
-    if (!options.winterCover) throw new Error('Could not load the Winter artwork. Please retry.');
-    const { buildWinterClientPdf } = await import('@/lib/winter-pdf');
-    const doc = buildWinterClientPdf({cover:options.winterCover,brandWhite:data.brandWhite,brandInk:data.brandInk},plan,input,selections,costs,customerName,fonts,activityLists,quote,comparison);
-    return new Uint8Array(doc.output('arraybuffer'));
-  }
+  const design = validatePdfDesign(options.design || effectivePdfDesign(input));
   if (!options.masterBytes || !options.manifest) throw new Error('Could not load the original itinerary artwork. Please retry.');
-  const doc = buildClientPdf(data,plan,input,selections,costs,customerName,fonts,activityLists,quote,comparison);
-  return composeVectorClientPdf(doc.output('arraybuffer'),options.masterBytes,clientPdfArtwork(doc),options.manifest);
+  const images = options.resolvedImages || {};
+  for (const slot of Object.keys(design.images) as PdfImageSlot[]) {
+    if (!images[slot]) throw new Error(`Could not load the ${slot} design image. Please retry.`);
+  }
+  // Both designs share every layout, font, table and pagination rule. Styling
+  // changes native colours/photo resources, never replaces pages with bitmaps.
+  const master = await stylePdfMaster(options.masterBytes, design, images);
+  const art = { ...data, vectorBackgrounds: true, design,
+    brandWhite: images.logoLight || data.brandWhite, brandInk: images.logoDark || data.brandInk };
+  const doc = buildClientPdf(art,plan,input,selections,costs,customerName,fonts,activityLists,quote,comparison);
+  return composeVectorClientPdf(doc.output('arraybuffer'),master,clientPdfArtwork(doc),options.manifest);
 }
 
 export default function ClientPdf() {
@@ -388,20 +411,12 @@ export default function ClientPdf() {
     setDownloading(true);
     try {
       const data={...ART,vectorBackgrounds:true} as PdfArt;
-      let masterBytes: ArrayBuffer | undefined, manifest: PdfMasterManifest | undefined, winterCover: string | undefined;
-      if (selectedTheme.id === 'winter') {
-        winterCover=await imageData(selectedTheme.coverArtwork);
-      } else {
-        const [masterResponse,manifestResponse]=await Promise.all([fetch('/pdf-assets/client-master.pdf',{cache:'no-cache'}),fetch('/pdf-assets/client-master.json',{cache:'no-cache'})]);
-        if (!masterResponse.ok || !manifestResponse.ok) throw new Error('Could not load the original itinerary artwork. Please retry.');
-        [masterBytes,manifest]=await Promise.all([masterResponse.arrayBuffer(),manifestResponse.json() as Promise<PdfMasterManifest>]);
-      }
-      [data.brandWhite,data.brandInk]=await Promise.all([imageData('/chakar-logo-original-white.png'),imageData('/chakar-logo-original-ink.png')]);
-      const [regular,bold,cover]=await Promise.all([imageData('/fonts/Evolventa-Regular.ttf'),imageData('/fonts/Evolventa-Bold.ttf'),imageData('/fonts/RedHatDisplay-400.ttf')]);
+      const design = effectivePdfDesign(currentInput);
+      const assets = await loadPdfDesignAssets(design);
+      Object.assign(data, assets.brand);
       const { included, excluded } = clientActivityLists(currentPlan, costModel.activityCosts, costModel.activitySelections, costModel.manualInclusions, costModel.manualExclusions, destinationCatalog, packageDefaults);
-      const bytes=await buildThemedClientPdf({data,plan:currentPlan,input:currentInput,selections:hotelSelections,costs:currentCosts,customerName,
-        fonts:{regular:regular.split(',')[1],bold:bold.split(',')[1],cover:cover.split(',')[1]},activityLists:{included,excluded},quote:costModel,
-        comparison:quotedPackages,winterCover,masterBytes,manifest});
+      const bytes=await buildThemedClientPdf({...assets,data,plan:currentPlan,input:currentInput,selections:hotelSelections,costs:currentCosts,customerName,
+        activityLists:{included,excluded},quote:costModel,comparison:quotedPackages,design});
       const blob=new Blob([bytes],{type:'application/pdf'});
       if (!blob || blob.size<1024) throw new Error('The PDF engine returned an empty document.');
       // The saved record is committed before offering the file, so a successful
@@ -425,7 +440,7 @@ export default function ClientPdf() {
     <section className="pdf-preview">
       <div className="section-head"><div><span className="eyebrow">DOCUMENT CONTENT</span><h2>Review this itinerary</h2><p>These values are pulled from the live planner. Activity pricing controls the tailored inclusion and exclusion pages.</p></div></div>
       <div className="pdf-review-grid">
-        <div className={`pdf-review-cover pdf-review-cover--${selectedTheme.id}`}><img src={selectedTheme.coverArtwork} alt={`${selectedTheme.name} theme artwork`}/><span className="pdf-preview-logo"><span className="original-logo" role="img" aria-label="Chakar Experience"/></span>{selectedTheme.id==='original'?<span>Dear {customerName},</span>:<div className="winter-review-title"><small>WINTER EDITION</small><strong>Kashmir</strong><span>{currentPlan.nights} nights / {currentPlan.days} days</span><span>{date(input.arrival)} – {date(input.departure)}</span></div>}</div>
+        <div className="pdf-review-cover"><img src={selectedTheme.preview} alt={`${selectedTheme.name} base design; custom images are applied in your PDF export`}/>{selectedTheme.id==='original'&&<><span className="pdf-preview-logo"><span className="original-logo" role="img" aria-label="Chakar Experience"/></span><span>Dear {customerName},</span></>}</div>
         <div className="pdf-review-details">
           <div><small>PDF theme</small><b>{selectedTheme.name}</b><Link href="/pdf-designs">Change design</Link></div>
           <div><small>Tour summary</small><b>{currentPlan.nights} nights / {currentPlan.days} days</b><span>{date(input.arrival)} – {date(input.departure)}</span><span>{input.pickup} pick-up · {input.adults} adults · {input.youngAges.length} {input.youngAges.length===1?'child':'children'}</span></div>

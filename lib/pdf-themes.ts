@@ -14,8 +14,8 @@ export const pdfThemes: readonly PdfTheme[] = [
   { id: 'original', name: 'Original', version: 1,
     description: 'The familiar Chakar design, with warm colours and classic layouts.',
     preview: '/pdf-assets/branded-cover.png', coverArtwork: '/pdf-assets/branded-cover.png' },
-  { id: 'winter', name: 'Winter', version: 1,
-    description: 'Snowy landscapes, cool blue tones and a spacious editorial layout.',
+  { id: 'winter', name: 'Winter', version: 2,
+    description: 'The original Chakar layout, with winter imagery and cool blue accents.',
     preview: '/pdf-assets/winter/winter-preview.jpg', coverArtwork: '/pdf-assets/winter/winter-cover.jpg' },
 ];
 
