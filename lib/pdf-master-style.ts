@@ -1,5 +1,8 @@
 import { PDFArray, PDFDict, PDFDocument, PDFName, PDFNumber, PDFRawStream, PDFRef, decodePDFRawStream, type PDFImage } from 'pdf-lib';
 import type { PdfDesignSettings, PdfImageSlot } from '@/lib/pdf-designs';
+import { pdfPageIds } from '@/lib/pdf-design-pages';
+import type { PdfFonts } from '@/lib/pdf-types';
+import { styleNativePage } from '@/lib/pdf-native-page-style';
 
 type Rgb = [number, number, number];
 type NativePhotoSlot = { id: PdfImageSlot; pages: readonly number[]; path: readonly string[]; width: number; height: number };
@@ -176,19 +179,21 @@ export async function stylePdfMaster(
   masterBytes: ArrayBuffer | Uint8Array,
   settings: PdfDesignSettings,
   resolvedImages: Partial<Record<PdfImageSlot, string>> = {},
+  fonts?: PdfFonts,
 ): Promise<Uint8Array<ArrayBuffer>> {
   hex(settings.colors.accent); hex(settings.colors.dark);
   const photos = Object.entries(resolvedImages).filter(([, value]) => value !== undefined && value !== '');
   const known = new Set<string>([...pdfMasterPhotoSlots.map(slot => slot.id), 'logoLight', 'logoDark']);
   if (photos.some(([id]) => !known.has(id))) throw new Error('This PDF design includes an unsupported image slot.');
   const active = pdfMasterPhotoSlots.filter(slot => resolvedImages[slot.id]);
-  if (originalPalette(settings) && !active.length) return new Uint8Array(masterBytes instanceof Uint8Array ? masterBytes : masterBytes.slice(0));
+  const nativeFields = ['headingFont', 'bodyFont', 'headingColor', 'bodyColor', 'lightTextColor', 'headingScale', 'bodyScale', 'accent', 'dark', 'backgroundColor', 'topDecoration', 'bottomDecoration'];
+  const styledPages = pdfPageIds.filter(id => Object.keys(settings.pages?.[id] || {}).some(key => nativeFields.includes(key)));
+  if (originalPalette(settings) && !active.length && !styledPages.length) return new Uint8Array(masterBytes instanceof Uint8Array ? masterBytes : masterBytes.slice(0));
   const document = await PDFDocument.load(masterBytes);
   if (document.getPageCount() !== 15) throw new Error('The original PDF design master does not match this editor.');
   // Resolve every target before replacing resources: the hotel row variants
   // intentionally share their original photo resource dictionaries.
   const targets = active.map(slot => ({ slot, resources: slot.pages.map(page => photoResource(document, slot, page)) }));
-  if (!originalPalette(settings)) recolorMaster(document, settings);
   const embeddedImages = new Map<string, PDFImage>();
   for (const { slot, resources } of targets) {
     const imageData = resolvedImages[slot.id]!;
@@ -215,6 +220,25 @@ export async function stylePdfMaster(
     });
     const reference = document.context.register(frame);
     resources.forEach(({ dictionary, key }) => dictionary.set(key, reference));
+  }
+  // Keep an uncoloured resource source for page-specific palettes. Isolated
+  // copies prevent edits to a shared hotel/photo/font object from leaking.
+  const source = styledPages.length ? await PDFDocument.load(await document.save()) : undefined;
+  if (!originalPalette(settings)) recolorMaster(document, settings);
+  const pageIndices = { cover: [0], letter: [1], summary: [2], daywise: [3], package: [4], hotels: [5, 11, 12, 13, 14], inclusions: [6], exclusions: [7], policies: [8], testimonials: [9], thanks: [10] };
+  for (const id of styledPages) {
+    const style = settings.pages![id]!;
+    for (const index of pageIndices[id]) {
+      const isolated = await PDFDocument.create();
+      isolated.addPage((await isolated.copyPages(source!, [index]))[0]);
+      const palette = { ...settings, colors: { accent: style.accent || settings.colors.accent, dark: style.dark || settings.colors.dark } };
+      if (!originalPalette(palette)) recolorMaster(isolated, palette);
+      await styleNativePage(isolated, id, style, fonts);
+      // Flush newly embedded subset fonts before copying their dictionaries.
+      const ready = await PDFDocument.load(await isolated.save());
+      const replacement = (await document.copyPages(ready, [0]))[0];
+      document.removePage(index); document.insertPage(index, replacement);
+    }
   }
   return new Uint8Array(await document.save());
 }

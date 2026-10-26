@@ -1,19 +1,16 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { Check, Download, FileImage, ImagePlus, Loader2, Palette, RefreshCw, RotateCcw, Save } from 'lucide-react';
 import { usePlanner } from '@/components/PlannerProvider';
 import { resolvePdfTheme, type PdfThemeId } from '@/lib/pdf-themes';
-import { defaultPdfDesign, effectivePdfDesign, initialPdfDesignLibrary, isPdfDesignAssetUrl, pdfImageSlots, samePdfDesign, validatePdfDesign,
+import { effectivePdfDesign, initialPdfDesignLibrary, isPdfDesignAssetUrl, samePdfDesign, validatePdfDesign,
   type PdfDesignLibrary, type PdfDesignRecord, type PdfDesignSettings, type PdfImageSlot } from '@/lib/pdf-designs';
 import { preparePdfImageUpload } from '@/lib/pdf-image-upload';
-import styles from './pdf-design-editor.module.css';
+import PdfDesignStudio, { type StudioPart, type StudioPreview } from '@/components/PdfDesignStudio';
+import type { PdfPageId } from '@/lib/pdf-design-pages';
 
-const groups = ['Colours', 'Cover', 'Inside pages', 'Closing page', 'Branding'] as const;
-type Group = typeof groups[number];
 type Drafts = Record<PdfThemeId, PdfDesignSettings>;
-type Preview = { url: string; pageCount: number; settings: PdfDesignSettings };
+type Preview = StudioPreview;
 type StoredDraft = { settings: PdfDesignSettings; revision: number };
 const DRAFT_KEY = 'chakar-pdf-design-editor-drafts-v1';
 const clone = <T,>(value: T): T => structuredClone(value);
@@ -45,7 +42,11 @@ export default function PdfDesignEditor() {
   const [theme, setTheme] = useState<PdfThemeId>(() => resolvePdfTheme(planner.input.pdfTheme).id);
   const [library, setLibrary] = useState<PdfDesignLibrary>(initialPdfDesignLibrary);
   const [drafts, setDrafts] = useState<Drafts>(() => draftsFrom(initialPdfDesignLibrary()));
-  const [group, setGroup] = useState<Group>('Colours');
+  const [page, setPage] = useState<PdfPageId>('cover');
+  const [part, setPart] = useState<StudioPart>('heading');
+  const [previewNumber, setPreviewNumber] = useState(1);
+  const [autoPreview, setAutoPreview] = useState(true);
+  const previewRequest = useRef(0);
   const [connection, setConnection] = useState<'loading' | 'ready' | 'error'>('loading');
   const [loadError, setLoadError] = useState('');
   const [error, setError] = useState('');
@@ -62,7 +63,7 @@ export default function PdfDesignEditor() {
   const dirty = !samePdfDesign(draft, saved.settings);
   const conflict = Boolean(conflicts[theme]);
   const anyDirty = (['original', 'winter'] as const).some(id => !samePdfDesign(drafts[id], library[id].settings));
-  const busy = saving || Boolean(uploading) || generating || connection === 'loading';
+  const busy = saving || Boolean(uploading) || connection === 'loading';
   const activePreview = preview?.settings.theme === theme ? preview : null;
   const previewStale = Boolean(activePreview && !samePdfDesign(activePreview.settings, draft));
   let validation = '';
@@ -96,7 +97,7 @@ export default function PdfDesignEditor() {
   }
   useEffect(() => {
     mounted.current = true; void loadDesigns(true);
-    return () => { mounted.current = false; loadRequest.current++; if (previewUrl.current) URL.revokeObjectURL(previewUrl.current); if (uploadUrl.current) URL.revokeObjectURL(uploadUrl.current); };
+    return () => { mounted.current = false; loadRequest.current++; previewRequest.current++; if (previewUrl.current) URL.revokeObjectURL(previewUrl.current); if (uploadUrl.current) URL.revokeObjectURL(uploadUrl.current); };
   }, []);
   useEffect(() => {
     if (planner.hydrated && !initializedTheme.current) { initializedTheme.current = true; setTheme(resolvePdfTheme(planner.input.pdfTheme).id); }
@@ -124,10 +125,6 @@ export default function PdfDesignEditor() {
 
   function update(next: PdfDesignSettings) { setDrafts(previous => ({ ...previous, [theme]: next })); setNotice(''); setError(''); setConfirmReset(false); }
   function chooseTheme(id: PdfThemeId) { setTheme(id); setNotice(''); setError(''); setConfirmReset(false); setConfirmReload(false); }
-  function setImage(slot: PdfImageSlot, url?: string) {
-    const images = { ...draft.images }; if (url) images[slot] = url; else delete images[slot];
-    update({ ...draft, images });
-  }
   async function upload(slot: PdfImageSlot, file?: File) {
     if (!file || busy) return;
     const target = theme, localUrl = URL.createObjectURL(file);
@@ -172,55 +169,31 @@ export default function PdfDesignEditor() {
   }
   async function generatePreview() {
     if (busy || validation) return;
-    const settings = validatePdfDesign(draft); setGenerating(true); setError('');
+    const settings = validatePdfDesign(draft), request = ++previewRequest.current; setGenerating(true); setError('');
     try {
       const { renderPdfDesignPreview } = await import('@/lib/pdf-design-preview');
       const result = await renderPdfDesignPreview(settings);
-      if (!mounted.current) { URL.revokeObjectURL(result.url); return; }
+      if (!mounted.current || request !== previewRequest.current) { URL.revokeObjectURL(result.url); return; }
       if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
       previewUrl.current = result.url; setPreview({ ...result, settings: clone(settings) });
-    } catch (cause) { if (mounted.current) setError(cause instanceof Error ? cause.message : 'The PDF preview could not be generated.'); }
-    finally { if (mounted.current) setGenerating(false); }
+    } catch (cause) { if (mounted.current && request === previewRequest.current) setError(cause instanceof Error ? cause.message : 'The PDF preview could not be generated.'); }
+    finally { if (mounted.current && request === previewRequest.current) setGenerating(false); }
   }
   function requestReload() { if (anyDirty) setConfirmReload(true); else void loadDesigns(); }
 
-  return <main className={styles.page}>
-    <header className={styles.header}><div><span className={styles.eyebrow}>DOCUMENT STUDIO</span><h1>PDF designs</h1><p>Refine the colours and imagery. Keep the Chakar layout.</p></div><Link href="/">Build your trip</Link></header>
-    <section className={styles.toolbar} aria-label="PDF design selection">
-      <div className={styles.themeTabs} role="group" aria-label="Design to edit">{(['original', 'winter'] as const).map(id => <button type="button" key={id} disabled={busy} aria-pressed={theme === id} className={theme === id ? styles.selectedTheme : ''} onClick={() => chooseTheme(id)}><span className={styles.paletteDots} aria-hidden="true"><i style={{ background: drafts[id].colors.dark }}/><i style={{ background: drafts[id].colors.accent }}/></span>{resolvePdfTheme(id).name}{!samePdfDesign(drafts[id], library[id].settings) && <span className={styles.unsavedDot} aria-label="Unsaved changes"/>}</button>)}</div>
-      <span className={styles.saveStatus} role="status">{connection === 'loading' ? 'Loading saved designs…' : connection === 'error' ? 'Built-in design · not connected' : dirty ? 'Unsaved changes' : saved.revision ? `Saved · revision ${saved.revision}` : 'Built-in design'}</span>
-    </section>
-    {loadError && <div className={styles.alert} role="alert"><div><strong>Saved designs are unavailable</strong><span>{loadError} You can still edit and preview the built-in designs.</span></div><button type="button" disabled={busy} onClick={requestReload}>Reload saved designs</button></div>}
-    {(error || conflict) && <div className={styles.alert} role="alert"><span>{error || 'This design was changed elsewhere. Reload saved designs before saving again.'}</span>{conflict && <button type="button" disabled={busy} onClick={requestReload}>Reload saved designs</button>}</div>}
-    {confirmReload && <div className={styles.confirm} role="alert"><span>Reloading replaces unsaved edits in both themes with the saved designs.</span><div><button type="button" onClick={() => void loadDesigns()}>Replace edits and reload</button><button type="button" onClick={() => setConfirmReload(false)}>Keep editing</button></div></div>}
-    {notice && <p className={styles.notice} role="status"><Check size={15}/>{notice}</p>}
-    <div className={styles.workspace}>
-      <section className={styles.controls} aria-label={`${resolvePdfTheme(theme).name} design settings`}>
-        <div className={styles.controlHeading}><div><span>EDIT DESIGN</span><h2>{resolvePdfTheme(theme).name}</h2></div><Palette size={22} strokeWidth={1.5}/></div>
-        <nav className={styles.sectionTabs} aria-label="Design elements">{groups.map(item => <button type="button" key={item} aria-pressed={group === item} onClick={() => setGroup(item)} className={group === item ? styles.activeSection : ''}>{item}</button>)}</nav>
-        <div className={styles.fields}><h3>{group}</h3>
-          {group === 'Colours' ? <>
-            <p className={styles.hint}>Changes affect accents and dark tones, not the layout or photographs.</p>
-            {([{ key: 'accent', label: 'Accent', hint: 'Highlights and decorative details' }, { key: 'dark', label: 'Deep tone', hint: 'Dark panels and warm ink' }] as const).map(({ key, label, hint }) => <label className={styles.colourField} key={key}><span><strong>{label}</strong><small>{hint}</small></span><span className={styles.colourInputs}><input type="color" aria-label={`${label} colour`} value={/^#[a-f\d]{6}$/i.test(draft.colors[key]) ? draft.colors[key] : defaultPdfDesign(theme).colors[key]} disabled={busy} onChange={event => update({ ...draft, colors: { ...draft.colors, [key]: event.target.value.toUpperCase() } })}/><input type="text" aria-label={`${label} hex colour`} value={draft.colors[key]} spellCheck={false} maxLength={7} disabled={busy} onChange={event => update({ ...draft, colors: { ...draft.colors, [key]: event.target.value.toUpperCase() } })}/></span></label>)}
-            <div className={styles.colourSample} style={{ background: /^#[a-f\d]{6}$/i.test(draft.colors.dark) ? draft.colors.dark : '#19384B' }} aria-label="Colour combination sample"><span style={{ color: /^#[a-f\d]{6}$/i.test(draft.colors.accent) ? draft.colors.accent : '#91B8CB' }}>CHAKAR EXPERIENCE</span><strong>A considered journey.</strong><i style={{ background: /^#[a-f\d]{6}$/i.test(draft.colors.accent) ? draft.colors.accent : '#91B8CB' }}/></div>
-          </> : <>
-            <p className={styles.hint}>{group === 'Branding' ? 'Use a wide, transparent logo. Light and dark pages have separate versions.' : 'Replace individual images. Their frames, captions and page layout stay in place.'}</p>
-            <div className={styles.imageFields}>{pdfImageSlots.filter(slot => slot.section === group).map(slot => {
-              const logo = slot.id === 'logoLight' || slot.id === 'logoDark', originalLogo = slot.id === 'logoLight' ? '/chakar-logo-original-white.png' : '/chakar-logo-original-ink.png';
-              const current = uploading?.slot === slot.id ? uploading.url : draft.images[slot.id] || (logo ? originalLogo : undefined);
-              const defaultImage = defaultPdfDesign(theme).images[slot.id], changed = draft.images[slot.id] !== defaultImage;
-              return <div className={styles.imageField} key={slot.id}><div className={`${styles.thumbnail} ${logo ? styles.logoThumbnail : ''} ${slot.id === 'logoLight' ? styles.darkThumbnail : ''}`}>{current ? <img src={current} alt={`${slot.label} selected image`}/> : <><FileImage size={25} strokeWidth={1.4}/><span>Original image</span></>}{uploading?.slot === slot.id && <span className={styles.uploadShade}><Loader2 size={20} className={styles.spin}/></span>}</div><div className={styles.imageDetail}><label htmlFor={`design-image-${slot.id}`}>{slot.label}</label><small>{slot.ratio}</small><div className={styles.imageActions}><label className={`${styles.uploadButton} ${busy ? styles.disabled : ''}`}><ImagePlus size={14}/>{uploading?.slot === slot.id ? 'Uploading…' : 'Replace'}<input id={`design-image-${slot.id}`} type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; void upload(slot.id, file); }}/></label>{changed && <button type="button" disabled={busy} onClick={() => setImage(slot.id, defaultImage)} aria-label={`Restore ${slot.label} to the theme default`}>Reset</button>}{draft.images[slot.id] && <button type="button" disabled={busy} onClick={() => setImage(slot.id)} aria-label={`Use original artwork for ${slot.label}`}>Original</button>}</div></div></div>;
-            })}</div><p className={styles.fileHint}>JPG, PNG or WebP · up to 12 MB. Uploads are optimised for the PDF.</p>
-          </>}
-          {validation && <p className={styles.validation} role="alert">{validation}</p>}
-        </div>
-        <div className={styles.resetRow}>{confirmReset ? <div className={styles.resetConfirmation}><span>Restore {resolvePdfTheme(theme).name} defaults? This changes the draft only.</span><div><button type="button" onClick={() => update(defaultPdfDesign(theme))}>Restore defaults</button><button type="button" onClick={() => setConfirmReset(false)}>Cancel</button></div></div> : <button type="button" disabled={busy} onClick={() => setConfirmReset(true)}><RotateCcw size={14}/>Restore theme defaults</button>}</div>
-      </section>
-      <section className={styles.preview} aria-labelledby="pdf-design-preview-heading">
-        <header className={styles.previewHeading}><div><h2 id="pdf-design-preview-heading">PDF preview</h2><span>{generating ? 'Preparing the complete document…' : activePreview ? `${activePreview.pageCount} pages · ${previewStale ? 'update preview to see your edits' : 'matches these settings'}` : 'Original structure, editable visual details'}</span></div><button type="button" className={styles.previewButton} disabled={busy || Boolean(validation)} onClick={() => void generatePreview()}>{generating ? <Loader2 size={15} className={styles.spin}/> : <RefreshCw size={15}/>} {generating ? 'Preparing…' : activePreview ? 'Update preview' : 'Generate preview'}</button></header>
-        {activePreview ? <>{previewStale && <div className={styles.stalePreview} role="status">The preview shows your previous settings. Update it to see the latest edits.</div>}<iframe className={styles.pdfFrame} src={`${activePreview.url}#toolbar=1&view=FitH`} title={`${resolvePdfTheme(theme).name} sample PDF preview`}/><div className={styles.previewFoot}><span>Sample itinerary · no trip data is changed</span><a href={activePreview.url} download={`Chakar-${resolvePdfTheme(theme).name}-Design-Preview.pdf`}><Download size={14}/>Download preview</a><a href={activePreview.url} target="_blank" rel="noreferrer">Open PDF</a></div></> : <div className={styles.previewEmpty}><div className={styles.previewPaper}><img src={resolvePdfTheme(theme).preview} alt={`${resolvePdfTheme(theme).name} built-in cover reference`}/></div><div><strong>{resolvePdfTheme(theme).name} cover reference</strong><p>Generate the full PDF to review your colours and uploaded images.</p></div></div>}
-      </section>
-    </div>
-    <footer className={styles.actions}><div><strong>{resolvePdfTheme(theme).name}</strong><span>Save the reusable design, or apply this version to your current trip.</span></div><div className={styles.actionButtons}><button className={styles.secondaryButton} type="button" disabled={busy || Boolean(validation) || !planner.hydrated || applied} onClick={apply}>{applied && <Check size={16}/>} {applied ? 'Applied to trip' : 'Apply to this trip'}</button><button className={styles.primaryButton} type="button" disabled={busy || Boolean(validation) || connection !== 'ready' || conflict || (!dirty && saved.revision > 0)} onClick={() => void save()}>{saving ? <Loader2 size={16} className={styles.spin}/> : <Save size={16}/>} {saving ? 'Saving…' : 'Save design'}</button></div></footer>
-  </main>;
+  useEffect(() => {
+    setGenerating(false);
+    if (!autoPreview || validation || busy) return;
+    const timer = setTimeout(() => void generatePreview(), 1000);
+    return () => { clearTimeout(timer); previewRequest.current++; };
+  }, [draft, theme, validation, autoPreview, busy]);
+
+  return <PdfDesignStudio theme={theme} drafts={drafts} library={library} page={page} part={part} previewNumber={previewNumber}
+    selectPage={(id, number = 1) => { setPage(id); setPreviewNumber(number); }} selectPart={setPart} chooseTheme={chooseTheme} update={update}
+    connection={connection} error={error} loadError={loadError} notice={notice} conflict={conflict} busy={busy} saving={saving}
+    generating={generating} applied={applied} hydrated={planner.hydrated} validation={validation} preview={activePreview || null}
+    previewStale={previewStale} autoPreview={autoPreview} setAutoPreview={setAutoPreview} uploading={uploading}
+    upload={(slot, file) => void upload(slot,file)} generatePreview={() => void generatePreview()} save={() => void save()} apply={apply}
+    reload={requestReload} confirmReload={confirmReload} replaceAndReload={() => void loadDesigns()} cancelReload={() => setConfirmReload(false)}
+    confirmReset={confirmReset} requestReset={() => setConfirmReset(true)} cancelReset={() => setConfirmReset(false)}/>;
 }

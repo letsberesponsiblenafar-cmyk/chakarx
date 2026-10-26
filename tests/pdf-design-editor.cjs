@@ -8,6 +8,9 @@ const React = require('react');
 const root = path.resolve(__dirname, '..');
 const originalResolve = Module._resolveFilename, originalLoad = Module._load;
 let active, planner, previewMode = 'ok';
+const timers = new Map(); let timerId = 0;
+global.setTimeout = callback => { timers.set(++timerId, callback); return timerId; };
+global.clearTimeout = id => timers.delete(id);
 const applied = [], previews = [], requests = [], revoked = [], prepared = [];
 let refreshes = 0, objectId = 0;
 const storage = new Map(), events = new Map();
@@ -35,6 +38,7 @@ Module._load = function(request, parent, isMain) {
       }
     },
   };
+  if (request === '@/components/PdfPageCanvas') return { __esModule: true, default: 'pdf-canvas' };
   if (request === '@/components/PlannerProvider') return { usePlanner: () => planner };
   if (request === '@/lib/pdf-design-preview') return { renderPdfDesignPreview: async settings => {
     previews.push(structuredClone(settings)); if (previewMode === 'error') throw new Error('Artwork could not be loaded.');
@@ -84,7 +88,7 @@ function text(value) {
   if (value && typeof value === 'object') return text(value.props?.children);
   return typeof value === 'string' || typeof value === 'number' ? String(value) : '';
 }
-function render() { active.index = 0; active.effects = []; active.tree = Editor(); const effects = [...active.effects]; effects.forEach(effect => effect()); return active.tree; }
+function render() { active.index = 0; active.effects = []; const element = Editor(); active.tree = element.type(element.props); const effects = [...active.effects]; effects.forEach(effect => effect()); return active.tree; }
 async function settle() { for (let i = 0; i < 5; i++) { await new Promise(resolve => setImmediate(resolve)); render(); } }
 function button(label) { const found = walk(active.tree, value => value.type === 'button' && (value.props['aria-label'] === label || text(value).trim() === label)); assert.equal(found.length, 1, `Find exactly one button: ${label}`); return found[0]; }
 function input(label) { const found = walk(active.tree, value => value.type === 'input' && (value.props['aria-label'] === label || value.props.id === label)); assert.equal(found.length, 1, `Find exactly one input: ${label}`); return found[0]; }
@@ -111,7 +115,7 @@ async function main() {
     assert.equal(button('Save design').props.disabled, true); assert.ok(refreshes > 0);
   });
   await test('edits remain isolated per theme; apply and cloud save are separate actions', async () => {
-    await change('Accent hex colour', '#E3C274'); await click('Winter');
+    await click('Palette'); await change('Accent hex colour', '#E3C274'); await click('Winter');
     assert.equal(input('Accent hex colour').props.value, defaultPdfDesign('winter').colors.accent);
     await change('Accent hex colour', '#A3C7D9'); await click('Original');
     assert.equal(input('Accent hex colour').props.value, '#E3C274');
@@ -126,7 +130,7 @@ async function main() {
     assert.ok(storage.size, 'Drafts are kept in this browser session.');
     assert.ok(events.has('beforeunload'), 'Closing the page warns about unsaved edits.');
     cloud.original.revision += 1;
-    await mount({ keepCloud: true });
+    await mount({ keepCloud: true }); await click('Palette');
     assert.equal(input('Accent hex colour').props.value, '#E3C274');
     assert.equal(button('Save design').props.disabled, true);
     assert.match(text(active.tree), /changed elsewhere/);
@@ -145,25 +149,25 @@ async function main() {
   });
   await test('successful previews use the draft, stay visible when stale, and release old URLs', async () => {
     await click('Generate preview'); assert.equal(previews.at(-1).colors.accent, '#A3C7D9');
-    assert.equal(walk(active.tree, node => node.type === 'iframe').length, 1);
-    assert.match(text(active.tree), /12 pages/);
-    const previous = walk(active.tree, node => node.type === 'iframe')[0].props.src.split('#')[0];
+    assert.equal(walk(active.tree, node => node.type === 'pdf-canvas').length, 1);
+    assert.match(text(active.tree), /1 \/ 12/);
+    const previous = walk(active.tree, node => node.type === 'pdf-canvas')[0].props.url;
     await change('Accent hex colour', '#B7D6E2');
-    assert.match(text(active.tree), /previous settings/);
-    assert.equal(walk(active.tree, node => node.type === 'iframe').length, 1);
+    assert.match(text(active.tree), /Changes pending preview/);
+    assert.equal(walk(active.tree, node => node.type === 'pdf-canvas').length, 1);
     await click('Update preview'); assert.ok(revoked.includes(previous));
     assert.equal(walk(active.tree, node => node.type === 'a' && node.props.download).length, 1);
     previewMode = 'error'; await click('Update preview'); assert.match(text(active.tree), /Artwork could not be loaded/);
-    assert.equal(walk(active.tree, node => node.type === 'iframe').length, 1, 'A preview failure keeps the previous valid PDF.');
+    assert.equal(walk(active.tree, node => node.type === 'pdf-canvas').length, 1, 'A preview failure keeps the previous valid PDF.');
   });
   await test('image upload changes only its slot, keeps transparent logos, and resets safely', async () => {
-    await click('Cover');
+    await click('Edit Cover page'); await click('Images');
     input('design-image-coverMain').props.onChange({ target: { files: [{ name: 'winter.webp', type: 'image/webp', size: 1000 }], value: 'file' } });
     await settle();
     assert.ok(walk(active.tree, node => node.type === 'img' && node.props.src === assetUrl).length);
     assert.equal(prepared.at(-1).type, 'image/jpeg'); assert.ok(prepared.at(-1).width <= 2000);
     assert.equal(cloud.winter.settings.images.coverMain, defaultPdfDesign('winter').images.coverMain, 'Upload does not save the whole theme.');
-    await click('Branding'); input('design-image-logoLight').props.onChange({ target: { files: [{ name: 'logo.png', type: 'image/png', size: 1000 }], value: 'file' } });
+    await click('Header'); input('design-image-logoLight').props.onChange({ target: { files: [{ name: 'logo.png', type: 'image/png', size: 1000 }], value: 'file' } });
     await settle(); assert.equal(prepared.at(-1).type, 'image/png');
     await click('Use original artwork for Logo on dark pages');
     assert.ok(walk(active.tree, node => node.type === 'img' && node.props.src === '/chakar-logo-original-white.png').length);
@@ -176,7 +180,7 @@ async function main() {
     assert.equal(cloud.winter.revision, 0); assert.equal(button('Save design').props.disabled, false);
     putMode = 'conflict'; await click('Save design'); assert.equal(button('Save design').props.disabled, true);
     await click('Restore theme defaults'); assert.match(text(active.tree), /changes the draft only/);
-    await click('Cancel'); await click('Colours'); assert.equal(input('Accent hex colour').props.value, '#B7D6E2');
+    await click('Cancel'); await click('Palette'); assert.equal(input('Accent hex colour').props.value, '#B7D6E2');
     await click('Restore theme defaults'); await click('Restore defaults');
     assert.equal(input('Accent hex colour').props.value, defaultPdfDesign('winter').colors.accent);
     assert.equal(cloud.winter.revision, 0, 'Reset never writes to the database automatically.');
@@ -189,6 +193,19 @@ async function main() {
     active = { hooks: [], index: 0, effects: [] }; render(); await settle();
     assert.match(text(active.tree), /Saved designs are unavailable/); assert.equal(button('Save design').props.disabled, true);
     assert.equal(button('Generate preview').props.disabled, false);
+  });
+  await test('page controls remain isolated and persist without altering an itinerary', async () => {
+    storage.clear(); await mount(); await click('Edit Tour summary page'); await click('Footer');
+    await change('Footer text', 'Chakar Experience');
+    await click('Edit Cover page'); assert.equal(input('Footer text').props.value, '');
+    await click('Edit Tour summary page'); assert.equal(input('Footer text').props.value, 'Chakar Experience');
+    const before = structuredClone(planner.input); await click('Save design');
+    assert.equal(cloud.original.settings.pages.summary.footerText, 'Chakar Experience'); assert.deepEqual(planner.input, before);
+    await mount({keepCloud:true}); await click('Edit Tour summary page'); await click('Footer');
+    assert.equal(input('Footer text').props.value, 'Chakar Experience');
+    const count=previews.length; for (const [id,callback] of [...timers]) { timers.delete(id); callback(); } await settle();
+    assert.ok(previews.length>count, 'Live preview produces a PDF using the latest settings.');
+    assert.equal(previews.at(-1).pages.summary.footerText,'Chakar Experience');
   });
   await test('upload preprocessing rejects unsupported and oversized files before decoding', async () => {
     await assert.rejects(() => preparePdfImageUpload({ type: 'image/svg+xml', size: 100 }), /JPG, PNG or WebP/);

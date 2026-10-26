@@ -7,6 +7,8 @@ const ts = require('typescript');
 const { PDFDocument, PDFDict, PDFName, PDFNumber, PDFRawStream, PDFArray, decodePDFRawStream } = require('pdf-lib');
 const { PDFParse } = require('pdf-parse');
 const root = path.resolve(__dirname, '..');
+const Module = require('node:module'), resolve = Module._resolveFilename;
+Module._resolveFilename = function(request, parent, main, options) { return resolve.call(this, request.startsWith('@/') ? path.join(root, request.slice(2)) : request, parent, main, options); };
 require.extensions['.ts'] = function(module, filename) {
   module._compile(ts.transpileModule(fs.readFileSync(filename, 'utf8'), { fileName: filename, compilerOptions: {
     target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true,

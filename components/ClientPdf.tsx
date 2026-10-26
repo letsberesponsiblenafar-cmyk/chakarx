@@ -19,8 +19,10 @@ import { pdfHotels, pdfHotelName, pdfHotelLocation } from '@/lib/pdf-content';
 import type { Costs, PdfFonts, ActivityLists, ClientPdfPackageQuote } from '@/lib/pdf-types';
 import { resolvePdfTheme } from '@/lib/pdf-themes';
 import { effectivePdfDesign, validatePdfDesign, type PdfDesignSettings, type PdfImageSlot } from '@/lib/pdf-designs';
-import { stylePdfMaster, mapPdfDesignRgb } from '@/lib/pdf-master-style';
+import { stylePdfMaster } from '@/lib/pdf-master-style';
 import { loadPdfDesignAssets } from '@/lib/pdf-render-assets';
+import { pdfPageId, pdfPageDefinition } from '@/lib/pdf-design-pages';
+import { installPdfOverlayStyle } from '@/lib/pdf-overlay-style';
 export { pdfHotels, pdfHotelName, pdfHotelLocation } from '@/lib/pdf-content';
 export type { ClientPdfPackageQuote } from '@/lib/pdf-types';
 
@@ -68,12 +70,13 @@ function artworkPage(doc: jsPDF, data: PdfArt, key: ArtKey, first = false, overr
   if (comparison && !data.vectorBackgrounds) {
     doc.setFillColor(244, 247, 248); doc.rect(0, key === 'package' ? 76 : 185, PAGE_W, PAGE_H, 'F');
   }
-  if (key === 'thanks') return;
+  const pageStyle = data.design?.pages?.[key] || {};
+  if (pageStyle.showLogo === false || key === 'thanks' && pageStyle.showLogo !== true) return;
   const lightArt = key === 'cover' || key === 'letter' || key === 'inclusions' || key === 'exclusions' || key === 'policies' || key === 'testimonials';
   const logo = lightArt ? data.brandWhite : data.brandInk;
   if (!logo) return;
   const left = key === 'cover' || key === 'letter';
-  const width = left ? 115 : 101, x = left ? 18 : PAGE_W - width - 17, y = left ? 8 : 6;
+  const width = (left ? 115 : 101) * (pageStyle.logoScale ?? 1), x = left ? 18 : PAGE_W - width - 17, y = left ? 8 : 6;
   const boxHeight = width * 223 / 593;
   const properties = doc.getImageProperties(logo);
   const scale = Math.min(width / properties.width, boxHeight / properties.height);
@@ -289,18 +292,6 @@ function addClientList(doc: jsPDF, data: PdfArt, key: 'inclusions' | 'exclusions
 }
 export function buildClientPdf(data: PdfArt, plan: Plan, input: TripInput, selections: HotelSelection[], costs: Costs, customerName: string, fonts: PdfFonts, activityLists: ActivityLists = {included:[],excluded:[]}, quote?: CostModel, comparison: readonly ClientPdfPackageQuote[] = []) {
   const doc=new jsPDF({unit:'pt',format:[PAGE_W,PAGE_H],orientation:'portrait',compress:true});
-  if (data.design) {
-    const colors = doc as unknown as Record<'setTextColor' | 'setFillColor' | 'setDrawColor', (...channels: (string | number)[]) => jsPDF>;
-    for (const method of ['setTextColor', 'setFillColor', 'setDrawColor'] as const) {
-      const original = colors[method].bind(doc);
-      colors[method] = (...args) => {
-        if (args.length === 3 && args.every(value => typeof value === 'number')) {
-          return original(...mapPdfDesignRgb(args as [number, number, number], data.design!));
-        }
-        return original(...args);
-      };
-    }
-  }
   pdfArtwork.set(doc, []);
   doc.addFileToVFS('Evolventa-Regular.ttf', fonts.regular);
   doc.addFileToVFS('Evolventa-Bold.ttf', fonts.bold);
@@ -308,6 +299,9 @@ export function buildClientPdf(data: PdfArt, plan: Plan, input: TripInput, selec
   doc.addFont('Evolventa-Regular.ttf', 'evolventa', 'normal');
   doc.addFont('Evolventa-Bold.ttf', 'evolventa', 'bold');
   doc.addFont('RedHatDisplay-400.ttf', 'redhat', 'normal');
+  doc.addFileToVFS('RedHatDisplay-700.ttf', fonts.redhatBold || fonts.cover);
+  doc.addFont('RedHatDisplay-700.ttf', 'redhat', 'bold');
+  if (data.design) installPdfOverlayStyle(doc, data.design, () => clientPdfArtwork(doc));
   const hotels=pdfHotels(plan,selections,input);
   addCover(doc,data,customerName);
   artworkPage(doc,data,'letter');
@@ -332,11 +326,18 @@ export function buildClientPdf(data: PdfArt, plan: Plan, input: TripInput, selec
   if (data.vectorBackgrounds) {
     const pages=clientPdfArtwork(doc);
     pages.forEach(({key},index)=>{
-      if(key==='cover'||key==='thanks')return;
+      const style = data.design?.pages?.[pdfPageId(key)] || {};
+      const showNumber = style.showPageNumber ?? (key !== 'cover' && key !== 'thanks');
+      if (!showNumber && !style.footerText) return;
       doc.setPage(index+1);doc.setFont('evolventa','normal');doc.setFontSize(7);
-      const dark=['letter','inclusions','exclusions','policies','testimonials'].includes(key);
+      const dark=pdfPageDefinition(key).dark;
       doc.setTextColor(...(dark?[255,255,255]:[45,39,31]) as [number,number,number]);
-      doc.text(String(index+1),523,771,{align:'right'});
+      if (style.footerColor) doc.setTextColor(style.footerColor);
+      if (showNumber) doc.text(String(index+1),523,771,{align:'right'});
+      if (style.footerText) {
+        doc.setFontSize(Math.min(7, 7 * 470 / Math.max(1, doc.getTextWidth(style.footerText))));
+        doc.text(style.footerText, 17, 771);
+      }
     });
   }
   return doc;
@@ -349,6 +350,7 @@ export async function buildThemedClientPdf(options: {
   quote?: CostModel; comparison?: readonly ClientPdfPackageQuote[];
   masterBytes?: ArrayBuffer | Uint8Array; manifest?: PdfMasterManifest;
   design?: PdfDesignSettings; resolvedImages?: Partial<Record<PdfImageSlot, string>>;
+  onPages?: (pages: PdfArtworkPage[]) => void;
 }): Promise<Uint8Array<ArrayBuffer>> {
   const { data, plan, input, selections, costs, customerName, fonts, activityLists, quote, comparison = [] } = options;
   const design = validatePdfDesign(options.design || effectivePdfDesign(input));
@@ -359,10 +361,11 @@ export async function buildThemedClientPdf(options: {
   }
   // Both designs share every layout, font, table and pagination rule. Styling
   // changes native colours/photo resources, never replaces pages with bitmaps.
-  const master = await stylePdfMaster(options.masterBytes, design, images);
+  const master = await stylePdfMaster(options.masterBytes, design, images, fonts);
   const art = { ...data, vectorBackgrounds: true, design,
     brandWhite: images.logoLight || data.brandWhite, brandInk: images.logoDark || data.brandInk };
   const doc = buildClientPdf(art,plan,input,selections,costs,customerName,fonts,activityLists,quote,comparison);
+  options.onPages?.(clientPdfArtwork(doc));
   return composeVectorClientPdf(doc.output('arraybuffer'),master,clientPdfArtwork(doc),options.manifest);
 }
 

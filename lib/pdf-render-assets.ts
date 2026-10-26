@@ -19,13 +19,14 @@ async function dataUrl(path: string) {
 let base: Promise<{ masterBytes: ArrayBuffer; manifest: PdfMasterManifest; fonts: PdfFonts; brand: { brandWhite: string; brandInk: string } }> | undefined;
 function baseAssets() {
   if (!base) base = (async () => {
-    const [master, manifest, regular, bold, cover, brandWhite, brandInk] = await Promise.all([
+    const [master, manifest, regular, bold, cover, redhatBold, brandWhite, brandInk] = await Promise.all([
       asset('/pdf-assets/client-master.pdf').then(r => r.arrayBuffer()),
       asset('/pdf-assets/client-master.json').then(r => r.json() as Promise<PdfMasterManifest>),
       dataUrl('/fonts/Evolventa-Regular.ttf'), dataUrl('/fonts/Evolventa-Bold.ttf'), dataUrl('/fonts/RedHatDisplay-400.ttf'),
+      dataUrl('/fonts/RedHatDisplay-700.ttf'),
       dataUrl('/chakar-logo-original-white.png'), dataUrl('/chakar-logo-original-ink.png'),
     ]);
-    return { masterBytes: master, manifest, fonts: { regular: regular.split(',')[1], bold: bold.split(',')[1], cover: cover.split(',')[1] }, brand: { brandWhite, brandInk } };
+    return { masterBytes: master, manifest, fonts: { regular: regular.split(',')[1], bold: bold.split(',')[1], cover: cover.split(',')[1], redhatBold: redhatBold.split(',')[1] }, brand: { brandWhite, brandInk } };
   })().catch(error => { base = undefined; throw error; });
   return base;
 }
